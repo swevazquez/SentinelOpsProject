@@ -8,6 +8,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 
+DEFAULT_ASSET_CONFIG_PATH = Path("data/samples/asset_profiles.csv")
+
 TELEMETRY_FIELDS = [
     "run_id",
     "asset_id",
@@ -36,6 +38,52 @@ DEFAULT_ASSETS = [
     AssetProfile("A-102", 72.0, 2.9, 225.0, 1730, 0.18),
     AssetProfile("A-103", 84.0, 5.2, 248.0, 2675, 0.58),
 ]
+
+
+def load_asset_profiles(config_path: Path) -> list[AssetProfile]:
+    if not config_path.exists():
+        raise FileNotFoundError(f"asset configuration not found: {config_path}")
+
+    with config_path.open(newline="", encoding="utf-8") as config_file:
+        reader = csv.DictReader(config_file)
+        required_fields = {
+            "asset_id",
+            "base_temperature_c",
+            "base_vibration_mm_s",
+            "base_pressure_kpa",
+            "runtime_hours",
+            "failure_risk",
+        }
+        missing_fields = required_fields.difference(reader.fieldnames or [])
+        if missing_fields:
+            missing = ", ".join(sorted(missing_fields))
+            raise ValueError(f"asset configuration missing fields: {missing}")
+
+        profiles = [
+            AssetProfile(
+                asset_id=row["asset_id"],
+                base_temperature_c=float(row["base_temperature_c"]),
+                base_vibration_mm_s=float(row["base_vibration_mm_s"]),
+                base_pressure_kpa=float(row["base_pressure_kpa"]),
+                runtime_hours=int(row["runtime_hours"]),
+                failure_risk=float(row["failure_risk"]),
+            )
+            for row in reader
+        ]
+
+    if not profiles:
+        raise ValueError("asset configuration must include at least one asset")
+
+    invalid_risks = [
+        profile.asset_id
+        for profile in profiles
+        if profile.failure_risk < 0 or profile.failure_risk > 1
+    ]
+    if invalid_risks:
+        assets = ", ".join(invalid_risks)
+        raise ValueError(f"failure_risk must be between 0 and 1 for assets: {assets}")
+
+    return profiles
 
 
 def generate_telemetry(
@@ -102,6 +150,11 @@ def main() -> None:
     parser.add_argument("--hours", type=int, default=24, help="Number of hourly samples per asset.")
     parser.add_argument("--seed", type=int, default=42, help="Deterministic random seed.")
     parser.add_argument(
+        "--asset-config",
+        default=str(DEFAULT_ASSET_CONFIG_PATH),
+        help="CSV file containing representative asset profiles.",
+    )
+    parser.add_argument(
         "--start-time",
         default="2026-05-17T00:00:00Z",
         help="UTC ISO timestamp for the first sample.",
@@ -113,6 +166,7 @@ def main() -> None:
         start_time=parse_utc_datetime(args.start_time),
         hours=args.hours,
         seed=args.seed,
+        assets=load_asset_profiles(Path(args.asset_config)),
     )
     path = write_telemetry_csv(rows, Path(args.output))
     print(f"Generated {len(rows)} telemetry rows at {path}")

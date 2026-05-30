@@ -4,7 +4,7 @@ Sprint 1 establishes the first working SentinelOps vertical slice. The workflow 
 
 ## Workflow Steps
 
-1. `services.simulator.telemetry` generates deterministic hourly telemetry for representative assets.
+1. `services.simulator.telemetry` loads representative asset profiles from `data/samples/asset_profiles.csv` and generates deterministic hourly telemetry.
 2. Raw telemetry is written to `data/raw/telemetry_<run_id>.csv`.
 3. `services.spark_jobs.features` groups raw telemetry by `run_id` and `asset_id`.
 4. Processed features are written to `data/processed/features_<run_id>.csv`.

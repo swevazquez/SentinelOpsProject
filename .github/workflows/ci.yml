@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
   pull_request:
     branches: ["main"]
 
@@ -18,19 +17,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Verify repository scaffold
-        run: |
-          test -f README.md
-          test -f AGENTS.md
-          test -f docker-compose.yml
-          test -d services/api
-          test -d services/agent
-          test -d services/ml
-          test -d services/spark-jobs
-          test -d services/simulator
-          test -d airflow/dags
-          test -d frontend/dashboard
-          test -d tests/unit
+      - name: Run CI validation
+        run: ./scripts/check-ci.sh
 
       - name: Check Jira traceability
         if: github.event_name == 'pull_request'

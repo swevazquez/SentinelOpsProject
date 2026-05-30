@@ -7,4 +7,4 @@ SentinelOps documentation is maintained in Markdown and kept close to the projec
 - `requirements/`: Requirements, user stories, acceptance criteria, and backlog snapshots.
 - `architecture/`: System architecture, interfaces, component responsibilities, and data flows.
 - `diagrams/`: Diagram sources and exported visuals.
-- `development/`: Development workflow notes, including Jira-to-GitHub traceability.
+- `development/`: Development workflow notes, including Jira-to-GitHub traceability and CI validation.

@@ -1,0 +1,5 @@
+asset_id,base_temperature_c,base_vibration_mm_s,base_pressure_kpa,runtime_hours,failure_risk
+A-100,67.5,2.1,214.0,1280,0.08
+A-101,78.0,3.8,236.0,2140,0.32
+A-102,72.0,2.9,225.0,1730,0.18
+A-103,84.0,5.2,248.0,2675,0.58
