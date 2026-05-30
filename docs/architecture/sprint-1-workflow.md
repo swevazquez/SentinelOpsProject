@@ -6,8 +6,8 @@ Sprint 1 establishes the first working SentinelOps vertical slice. The workflow 
 
 1. `services.simulator.telemetry` loads representative asset profiles from `data/samples/asset_profiles.csv` and generates deterministic hourly telemetry.
 2. Raw telemetry rows are validated and persisted to `data/raw/telemetry_<run_id>.csv`.
-3. `services.spark_jobs.features` groups raw telemetry by `run_id` and `asset_id`.
-4. Processed features are written to `data/processed/features_<run_id>.csv`.
+3. `services.spark_jobs.features` validates the raw telemetry contract and groups telemetry by `run_id` and `asset_id`.
+4. Processed feature rows are validated and persisted to `data/processed/features_<run_id>.csv`.
 5. `airflow/dags/sentinelops_sprint1_pipeline.py` coordinates the generation and feature-processing tasks.
 
 ## Raw Telemetry Contract
@@ -33,16 +33,27 @@ Before storage, the simulator verifies that the generated row set is non-empty, 
 
 ## Feature Output Contract
 
+Processed feature storage uses CSV files under `data/processed/`. Each file is named from the source run identifier:
+
+```text
+data/processed/features_<run_id>.csv
+```
+
+Feature processing requires the raw telemetry schema, rejects empty raw input, and creates one feature row per `run_id` and `asset_id`.
+
 | Field | Description |
 |---|---|
 | `run_id` | Source workflow or generation run |
 | `asset_id` | Asset represented by the feature row |
 | `sample_count` | Number of raw telemetry samples used |
+| `first_timestamp` | Earliest source telemetry timestamp for the asset |
+| `last_timestamp` | Latest source telemetry timestamp for the asset |
 | `avg_temperature_c` | Average temperature across samples |
 | `max_temperature_c` | Maximum temperature across samples |
 | `avg_vibration_mm_s` | Average vibration across samples |
 | `max_vibration_mm_s` | Maximum vibration across samples |
 | `avg_pressure_kpa` | Average pressure across samples |
+| `min_runtime_hours` | Minimum observed runtime |
 | `max_runtime_hours` | Maximum observed runtime |
 | `failure_observed` | Whether any source sample had a positive failure label |
 
