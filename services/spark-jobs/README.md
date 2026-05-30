@@ -9,7 +9,7 @@ Sprint 1 uses a lightweight Python feature job so the vertical slice can run loc
 ```bash
 python3 -m services.spark_jobs.features \
   --input data/raw/telemetry_local-run.csv \
-  --output data/processed/features_local-run.csv
+  --processed-dir data/processed
 ```
 
-The job groups raw telemetry by run and asset and writes demonstration-scale feature rows for later predictive scoring.
+The job validates the raw telemetry contract, groups telemetry by run and asset, and writes demonstration-scale feature rows to `data/processed/features_<run_id>.csv` for later predictive scoring.

@@ -16,7 +16,7 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 "$PYTHON_BIN" -m services.spark_jobs.features \
   --input "$RAW_PATH" \
-  --output "$FEATURE_PATH"
+  --processed-dir data/processed
 
 echo "Seeded Sprint 1 data:"
 echo "  raw telemetry: $RAW_PATH"

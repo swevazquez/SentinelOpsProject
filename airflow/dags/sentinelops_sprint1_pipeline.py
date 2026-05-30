@@ -37,16 +37,12 @@ def sentinelops_sprint1_pipeline():
 
     @task
     def engineer_feature_output(raw_path: str) -> str:
-        from services.spark_jobs.features import engineer_features, write_features_csv
+        from services.spark_jobs.features import engineer_features, persist_feature_rows
 
         input_path = Path(raw_path)
-        output_path = PROJECT_ROOT / "data" / "processed" / input_path.name.replace(
-            "telemetry_",
-            "features_",
-        )
         rows = engineer_features(input_path)
-        write_features_csv(rows, output_path)
-        return str(output_path)
+        result = persist_feature_rows(rows, PROJECT_ROOT / "data" / "processed")
+        return str(result.path)
 
     engineer_feature_output(generate_raw_telemetry())
 
