@@ -31,3 +31,10 @@ jobs:
           test -d airflow/dags
           test -d frontend/dashboard
           test -d tests/unit
+
+      - name: Check Jira traceability
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: ./scripts/check-jira-traceability.sh

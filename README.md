@@ -85,3 +85,9 @@ Project documentation is maintained under `docs/`:
 - `docs/diagrams/`
 
 Documentation should be concise, traceable to project decisions, and appropriate for a graduate-level software engineering capstone.
+
+## Jira and GitHub Traceability
+
+Jira is the backlog source for user stories and sprint status. GitHub is the source of implementation evidence through branches, commits, pull requests, and CI checks.
+
+Use Jira keys such as `SCRUM-4` in implementation branch names, pull request titles or bodies, and meaningful commits. See `docs/development/jira-github-traceability.md` for the project workflow and GitHub autolink setup.

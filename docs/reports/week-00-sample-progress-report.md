@@ -1,172 +1,232 @@
 # SentinelOps Weekly Progress Report
 
-> Sample report only. This file previews the weekly report format before Sprint 1 begins and should not be treated as a submitted sprint progress report.
-
-## Report Information
-
 | Field | Value |
 |---|---|
-| Course | SWENG 894 - Software Engineering Capstone Experience |
+| Course | SWENG 894 – Software Engineering Capstone Experience |
 | Project | SentinelOps |
-| Sprint | Pre-Sprint / Planning |
-| Reporting Week | Week 0 Sample |
-| Reporting Window | 2026-05-11 to 2026-05-17 |
 | Student | Eli Vazquez |
-| Report Date | 2026-05-17 |
-| Repository | SentinelOps GitHub repository |
-| Jira Board | https://psu-capstone-sentinelops.atlassian.net/jira/software/projects/SCRUM/boards/1/backlog |
+| Sprint | Sprint X |
+| Reporting Week | Week X |
+| Reporting Period | Monday, Month DD, YYYY – Sunday, Month DD, YYYY |
+| Report Date | Month DD, YYYY |
+| Git Repository | [Insert Repository Link] |
+| Jira Board | [Insert Jira Board Link] |
 
-## Sprint Goal
+---
 
-Sprint 1 has not started yet. The intended Sprint 1 goal is to establish the project foundation for the first predictive maintenance workflow: telemetry generation, raw data storage, initial feature processing, and Airflow-based orchestration.
+# Sprint Goal
 
-The practical objective is to produce a small but traceable vertical slice that can be expanded in later sprints without forcing a redesign of the API, Spark processing, or orchestration boundaries.
+The goal for this sprint is to [briefly describe the sprint objective]. This sprint focuses on [summarize the main development theme, such as environment setup, telemetry ingestion, workflow orchestration, API development, dashboard development, testing, or agent integration].
 
-## Sprint Planning
+---
 
-### Sprint Backlog
+# Sprint Planning
 
-| ID | Requirement / User Story | Priority | Estimate | Status |
+## Groomed Product Backlog Summary
+
+During this reporting period, the product backlog was reviewed to confirm priority, estimation, and sprint alignment. The backlog continues to organize requirements by functional value, technical dependency, implementation risk, and MVP priority.
+
+| ID | Requirement / User Story | Priority | Estimation | Sprint | Current Status |
+|---|---|---|---|---|---|
+| FR-XX | [Requirement Title] | High / Medium / Low | X SP | Sprint X | Planned / In Progress / Done |
+| NFR-XX | [Non-Functional Requirement Title] | High / Medium / Low | X SP | Sprint X | Planned / In Progress / Done |
+
+## Sprint Backlog
+
+The following requirements are included in the current sprint backlog.
+
+| ID | Requirement / User Story | Priority | Estimation | Status |
 |---|---|---|---|---|
-| FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Planned |
-| FR-02 | Raw Telemetry Storage | High | 3 SP | Planned |
-| FR-03 | Feature Engineering Processing | High | 5 SP | Planned |
-| FR-04 | Workflow Orchestration | High | 8 SP | Planned |
-| NFR-01 | Failed Workflow Detection and Reporting | High | Not estimated | Planned |
-| NFR-03 | Component Responsibility Separation | High | Not estimated | Planned |
-| NFR-04 | Repeatable Local Execution | Medium | Not estimated | Planned |
+| FR-XX | [Requirement Title] | High | X SP | Planned / In Progress / Done |
+| NFR-XX | [Requirement Title] | High | X SP | Planned / In Progress / Done |
 
-### Product Backlog Updates
+## Definition of Done
 
-The functional and non-functional requirements have been documented and loaded into Jira. Sprint assignments have been created for four planned sprints, with Sprint 1 focused on telemetry, storage, feature processing, and orchestration foundations.
-
-No implementation-driven backlog changes have occurred yet because the sprint has not started.
-
-### Definition of Done
+The following Definition of Done applies to each sprint backlog item unless otherwise noted.
 
 | Area | Definition of Done Criteria |
 |---|---|
-| Requirements | Acceptance criteria reviewed and updated when implementation clarifies behavior |
-| Design | Architecture notes updated when component boundaries change |
-| Development | Source code implemented, committed, and traceable to a requirement |
-| Testing | Practical validation added for implemented behavior |
-| Documentation | Relevant setup, architecture, or usage documentation updated |
-| Integration | Changes run locally through the intended workflow where feasible |
-| Review | Work checked against acceptance criteria before marking complete |
+| Requirements | Requirement is reviewed and acceptance criteria are documented. |
+| Design | Any affected architecture, data model, workflow, or interface design is updated. |
+| Development | Code is implemented, committed, and aligned with the existing project structure. |
+| Testing | Unit and/or system tests are created or updated for the requirement. |
+| Integration | The change is integrated with related components where applicable. |
+| Documentation | Relevant documentation, comments, or report sections are updated. |
+| Validation | The implementation is validated against acceptance criteria. |
 
-## Acceptance Criteria Review
+## Acceptance Criteria for Sprint Backlog Items
 
-### FR-01 - Telemetry Generation and Ingestion
+| Requirement ID | Acceptance Criteria |
+|---|---|
+| FR-XX | Given [precondition], when [action], then [expected result]. |
+| FR-XX | Given [precondition], when [action], then [expected result]. |
+| NFR-XX | Given [precondition], when [action], then [expected result]. |
 
-| Given | When | Then |
-|---|---|---|
-| The telemetry simulator is configured | A telemetry generation workflow is executed | Representative telemetry data is produced and available for processing |
+---
 
-### FR-02 - Raw Telemetry Storage
+# Backlog Grooming
 
-| Given | When | Then |
-|---|---|---|
-| Telemetry data is generated or ingested | The ingestion workflow completes | Raw telemetry data is persisted in the configured storage location |
+## Backlog Changes This Week
 
-### FR-03 - Feature Engineering Processing
+| Change Type | Requirement ID | Description | Rationale | Impact |
+|---|---|---|---|---|
+| Added / Removed / Updated / Reprioritized | FR-XX | [Describe change] | [Explain reason] | [Architecture, testing, schedule, or scope impact] |
 
-| Given | When | Then |
-|---|---|---|
-| Raw telemetry data exists | The feature engineering workflow executes | Processed feature sets are generated and stored for predictive scoring |
+If no changes occurred, use the following statement:
 
-### FR-04 - Workflow Orchestration
+No significant backlog changes occurred during this reporting period. The current sprint backlog remains aligned with the planned sprint goal and MVP delivery strategy.
 
-| Given | When | Then |
-|---|---|---|
-| Workflow definitions are configured | A workflow is triggered | Telemetry ingestion, processing, scoring, and reporting tasks execute in the defined sequence |
+## Backlog Grooming Rationale
 
-## Source Code Development
+[Provide a short paragraph explaining any backlog changes, reprioritization, estimation changes, scope adjustments, or technical discoveries. Include whether the change impacts architecture, implementation tasks, testing, or sprint delivery.]
 
-### Summary of Contributions
+---
 
-This sample report reflects planning work rather than sprint implementation. Current progress includes documentation structure cleanup, requirements documentation, architecture documentation, Jira backlog creation, and sprint assignment.
+# Source Code Development
 
-No Sprint 1 source-code work is reported here because the sprint has not started.
+## Summary of Contributions
 
-### Repository Information
+During this reporting period, development focused on [summarize the main implementation activity]. The work completed this week contributed to [explain how the work supports sprint goals and requirements].
+
+Key contributions include:
+
+- [Contribution 1]
+- [Contribution 2]
+- [Contribution 3]
+- [Contribution 4]
+
+## Repository Information
 
 | Resource | Link |
 |---|---|
-| Git Repository | SentinelOps GitHub repository |
-| Jira Board | https://psu-capstone-sentinelops.atlassian.net/jira/software/projects/SCRUM/boards/1/backlog |
-| Sprint Board | Jira board Sprint 1 view |
+| Git Repository | [Insert Repository Link] |
+| Jira Board | [Insert Jira Board Link] |
 
-### Important Commits
+## Important Commits
 
-| Commit ID | Description | Related Requirement |
-|---|---|---|
-| cca5e69 | Merge project conception and documentation updates | Documentation |
-| 5a815f0 | Complete project conception documentation | Documentation |
-| fa618ec | Initialize project structure and CONOPS documentation | Documentation |
+| Commit ID | Commit Summary | Related Requirement / User Story | Notes |
+|---|---|---|---|
+| [Commit Hash] | [Commit message or summary] | FR-XX / NFR-XX | [Explain relationship to sprint work] |
+| [Commit Hash] | [Commit message or summary] | FR-XX / NFR-XX | [Explain relationship to sprint work] |
 
-## Burndown Status
+## Burndown Summary
 
-Sprint 1 has not started, so no burndown trend is available yet. The initial sprint backlog contains 21 functional story points plus supporting non-functional requirements related to reliability, maintainability, and local execution.
+[Summarize remaining sprint work, completed effort, and whether progress is on track.]
 
-Once Sprint 1 begins, this section should summarize completed points, remaining points, scope changes, and any delivery risk observed during the reporting window.
+| Metric | Value |
+|---|---|
+| Sprint Total Estimated Effort | X Story Points |
+| Completed Effort | X Story Points |
+| Remaining Effort | X Story Points |
+| Sprint Status | On Track / At Risk / Behind |
 
 ## Burndown Chart
 
-No burndown chart is included in this sample because Sprint 1 has not started.
+Sprint Burndown Chart
 
-## Software Testing
+---
 
-### Testing Overview
+# Software Testing
 
-No implementation tests are reported for this pre-sprint sample. Early Sprint 1 testing should focus on validating telemetry generation, persistence, feature processing, and workflow execution behavior.
+## Testing Overview
 
-### Requirement-to-Test Mapping
+Testing activities this week focused on defining and/or executing test cases for the requirements included in the sprint backlog. Unit and system testing are prioritized, while user acceptance testing may be documented manually when appropriate.
 
-| Requirement ID | Test Case ID | Test Description | Status |
-|---|---|---|---|
-| FR-01 | TC-01 | Validate telemetry generation produces representative asset telemetry | Planned |
-| FR-02 | TC-02 | Validate raw telemetry is persisted after ingestion | Planned |
-| FR-03 | TC-03 | Validate feature processing creates structured feature output | Planned |
-| FR-04 | TC-04 | Validate Airflow workflow executes tasks in the expected sequence | Planned |
-| NFR-04 | TC-05 | Validate the local setup can be repeated from documented instructions | Planned |
+## Requirement-to-Test Traceability Matrix
 
-### Test Case Specifications
+| Requirement ID | Test Case ID | Test Type | Test Objective | Status |
+|---|---|---|---|---|
+| FR-XX | TC-XX-01 | Unit / System / UAT | [Describe test objective] | Planned / Passed / Failed / Blocked |
+| FR-XX | TC-XX-02 | Unit / System / UAT | [Describe test objective] | Planned / Passed / Failed / Blocked |
+| NFR-XX | TC-XX-03 | Unit / System / UAT | [Describe test objective] | Planned / Passed / Failed / Blocked |
 
-#### TC-01 - Validate Telemetry Generation
+## Test Case Specifications
 
-| Field | Description |
-|---|---|
-| Related Requirement | FR-01 |
-| Preconditions | Telemetry simulator configuration exists |
-| Test Steps | Execute the simulator or telemetry generation workflow |
-| Expected Result | Representative telemetry records are generated for sample assets |
-| Status | Planned |
-
-#### TC-04 - Validate Workflow Orchestration
+### TC-XX-01 – [Test Case Name]
 
 | Field | Description |
 |---|---|
-| Related Requirement | FR-04 |
-| Preconditions | Airflow DAG and local services are configured |
-| Test Steps | Trigger the predictive maintenance workflow |
-| Expected Result | Workflow tasks execute in the documented sequence and expose execution status |
-| Status | Planned |
+| Related Requirement | FR-XX / NFR-XX |
+| Test Type | Unit / System / User Acceptance |
+| Preconditions | [Required setup, data, service, or state] |
+| Test Data / Parameters | [Input data, configuration, or variables] |
+| Test Steps | 1. [Step one] 2. [Step two] 3. [Step three] |
+| Expected Result | [Expected output or behavior] |
+| Actual Result | [Result if executed, otherwise “Not yet executed”] |
+| Status | Planned / Passed / Failed / Blocked |
 
-## Risks and Roadblocks
+### TC-XX-02 – [Test Case Name]
 
-- Airflow and Spark integration should be kept intentionally small in Sprint 1 so the first workflow remains demonstrable.
-- The data model for telemetry and processed features may need adjustment after the first implementation pass.
-- Test scope should stay tied to implemented behavior to avoid creating brittle placeholder tests.
+| Field | Description |
+|---|---|
+| Related Requirement | FR-XX / NFR-XX |
+| Test Type | Unit / System / User Acceptance |
+| Preconditions | [Required setup, data, service, or state] |
+| Test Data / Parameters | [Input data, configuration, or variables] |
+| Test Steps | 1. [Step one] 2. [Step two] 3. [Step three] |
+| Expected Result | [Expected output or behavior] |
+| Actual Result | [Result if executed, otherwise “Not yet executed”] |
+| Status | Planned / Passed / Failed / Blocked |
 
-## Planned Activities for Next Week
+### TC-XX-03 – [Test Case Name]
 
-- Confirm Sprint 1 backlog readiness in Jira.
-- Start the telemetry simulator implementation.
-- Define the first raw telemetry storage format.
-- Create the initial feature-processing path.
-- Draft the first Airflow DAG for the telemetry processing workflow.
-- Add practical validation for the first implemented workflow steps.
+| Field | Description |
+|---|---|
+| Related Requirement | FR-XX / NFR-XX |
+| Test Type | Unit / System / User Acceptance |
+| Preconditions | [Required setup, data, service, or state] |
+| Test Data / Parameters | [Input data, configuration, or variables] |
+| Test Steps | 1. [Step one] 2. [Step two] 3. [Step three] |
+| Expected Result | [Expected output or behavior] |
+| Actual Result | [Result if executed, otherwise “Not yet executed”] |
+| Status | Planned / Passed / Failed / Blocked |
 
-## Overall Sprint Assessment
+### TC-XX-04 – [Test Case Name]
 
-The project is ready to enter Sprint 1 planning with a clear backlog and traceable requirements. The highest near-term risk is integration complexity, so the first sprint should prioritize a small end-to-end workflow over broad feature coverage.
+| Field | Description |
+|---|---|
+| Related Requirement | FR-XX / NFR-XX |
+| Test Type | Unit / System / User Acceptance |
+| Preconditions | [Required setup, data, service, or state] |
+| Test Data / Parameters | [Input data, configuration, or variables] |
+| Test Steps | 1. [Step one] 2. [Step two] 3. [Step three] |
+| Expected Result | [Expected output or behavior] |
+| Actual Result | [Result if executed, otherwise “Not yet executed”] |
+| Status | Planned / Passed / Failed / Blocked |
+
+## Testing Summary
+
+[Summarize the testing progress for this week. Include whether tests were planned, implemented, executed, passed, failed, or blocked. Mention any impact to the sprint plan.]
+
+---
+
+# Risks, Roadblocks, and Mitigation
+
+| Risk / Roadblock | Impact | Mitigation / Next Step |
+|---|---|---|
+| [Risk or blocker] | [Schedule, architecture, testing, or implementation impact] | [Planned mitigation] |
+
+If no major blockers occurred, use the following statement:
+
+No significant blockers were encountered during this reporting period. Current risks remain manageable within the planned sprint scope.
+
+---
+
+# Plan for Next Week
+
+Next week’s work will focus on [summarize planned work]. Planned activities include:
+
+- [Planned activity 1]
+- [Planned activity 2]
+- [Planned activity 3]
+- [Planned activity 4]
+
+---
+
+# Overall Sprint Assessment
+
+[Provide a concise assessment of sprint health, current progress, remaining work, and confidence in meeting the sprint goal.]
+
+Example:
+
+Sprint progress is currently [on track / at risk / behind]. The completed work supports the sprint goal by [brief explanation]. Remaining work includes [brief explanation]. The primary focus for the next reporting period is [brief explanation].
