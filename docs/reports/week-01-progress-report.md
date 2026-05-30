@@ -31,8 +31,8 @@ The Sprint 1 backlog was reviewed in Jira and confirmed as the starting scope fo
 | ID | Requirement / User Story | Priority | Estimation | Sprint | Current Status |
 |---|---|---|---|---|---|
 | FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Sprint 1 | Done |
-| FR-02 | Raw Telemetry Storage | High | 3 SP | Sprint 1 | In Progress |
-| FR-03 | Feature Engineering Processing | High | 5 SP | Sprint 1 | To Do |
+| FR-02 | Raw Telemetry Storage | High | 3 SP | Sprint 1 | Done |
+| FR-03 | Feature Engineering Processing | High | 5 SP | Sprint 1 | In Progress |
 | FR-04 | Workflow Orchestration | High | 8 SP | Sprint 1 | To Do |
 | NFR-01 | Failed Workflow Detection and Reporting | High | Not estimated | Sprint 1 | To Do |
 | NFR-03 | Component Responsibility Separation | High | Not estimated | Sprint 1 | To Do |
@@ -43,8 +43,8 @@ The Sprint 1 backlog was reviewed in Jira and confirmed as the starting scope fo
 | ID | Requirement / User Story | Priority | Estimation | Status |
 |---|---|---|---|---|
 | FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Done |
-| FR-02 | Raw Telemetry Storage | High | 3 SP | In Progress |
-| FR-03 | Feature Engineering Processing | High | 5 SP | To Do |
+| FR-02 | Raw Telemetry Storage | High | 3 SP | Done |
+| FR-03 | Feature Engineering Processing | High | 5 SP | In Progress |
 | FR-04 | Workflow Orchestration | High | 8 SP | To Do |
 | NFR-01 | Failed Workflow Detection and Reporting | High | Not estimated | To Do |
 | NFR-03 | Component Responsibility Separation | High | Not estimated | To Do |
@@ -100,6 +100,7 @@ Key contributions include:
 - Added representative asset profile configuration for telemetry generation.
 - Updated the simulator CLI to load and validate configured asset profiles.
 - Added raw telemetry storage validation and persistence to the configured `data/raw/` location.
+- Added feature engineering validation and persistence to the configured `data/processed/` location.
 - Added CI validation for unit tests, Sprint 1 smoke workflow output counts, Airflow DAG syntax, and documentation readability.
 
 ## Repository Information
@@ -119,16 +120,17 @@ Key contributions include:
 | 74579b8 | Add CI validation pipeline | NFR-04 / NFR-09 | Adds local and GitHub Actions validation. |
 | dfeb627 | Run CI on feature branch pushes | NFR-04 | Ensures branch work receives automated feedback before PR merge. |
 | 29b44e1 | Persist raw telemetry output | FR-02 | Adds validated raw telemetry persistence and updates workflow callers. |
+| cd9085b | Validate and persist engineered features | FR-03 | Adds raw input validation, processed feature persistence, and feature contract expansion. |
 
 ## Burndown Summary
 
-Sprint 1 is underway. `FR-01` is complete and `FR-02` is in progress. The project foundation now includes automated validation and an explicit raw telemetry persistence boundary. Remaining work includes feature engineering hardening, Airflow orchestration validation, and failure reporting behavior.
+Sprint 1 is underway. `FR-01` and `FR-02` are complete, and `FR-03` is in progress. The project foundation now includes automated validation, raw telemetry persistence, and processed feature persistence. Remaining work includes Airflow orchestration validation and failure reporting behavior.
 
 | Metric | Value |
 |---|---|
 | Sprint Total Estimated Effort | 21 functional story points plus supporting NFRs |
-| Completed Effort | 5 story points |
-| Remaining Effort | 16 functional story points plus supporting NFRs |
+| Completed Effort | 8 story points |
+| Remaining Effort | 13 functional story points plus supporting NFRs |
 | Sprint Status | On Track |
 
 ## Burndown Chart
@@ -152,6 +154,9 @@ Automated testing was expanded and connected to CI. The project now has unit cov
 | FR-01 | TC-FR01-03 | Unit | Validate invalid asset risk configuration is rejected. | Passed |
 | FR-02 | TC-FR02-01 | Unit | Validate raw telemetry is persisted to the configured storage location. | Passed |
 | FR-02 | TC-FR02-02 | Unit | Validate raw telemetry storage rejects empty or inconsistent run data. | Passed |
+| FR-03 | TC-FR03-01 | Unit | Validate raw telemetry is grouped into asset-level feature rows. | Passed |
+| FR-03 | TC-FR03-02 | Unit | Validate feature rows are persisted to the configured processed storage location. | Passed |
+| FR-03 | TC-FR03-03 | Unit | Validate missing or empty raw telemetry input is rejected. | Passed |
 | NFR-04 | TC-NFR04-01 | CI Smoke | Validate the Sprint 1 local workflow generates expected raw and processed outputs. | Passed |
 | NFR-04 | TC-NFR04-02 | CI | Validate GitHub Actions runs on feature branch pushes and PRs. | Passed |
 
@@ -193,9 +198,21 @@ Automated testing was expanded and connected to CI. The project now has unit cov
 | Actual Result | Passed. |
 | Status | Passed |
 
+### TC-FR03-01 - Feature Engineering Processing
+
+| Field | Description |
+|---|---|
+| Related Requirement | FR-03 |
+| Test Type | Unit |
+| Preconditions | Raw telemetry CSV contains the required telemetry fields. |
+| Test Steps | Run `engineer_features` against raw telemetry input. |
+| Expected Result | The system produces one processed feature row per `run_id` and `asset_id`, including timestamp bounds, aggregate sensor values, runtime bounds, and failure observation. |
+| Actual Result | Passed. |
+| Status | Passed |
+
 ## Testing Summary
 
-Local validation passed with `./scripts/check-ci.sh`. GitHub Actions passed on PR #1, and local validation also passed after the `SCRUM-2` raw telemetry storage implementation.
+Local validation passed with `./scripts/check-ci.sh`. GitHub Actions passed on PR #1 and PR #2, and local validation also passed after the `SCRUM-3` feature engineering implementation.
 
 ---
 
@@ -211,8 +228,8 @@ Local validation passed with `./scripts/check-ci.sh`. GitHub Actions passed on P
 
 Next week’s work will focus on continuing the Sprint 1 vertical slice.
 
-- Complete or merge the `SCRUM-2` raw telemetry storage work.
-- Proceed to `SCRUM-3` feature engineering processing.
+- Complete or merge the `SCRUM-3` feature engineering processing work.
+- Proceed to `SCRUM-4` workflow orchestration.
 - Expand validation evidence as storage and feature processing are refined.
 - Keep Jira, GitHub PRs, commits, and weekly reports aligned.
 
