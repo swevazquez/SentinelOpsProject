@@ -71,6 +71,7 @@ The following Definition of Done applies to each sprint backlog item unless othe
 | Change Type | Requirement ID | Description | Rationale | Impact |
 |---|---|---|---|---|
 | Added / Removed / Updated / Reprioritized | FR-XX | [Describe change] | [Explain reason] | [Architecture, testing, schedule, or scope impact] |
+| Moved earlier | NFR-04 / NFR-09 | Automated CI validation was pulled forward into Sprint 1 planning. | Early telemetry, storage, feature, and workflow work needs repeatable verification before additional services are added. | Adds pipeline work to the first sprint foundation and provides testing evidence for weekly reporting. |
 
 If no changes occurred, use the following statement:
 
@@ -78,7 +79,7 @@ No significant backlog changes occurred during this reporting period. The curren
 
 ## Backlog Grooming Rationale
 
-[Provide a short paragraph explaining any backlog changes, reprioritization, estimation changes, scope adjustments, or technical discoveries. Include whether the change impacts architecture, implementation tasks, testing, or sprint delivery.]
+[Provide a short paragraph explaining any backlog changes, reprioritization, estimation changes, scope adjustments, or technical discoveries. Include whether the change impacts architecture, implementation tasks, testing, or sprint delivery. If automated validation is pulled forward, explain that the change reduces integration risk and supports weekly reporting evidence.]
 
 ---
 
