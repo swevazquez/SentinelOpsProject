@@ -34,9 +34,9 @@ The Sprint 1 backlog was reviewed in Jira and confirmed as the starting scope fo
 | FR-02 | Raw Telemetry Storage | High | 3 SP | Sprint 1 | Done |
 | FR-03 | Feature Engineering Processing | High | 5 SP | Sprint 1 | Done |
 | FR-04 | Workflow Orchestration | High | 8 SP | Sprint 1 | To Do |
-| NFR-01 | Failed Workflow Detection and Reporting | High | Not estimated | Sprint 1 | To Do |
-| NFR-03 | Component Responsibility Separation | High | Not estimated | Sprint 1 | To Do |
-| NFR-04 | Repeatable Local Execution | Medium | Not estimated | Sprint 1 | To Do |
+| NFR-01 | Failed Workflow Detection and Reporting | High | 3 SP | Sprint 1 | To Do |
+| NFR-03 | Component Responsibility Separation | High | 2 SP | Sprint 1 | To Do |
+| NFR-04 | Repeatable Local Execution | Medium | 2 SP | Sprint 1 | To Do |
 
 ## Sprint Backlog
 
@@ -46,9 +46,9 @@ The Sprint 1 backlog was reviewed in Jira and confirmed as the starting scope fo
 | FR-02 | Raw Telemetry Storage | High | 3 SP | Done |
 | FR-03 | Feature Engineering Processing | High | 5 SP | Done |
 | FR-04 | Workflow Orchestration | High | 8 SP | To Do |
-| NFR-01 | Failed Workflow Detection and Reporting | High | Not estimated | To Do |
-| NFR-03 | Component Responsibility Separation | High | Not estimated | To Do |
-| NFR-04 | Repeatable Local Execution | Medium | Not estimated | To Do |
+| NFR-01 | Failed Workflow Detection and Reporting | High | 3 SP | To Do |
+| NFR-03 | Component Responsibility Separation | High | 2 SP | To Do |
+| NFR-04 | Repeatable Local Execution | Medium | 2 SP | To Do |
 
 ## Definition of Done
 
@@ -70,6 +70,9 @@ The Sprint 1 backlog was reviewed in Jira and confirmed as the starting scope fo
 | FR-02 | Given telemetry data is generated or ingested, when the ingestion workflow completes, then the telemetry data shall be persisted in the configured storage location. |
 | FR-03 | Given raw telemetry data exists, when the feature engineering workflow executes, then processed feature sets shall be generated and stored for predictive scoring. |
 | FR-04 | Given workflow definitions are configured, when a workflow is triggered, then telemetry ingestion, processing, scoring, and reporting tasks shall execute in the defined sequence. |
+| NFR-01 | Given workflow execution fails, when workflow status or logs are reviewed, then the failure shall be detectable and reportable. |
+| NFR-03 | Given Sprint 1 implementation work is complete, when the repository structure is reviewed, then API, orchestration, processing, simulator, dashboard, and agent responsibilities shall remain separated. |
+| NFR-04 | Given a clean local checkout, when setup and validation commands are run, then the Sprint 1 workflow shall execute repeatably with documented commands. |
 
 ---
 
@@ -79,11 +82,12 @@ The Sprint 1 backlog was reviewed in Jira and confirmed as the starting scope fo
 
 | Change Type | Requirement ID | Description | Rationale | Impact |
 |---|---|---|---|---|
-| Moved earlier | NFR-04 / NFR-09 | Automated CI validation was pulled forward into Sprint 1 planning. | Early telemetry, storage, feature, and workflow work needs repeatable verification before additional services are added. | Adds pipeline work to the first sprint foundation and provides testing evidence for weekly reporting. |
+| Moved earlier | NFR-04 | Automated CI validation was pulled forward into Sprint 1 planning. | Early telemetry, storage, feature, and workflow work needs repeatable verification before additional services are added. | Adds pipeline work to the first sprint foundation and provides testing evidence for weekly reporting. |
+| Estimated | NFR-01 / NFR-03 / NFR-04 | Sprint 1 NFR stories were assigned story point estimates in Jira. | The NFRs represent real sprint work and should be visible in sprint capacity and burndown tracking. | Sprint 1 estimated scope increased from 21 SP to 28 SP, with 15 SP remaining after Week 1 progress. |
 
 ## Backlog Grooming Rationale
 
-Automated testing and CI validation were pulled forward because the first sprint depends on several connected workflow steps. Establishing branch and pull-request validation now reduces integration risk before additional API, dashboard, prediction, and agent components are added. This supports repeatable local execution and creates concrete evidence for weekly reporting.
+Automated testing and CI validation were pulled forward because the first sprint depends on several connected workflow steps. Establishing branch and pull-request validation now reduces integration risk before additional API, dashboard, prediction, and agent components are added. The Sprint 1 NFRs were also estimated so the burndown reflects the full sprint scope instead of only functional stories.
 
 ---
 
@@ -117,25 +121,26 @@ Key contributions include:
 |---|---|---|---|
 | 3196025 | Add Jira GitHub traceability workflow | NFR-04 | Establishes traceability and reporting support. |
 | d2a174c | Configure telemetry asset generation | FR-01 | Adds configured representative telemetry input. |
-| 74579b8 | Add CI validation pipeline | NFR-04 / NFR-09 | Adds local and GitHub Actions validation. |
+| 74579b8 | Add CI validation pipeline | NFR-04 | Adds local and GitHub Actions validation. |
 | dfeb627 | Run CI on feature branch pushes | NFR-04 | Ensures branch work receives automated feedback before PR merge. |
 | 29b44e1 | Persist raw telemetry output | FR-02 | Adds validated raw telemetry persistence and updates workflow callers. |
 | cd9085b | Validate and persist engineered features | FR-03 | Adds raw input validation, processed feature persistence, and feature contract expansion. |
+| c81a36a | Update Week 1 sprint report burndown | Sprint reporting | Adds the Week 1 burndown chart based on Jira story status. |
 
 ## Burndown Summary
 
-Sprint 1 is underway. `FR-01`, `FR-02`, and `FR-03` are complete. The project foundation now includes automated validation, raw telemetry persistence, and processed feature persistence. Remaining work includes Airflow orchestration validation and failure reporting behavior.
+Sprint 1 is underway. `FR-01`, `FR-02`, and `FR-03` are complete. The project foundation now includes automated validation, raw telemetry persistence, and processed feature persistence. Remaining estimated work includes `FR-04` workflow orchestration, failed workflow detection and reporting, component responsibility verification, and closure of repeatable local execution evidence.
 
 | Metric | Value |
 |---|---|
-| Sprint Total Estimated Effort | 21 functional story points plus supporting NFRs |
+| Sprint Total Estimated Effort | 28 story points |
 | Completed Effort | 13 story points |
-| Remaining Effort | 8 functional story points plus supporting NFRs |
+| Remaining Effort | 15 story points |
 | Sprint Status | On Track |
 
 ## Burndown Chart
 
-Jira issue status was available, but a Jira-generated burndown chart was not available through the current integration tools. The chart below was generated from the Sprint 1 Jira status after `SCRUM-1`, `SCRUM-2`, and `SCRUM-3` were marked done.
+Jira issue status and story point estimates were available, but a Jira-generated burndown chart was not available through the current integration tools. The chart below was generated from the Sprint 1 Jira status after `SCRUM-1`, `SCRUM-2`, and `SCRUM-3` were marked done and after Sprint 1 NFR stories were estimated.
 
 ![Sprint 1 Week 1 Burndown](../images/week-01-burndown.svg)
 
@@ -239,4 +244,4 @@ Next week’s work will focus on continuing the Sprint 1 vertical slice.
 
 # Overall Sprint Assessment
 
-Sprint progress is currently on track. The first story is in progress, the codebase has a CI foundation, and the project now has stronger traceability between Jira, GitHub, tests, and weekly reporting. The main focus remains completing a small working vertical slice rather than expanding scope.
+Sprint progress is currently on track. The first three functional stories are complete, the codebase has a CI foundation, and the project now has stronger traceability between Jira, GitHub, tests, and weekly reporting. The main focus remains completing the Sprint 1 vertical slice and closing the supporting NFR work without expanding scope.
