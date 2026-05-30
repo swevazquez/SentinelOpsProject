@@ -1,0 +1,23 @@
+flowchart LR
+
+Asset -->|produces| Telemetry
+
+    Telemetry -->|transformed into| FeatureSet
+
+    FeatureSet -->|used for| Prediction
+
+    Prediction -->|drives| Recommendation
+
+    ProcessingWorkflow -->|coordinates| FeatureSet
+
+    ProcessingWorkflow -->|triggers| Prediction
+
+    User -->|views| Dashboard
+
+    Dashboard -->|displays| ProcessingWorkflow
+
+    Dashboard -->|displays| Prediction
+
+    Agent -->|queries| ProcessingWorkflow
+
+    Agent -->|explains| Prediction
