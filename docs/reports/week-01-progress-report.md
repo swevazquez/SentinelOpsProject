@@ -30,8 +30,8 @@ The Sprint 1 backlog was reviewed in Jira and confirmed as the starting scope fo
 
 | ID | Requirement / User Story | Priority | Estimation | Sprint | Current Status |
 |---|---|---|---|---|---|
-| FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Sprint 1 | In Progress |
-| FR-02 | Raw Telemetry Storage | High | 3 SP | Sprint 1 | To Do |
+| FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Sprint 1 | Done |
+| FR-02 | Raw Telemetry Storage | High | 3 SP | Sprint 1 | In Progress |
 | FR-03 | Feature Engineering Processing | High | 5 SP | Sprint 1 | To Do |
 | FR-04 | Workflow Orchestration | High | 8 SP | Sprint 1 | To Do |
 | NFR-01 | Failed Workflow Detection and Reporting | High | Not estimated | Sprint 1 | To Do |
@@ -42,8 +42,8 @@ The Sprint 1 backlog was reviewed in Jira and confirmed as the starting scope fo
 
 | ID | Requirement / User Story | Priority | Estimation | Status |
 |---|---|---|---|---|
-| FR-01 | Telemetry Generation and Ingestion | High | 5 SP | In Progress |
-| FR-02 | Raw Telemetry Storage | High | 3 SP | To Do |
+| FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Done |
+| FR-02 | Raw Telemetry Storage | High | 3 SP | In Progress |
 | FR-03 | Feature Engineering Processing | High | 5 SP | To Do |
 | FR-04 | Workflow Orchestration | High | 8 SP | To Do |
 | NFR-01 | Failed Workflow Detection and Reporting | High | Not estimated | To Do |
@@ -99,6 +99,7 @@ Key contributions include:
 - Added pull request traceability checks requiring Jira story keys.
 - Added representative asset profile configuration for telemetry generation.
 - Updated the simulator CLI to load and validate configured asset profiles.
+- Added raw telemetry storage validation and persistence to the configured `data/raw/` location.
 - Added CI validation for unit tests, Sprint 1 smoke workflow output counts, Airflow DAG syntax, and documentation readability.
 
 ## Repository Information
@@ -117,16 +118,17 @@ Key contributions include:
 | d2a174c | Configure telemetry asset generation | FR-01 | Adds configured representative telemetry input. |
 | 74579b8 | Add CI validation pipeline | NFR-04 / NFR-09 | Adds local and GitHub Actions validation. |
 | dfeb627 | Run CI on feature branch pushes | NFR-04 | Ensures branch work receives automated feedback before PR merge. |
+| 29b44e1 | Persist raw telemetry output | FR-02 | Adds validated raw telemetry persistence and updates workflow callers. |
 
 ## Burndown Summary
 
-Sprint 1 is underway. `FR-01` is in progress and the project foundation now includes automated validation. Remaining work includes raw telemetry storage completion, feature engineering hardening, Airflow orchestration validation, and failure reporting behavior.
+Sprint 1 is underway. `FR-01` is complete and `FR-02` is in progress. The project foundation now includes automated validation and an explicit raw telemetry persistence boundary. Remaining work includes feature engineering hardening, Airflow orchestration validation, and failure reporting behavior.
 
 | Metric | Value |
 |---|---|
 | Sprint Total Estimated Effort | 21 functional story points plus supporting NFRs |
-| Completed Effort | 0 story points formally completed |
-| Remaining Effort | 21 functional story points plus supporting NFRs |
+| Completed Effort | 5 story points |
+| Remaining Effort | 16 functional story points plus supporting NFRs |
 | Sprint Status | On Track |
 
 ## Burndown Chart
@@ -148,6 +150,8 @@ Automated testing was expanded and connected to CI. The project now has unit cov
 | FR-01 | TC-FR01-01 | Unit | Validate telemetry generation creates hourly rows for each representative asset. | Passed |
 | FR-01 | TC-FR01-02 | Unit | Validate asset profile configuration is loaded and used by telemetry generation. | Passed |
 | FR-01 | TC-FR01-03 | Unit | Validate invalid asset risk configuration is rejected. | Passed |
+| FR-02 | TC-FR02-01 | Unit | Validate raw telemetry is persisted to the configured storage location. | Passed |
+| FR-02 | TC-FR02-02 | Unit | Validate raw telemetry storage rejects empty or inconsistent run data. | Passed |
 | NFR-04 | TC-NFR04-01 | CI Smoke | Validate the Sprint 1 local workflow generates expected raw and processed outputs. | Passed |
 | NFR-04 | TC-NFR04-02 | CI | Validate GitHub Actions runs on feature branch pushes and PRs. | Passed |
 
@@ -177,9 +181,21 @@ Automated testing was expanded and connected to CI. The project now has unit cov
 | Actual Result | Passed locally and in GitHub Actions. |
 | Status | Passed |
 
+### TC-FR02-01 - Raw Telemetry Storage
+
+| Field | Description |
+|---|---|
+| Related Requirement | FR-02 |
+| Test Type | Unit |
+| Preconditions | Generated telemetry rows exist for a single run. |
+| Test Steps | Persist rows with `persist_raw_telemetry`. |
+| Expected Result | The system creates `telemetry_<run_id>.csv` in the configured storage directory and preserves the raw telemetry schema. |
+| Actual Result | Passed. |
+| Status | Passed |
+
 ## Testing Summary
 
-Local validation passed with `./scripts/check-ci.sh`. GitHub Actions also passed on the `SCRUM-1-telemetry-generation-ingestion` branch and PR #1.
+Local validation passed with `./scripts/check-ci.sh`. GitHub Actions passed on PR #1, and local validation also passed after the `SCRUM-2` raw telemetry storage implementation.
 
 ---
 
@@ -195,8 +211,8 @@ Local validation passed with `./scripts/check-ci.sh`. GitHub Actions also passed
 
 Next week’s work will focus on continuing the Sprint 1 vertical slice.
 
-- Complete or merge the `SCRUM-1` telemetry generation work.
-- Proceed to `SCRUM-2` raw telemetry storage.
+- Complete or merge the `SCRUM-2` raw telemetry storage work.
+- Proceed to `SCRUM-3` feature engineering processing.
 - Expand validation evidence as storage and feature processing are refined.
 - Keep Jira, GitHub PRs, commits, and weekly reports aligned.
 
