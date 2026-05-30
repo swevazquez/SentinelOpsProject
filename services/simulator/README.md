@@ -10,7 +10,9 @@ Generate deterministic representative telemetry:
 python3 -m services.simulator.telemetry \
   --run-id local-run \
   --hours 24 \
+  --asset-config data/samples/asset_profiles.csv \
   --output data/raw/telemetry_local-run.csv
 ```
 
+The simulator reads representative asset profiles from `data/samples/asset_profiles.csv`.
 The output CSV is the raw telemetry handoff for feature engineering.
