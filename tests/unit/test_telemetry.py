@@ -2,12 +2,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+import csv
 
 from services.simulator.telemetry import (
     DEFAULT_ASSETS,
     TELEMETRY_FIELDS,
     generate_telemetry,
     load_asset_profiles,
+    persist_raw_telemetry,
 )
 
 
@@ -82,6 +84,47 @@ class TelemetryGenerationTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "failure_risk"):
                 load_asset_profiles(config_path)
+
+    def test_persist_raw_telemetry_writes_configured_storage_location(self):
+        rows = generate_telemetry(
+            run_id="storage-test",
+            start_time=datetime(2026, 5, 17, tzinfo=UTC),
+            hours=1,
+            seed=7,
+        )
+
+        with TemporaryDirectory() as temp_dir:
+            result = persist_raw_telemetry(rows, Path(temp_dir) / "raw")
+
+            self.assertEqual(result.run_id, "storage-test")
+            self.assertEqual(result.row_count, len(DEFAULT_ASSETS))
+            self.assertEqual(result.path.name, "telemetry_storage-test.csv")
+            self.assertTrue(result.path.exists())
+
+            with result.path.open(newline="", encoding="utf-8") as input_file:
+                reader = csv.DictReader(input_file)
+                stored_rows = list(reader)
+
+        self.assertEqual(reader.fieldnames, TELEMETRY_FIELDS)
+        self.assertEqual(stored_rows, rows)
+
+    def test_persist_raw_telemetry_rejects_empty_rows(self):
+        with TemporaryDirectory() as temp_dir:
+            with self.assertRaisesRegex(ValueError, "at least one row"):
+                persist_raw_telemetry([], Path(temp_dir))
+
+    def test_persist_raw_telemetry_rejects_mixed_run_ids(self):
+        rows = generate_telemetry(
+            run_id="storage-test",
+            start_time=datetime(2026, 5, 17, tzinfo=UTC),
+            hours=1,
+            seed=7,
+        )
+        rows[0] = {**rows[0], "run_id": "other-run"}
+
+        with TemporaryDirectory() as temp_dir:
+            with self.assertRaisesRegex(ValueError, "run_id"):
+                persist_raw_telemetry(rows, Path(temp_dir))
 
 
 if __name__ == "__main__":

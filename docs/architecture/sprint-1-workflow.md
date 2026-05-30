@@ -5,12 +5,20 @@ Sprint 1 establishes the first working SentinelOps vertical slice. The workflow 
 ## Workflow Steps
 
 1. `services.simulator.telemetry` loads representative asset profiles from `data/samples/asset_profiles.csv` and generates deterministic hourly telemetry.
-2. Raw telemetry is written to `data/raw/telemetry_<run_id>.csv`.
+2. Raw telemetry rows are validated and persisted to `data/raw/telemetry_<run_id>.csv`.
 3. `services.spark_jobs.features` groups raw telemetry by `run_id` and `asset_id`.
 4. Processed features are written to `data/processed/features_<run_id>.csv`.
 5. `airflow/dags/sentinelops_sprint1_pipeline.py` coordinates the generation and feature-processing tasks.
 
 ## Raw Telemetry Contract
+
+Raw telemetry storage uses CSV files under `data/raw/`. Each file is named from the workflow or generation run identifier:
+
+```text
+data/raw/telemetry_<run_id>.csv
+```
+
+Before storage, the simulator verifies that the generated row set is non-empty, has a single non-empty `run_id`, and contains all required telemetry fields.
 
 | Field | Description |
 |---|---|

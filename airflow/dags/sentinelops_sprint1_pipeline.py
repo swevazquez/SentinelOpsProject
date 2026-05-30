@@ -24,17 +24,16 @@ if str(PROJECT_ROOT) not in sys.path:
 def sentinelops_sprint1_pipeline():
     @task
     def generate_raw_telemetry() -> str:
-        from services.simulator.telemetry import generate_telemetry, write_telemetry_csv
+        from services.simulator.telemetry import generate_telemetry, persist_raw_telemetry
 
         run_id = datetime.now(UTC).strftime("airflow-%Y%m%dT%H%M%SZ")
-        output_path = PROJECT_ROOT / "data" / "raw" / f"telemetry_{run_id}.csv"
         rows = generate_telemetry(
             run_id=run_id,
             start_time=datetime(2026, 5, 17, tzinfo=UTC),
             hours=24,
         )
-        write_telemetry_csv(rows, output_path)
-        return str(output_path)
+        result = persist_raw_telemetry(rows, PROJECT_ROOT / "data" / "raw")
+        return str(result.path)
 
     @task
     def engineer_feature_output(raw_path: str) -> str:

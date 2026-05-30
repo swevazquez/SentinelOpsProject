@@ -12,7 +12,7 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 "$PYTHON_BIN" -m services.simulator.telemetry \
   --run-id "$RUN_ID" \
   --hours 24 \
-  --output "$RAW_PATH"
+  --raw-dir data/raw
 
 "$PYTHON_BIN" -m services.spark_jobs.features \
   --input "$RAW_PATH" \

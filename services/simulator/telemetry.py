@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 DEFAULT_ASSET_CONFIG_PATH = Path("data/samples/asset_profiles.csv")
+DEFAULT_RAW_STORAGE_DIR = Path("data/raw")
 
 TELEMETRY_FIELDS = [
     "run_id",
@@ -30,6 +31,13 @@ class AssetProfile:
     base_pressure_kpa: float
     runtime_hours: int
     failure_risk: float
+
+
+@dataclass(frozen=True)
+class RawTelemetryStorageResult:
+    path: Path
+    run_id: str
+    row_count: int
 
 
 DEFAULT_ASSETS = [
@@ -126,6 +134,26 @@ def generate_telemetry(
     return rows
 
 
+def _validate_raw_telemetry_rows(rows: list[dict[str, str]]) -> str:
+    if not rows:
+        raise ValueError("raw telemetry storage requires at least one row")
+
+    run_ids = {row.get("run_id", "") for row in rows}
+    if len(run_ids) != 1 or "" in run_ids:
+        raise ValueError("raw telemetry rows must contain exactly one non-empty run_id")
+
+    missing_fields = [
+        field
+        for field in TELEMETRY_FIELDS
+        if any(field not in row or row[field] == "" for row in rows)
+    ]
+    if missing_fields:
+        missing = ", ".join(sorted(missing_fields))
+        raise ValueError(f"raw telemetry rows missing required fields: {missing}")
+
+    return next(iter(run_ids))
+
+
 def write_telemetry_csv(rows: list[dict[str, str]], output_path: Path) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", newline="", encoding="utf-8") as output_file:
@@ -133,6 +161,16 @@ def write_telemetry_csv(rows: list[dict[str, str]], output_path: Path) -> Path:
         writer.writeheader()
         writer.writerows(rows)
     return output_path
+
+
+def persist_raw_telemetry(
+    rows: list[dict[str, str]],
+    storage_dir: Path = DEFAULT_RAW_STORAGE_DIR,
+) -> RawTelemetryStorageResult:
+    run_id = _validate_raw_telemetry_rows(rows)
+    output_path = storage_dir / f"telemetry_{run_id}.csv"
+    path = write_telemetry_csv(rows, output_path)
+    return RawTelemetryStorageResult(path=path, run_id=run_id, row_count=len(rows))
 
 
 def parse_utc_datetime(value: str) -> datetime:
@@ -145,7 +183,12 @@ def parse_utc_datetime(value: str) -> datetime:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate SentinelOps telemetry CSV data.")
-    parser.add_argument("--output", required=True, help="Destination CSV path.")
+    parser.add_argument("--output", help="Explicit destination CSV path.")
+    parser.add_argument(
+        "--raw-dir",
+        default=str(DEFAULT_RAW_STORAGE_DIR),
+        help="Raw telemetry storage directory used when --output is omitted.",
+    )
     parser.add_argument("--run-id", default="local-run", help="Workflow or generation run identifier.")
     parser.add_argument("--hours", type=int, default=24, help="Number of hourly samples per asset.")
     parser.add_argument("--seed", type=int, default=42, help="Deterministic random seed.")
@@ -168,8 +211,14 @@ def main() -> None:
         seed=args.seed,
         assets=load_asset_profiles(Path(args.asset_config)),
     )
-    path = write_telemetry_csv(rows, Path(args.output))
-    print(f"Generated {len(rows)} telemetry rows at {path}")
+    if args.output:
+        _validate_raw_telemetry_rows(rows)
+        path = write_telemetry_csv(rows, Path(args.output))
+        print(f"Generated {len(rows)} telemetry rows at {path}")
+        return
+
+    result = persist_raw_telemetry(rows, Path(args.raw_dir))
+    print(f"Persisted {result.row_count} telemetry rows at {result.path}")
 
 
 if __name__ == "__main__":

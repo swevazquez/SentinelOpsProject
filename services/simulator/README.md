@@ -11,8 +11,8 @@ python3 -m services.simulator.telemetry \
   --run-id local-run \
   --hours 24 \
   --asset-config data/samples/asset_profiles.csv \
-  --output data/raw/telemetry_local-run.csv
+  --raw-dir data/raw
 ```
 
 The simulator reads representative asset profiles from `data/samples/asset_profiles.csv`.
-The output CSV is the raw telemetry handoff for feature engineering.
+The output CSV is persisted as `data/raw/telemetry_<run_id>.csv` and becomes the raw telemetry handoff for feature engineering.
