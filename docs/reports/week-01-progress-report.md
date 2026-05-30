@@ -32,7 +32,7 @@ The Sprint 1 backlog was reviewed in Jira and confirmed as the starting scope fo
 |---|---|---|---|---|---|
 | FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Sprint 1 | Done |
 | FR-02 | Raw Telemetry Storage | High | 3 SP | Sprint 1 | Done |
-| FR-03 | Feature Engineering Processing | High | 5 SP | Sprint 1 | In Progress |
+| FR-03 | Feature Engineering Processing | High | 5 SP | Sprint 1 | Done |
 | FR-04 | Workflow Orchestration | High | 8 SP | Sprint 1 | To Do |
 | NFR-01 | Failed Workflow Detection and Reporting | High | Not estimated | Sprint 1 | To Do |
 | NFR-03 | Component Responsibility Separation | High | Not estimated | Sprint 1 | To Do |
@@ -44,7 +44,7 @@ The Sprint 1 backlog was reviewed in Jira and confirmed as the starting scope fo
 |---|---|---|---|---|
 | FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Done |
 | FR-02 | Raw Telemetry Storage | High | 3 SP | Done |
-| FR-03 | Feature Engineering Processing | High | 5 SP | In Progress |
+| FR-03 | Feature Engineering Processing | High | 5 SP | Done |
 | FR-04 | Workflow Orchestration | High | 8 SP | To Do |
 | NFR-01 | Failed Workflow Detection and Reporting | High | Not estimated | To Do |
 | NFR-03 | Component Responsibility Separation | High | Not estimated | To Do |
@@ -109,7 +109,7 @@ Key contributions include:
 |---|---|
 | Git Repository | <https://github.com/swevazquez/SentinelOpsProject> |
 | Jira Board | <https://psu-capstone-sentinelops.atlassian.net/jira/software/projects/SCRUM/boards/1/backlog> |
-| Pull Request | <https://github.com/swevazquez/SentinelOpsProject/pull/1> |
+| Pull Requests | <https://github.com/swevazquez/SentinelOpsProject/pull/1>, <https://github.com/swevazquez/SentinelOpsProject/pull/2>, <https://github.com/swevazquez/SentinelOpsProject/pull/3> |
 
 ## Important Commits
 
@@ -124,18 +124,20 @@ Key contributions include:
 
 ## Burndown Summary
 
-Sprint 1 is underway. `FR-01` and `FR-02` are complete, and `FR-03` is in progress. The project foundation now includes automated validation, raw telemetry persistence, and processed feature persistence. Remaining work includes Airflow orchestration validation and failure reporting behavior.
+Sprint 1 is underway. `FR-01`, `FR-02`, and `FR-03` are complete. The project foundation now includes automated validation, raw telemetry persistence, and processed feature persistence. Remaining work includes Airflow orchestration validation and failure reporting behavior.
 
 | Metric | Value |
 |---|---|
 | Sprint Total Estimated Effort | 21 functional story points plus supporting NFRs |
-| Completed Effort | 8 story points |
-| Remaining Effort | 13 functional story points plus supporting NFRs |
+| Completed Effort | 13 story points |
+| Remaining Effort | 8 functional story points plus supporting NFRs |
 | Sprint Status | On Track |
 
 ## Burndown Chart
 
-No burndown chart is included for this first weekly report.
+Jira issue status was available, but a Jira-generated burndown chart was not available through the current integration tools. The chart below was generated from the Sprint 1 Jira status after `SCRUM-1`, `SCRUM-2`, and `SCRUM-3` were marked done.
+
+![Sprint 1 Week 1 Burndown](../images/week-01-burndown.svg)
 
 ---
 
@@ -212,7 +214,7 @@ Automated testing was expanded and connected to CI. The project now has unit cov
 
 ## Testing Summary
 
-Local validation passed with `./scripts/check-ci.sh`. GitHub Actions passed on PR #1 and PR #2, and local validation also passed after the `SCRUM-3` feature engineering implementation.
+Local validation passed with `./scripts/check-ci.sh`. GitHub Actions passed on PR #1, PR #2, and PR #3.
 
 ---
 
@@ -228,8 +230,8 @@ Local validation passed with `./scripts/check-ci.sh`. GitHub Actions passed on P
 
 Next week’s work will focus on continuing the Sprint 1 vertical slice.
 
-- Complete or merge the `SCRUM-3` feature engineering processing work.
 - Proceed to `SCRUM-4` workflow orchestration.
+- Add workflow failure visibility as part of `NFR-01`.
 - Expand validation evidence as storage and feature processing are refined.
 - Keep Jira, GitHub PRs, commits, and weekly reports aligned.
 
