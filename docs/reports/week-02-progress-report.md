@@ -36,11 +36,11 @@ states, and expected API dependencies are explicit.
 | SCRUM-1 / FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Sprint 1 | Done |
 | SCRUM-2 / FR-02 | Raw Telemetry Storage | High | 3 SP | Sprint 1 | Done |
 | SCRUM-3 / FR-03 | Feature Engineering Processing | High | 5 SP | Sprint 1 | Done |
-| SCRUM-4 / FR-04 | Workflow Orchestration | High | 8 SP | Sprint 1 | To Do |
+| SCRUM-4 / FR-04 | Workflow Orchestration | High | 8 SP | Sprint 1 | In Progress |
 | SCRUM-17 / NFR-01 | Failed Workflow Detection and Reporting | High | 3 SP | Sprint 1 | To Do |
 | SCRUM-19 / NFR-03 | Component Responsibility Separation | High | 2 SP | Sprint 1 | To Do |
 | SCRUM-20 / NFR-04 | Repeatable Local Execution | Medium | 2 SP | Sprint 1 | To Do |
-| SCRUM-27 / UX-01 | Operational Dashboard Wireframe | High | 3 SP | Sprint 1 | In Review |
+| SCRUM-27 / UX-01 | Operational Dashboard Wireframe | High | 3 SP | Sprint 1 | Done |
 
 ## Sprint Backlog
 
@@ -49,11 +49,11 @@ states, and expected API dependencies are explicit.
 | SCRUM-1 / FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Done |
 | SCRUM-2 / FR-02 | Raw Telemetry Storage | High | 3 SP | Done |
 | SCRUM-3 / FR-03 | Feature Engineering Processing | High | 5 SP | Done |
-| SCRUM-4 / FR-04 | Workflow Orchestration | High | 8 SP | To Do |
+| SCRUM-4 / FR-04 | Workflow Orchestration | High | 8 SP | In Progress |
 | SCRUM-17 / NFR-01 | Failed Workflow Detection and Reporting | High | 3 SP | To Do |
 | SCRUM-19 / NFR-03 | Component Responsibility Separation | High | 2 SP | To Do |
 | SCRUM-20 / NFR-04 | Repeatable Local Execution | Medium | 2 SP | To Do |
-| SCRUM-27 / UX-01 | Operational Dashboard Wireframe | High | 3 SP | In Review |
+| SCRUM-27 / UX-01 | Operational Dashboard Wireframe | High | 3 SP | Done |
 
 ## Definition of Done
 
@@ -72,6 +72,9 @@ states, and expected API dependencies are explicit.
 | Requirement ID | Acceptance Criteria |
 |---|---|
 | SCRUM-4 / FR-04 | Given the Sprint 1 Airflow workflow is configured, when triggered, telemetry generation, raw persistence, feature engineering, and processed-feature persistence execute in order. |
+| SCRUM-4 / FR-04 | Given the workflow completes successfully, when output artifacts are inspected, validated raw and processed files exist and share the workflow run identifier. |
+| SCRUM-4 / FR-04 | Given the workflow definition is validated, when automated tests and the local validation command run, task dependency order and workflow outputs are verified. |
+| SCRUM-4 / FR-04 | Given a clean checkout with documented prerequisites, when the documented workflow commands are followed, the Sprint 1 workflow executes repeatably. |
 | SCRUM-27 / UX-01 | Given project stakeholders and requirements, when the wireframes are reviewed, asset health, workflow status, maintenance priority, and prediction summaries have a clear hierarchy. |
 | SCRUM-27 / UX-01 | Given data may be incomplete, when alternate states are reviewed, loading, empty, failed, unavailable, and permission-required behavior is defined. |
 | SCRUM-27 / UX-01 | Given Sprint 2 requires backend integration, when design annotations are reviewed, major panels identify user purpose and expected API or data sources. |
@@ -103,8 +106,8 @@ without claiming production frontend implementation.
 
 ## Summary of Contributions
 
-Week 2 work focused on reporting quality, dashboard design, and requirements
-traceability.
+Week 2 work focused on reporting quality, dashboard design, requirements traceability,
+and executable workflow orchestration.
 
 Key contributions include:
 
@@ -117,6 +120,11 @@ Key contributions include:
 - Documented stakeholder needs, design rationale, alternate states, API/data
   dependencies, and traceability to SCRUM-10 / FR-10.
 - Reviewed rendered wireframes and corrected title, button-label, and panel clipping.
+- Added a reusable Sprint 1 workflow module shared by Airflow and local execution.
+- Added integration tests for task order, artifact persistence, and workflow run-ID
+  consistency.
+- Executed the DAG through Airflow and reproduced setup and workflow validation from
+  a fresh checkout.
 
 ## Repository Information
 
@@ -126,6 +134,8 @@ Key contributions include:
 | Jira Board | <https://psu-capstone-sentinelops.atlassian.net/jira/software/projects/SCRUM/boards/1/backlog> |
 | SCRUM-27 | <https://psu-capstone-sentinelops.atlassian.net/browse/SCRUM-27> |
 | SCRUM-10 | <https://psu-capstone-sentinelops.atlassian.net/browse/SCRUM-10> |
+| SCRUM-4 | <https://psu-capstone-sentinelops.atlassian.net/browse/SCRUM-4> |
+| Pull Requests | <https://github.com/swevazquez/SentinelOpsProject/pull/4>, <https://github.com/swevazquez/SentinelOpsProject/pull/5> |
 
 ## Important Commits
 
@@ -133,6 +143,8 @@ Key contributions include:
 |---|---|---|---|
 | [`acf0220`](https://github.com/swevazquez/SentinelOpsProject/commit/acf02208db9c24df9a580423b9c4f9c2d3274802) | Improve weekly report test specifications | SCRUM-20 / NFR-04 | Implements professor feedback for reproducible tests and direct commit traceability. |
 | [`c075ea1`](https://github.com/swevazquez/SentinelOpsProject/commit/c075ea1f0080963e174dd999152577dd9ea38db8) | Add operational dashboard wireframes | SCRUM-27 / UX-01 | Adds editable sources, rendered images, design rationale, data dependencies, and requirement traceability. |
+| [`f0c9c55`](https://github.com/swevazquez/SentinelOpsProject/commit/f0c9c55dba8850e1c09525de4bca0b1a0d1e3331) | Refine wireframe review instructions | SCRUM-27 / UX-01 | Reframes wireframe validation as a reviewer-facing inspection of committed artifacts. |
+| [`b0f25e9`](https://github.com/swevazquez/SentinelOpsProject/commit/b0f25e9e18764d2316104faa58508ad0cb6cebd9) | Implement Sprint 1 workflow orchestration | SCRUM-4 / FR-04 | Adds shared orchestration, Airflow delegation, local execution, integration tests, and workflow documentation. |
 
 ## Dashboard Wireframe Evidence
 
@@ -140,22 +152,24 @@ Key contributions include:
 
 ## Burndown Summary
 
-Sprint scope increased by 3 points when SCRUM-27 was added. The wireframe story is
-implemented on its feature branch and remains in review until its pull request is
-accepted. Jira continues to count 13 completed points until that closure.
+Sprint scope increased by 3 points when SCRUM-27 was added. SCRUM-27 is complete
+after PR #4 merged. SCRUM-4 is implemented in PR #5 and remains In Progress while
+acceptance evidence and report updates are completed.
 
 | Metric | Value |
 |---|---|
 | Sprint Total Estimated Effort | 31 story points |
-| Completed Effort | 13 story points |
-| In Review | 3 story points |
-| Remaining To Do | 15 story points |
+| Completed Effort | 16 story points |
+| In Progress | 8 story points |
+| Remaining To Do | 7 story points |
 | Sprint Status | At Risk |
 
 ## Burndown Chart
 
-The Sprint 1 burndown will be regenerated after SCRUM-27 review so the chart reflects
-the accepted story status rather than counting in-review work as completed.
+The chart reflects the 31-point Sprint 1 scope after SCRUM-27 was added and marked
+Done. SCRUM-4 remains In Progress and is therefore counted as remaining work.
+
+![Sprint 1 Week 2 Burndown](../images/reports/week-02-burndown.svg)
 
 ---
 
@@ -166,7 +180,9 @@ the accepted story status rather than counting in-review work as completed.
 Testing this week included repository regression validation, structural validation of
 the Excalidraw scene files, image-dimension checks, and visual review of the exported
 PNG wireframes for clipping, overlapping elements, information hierarchy, and clear
-operational actions.
+operational actions. Workflow testing also verified the shared orchestration sequence,
+Airflow task execution, persisted output contracts, and repeatable execution from a
+fresh checkout.
 
 ## Requirement-to-Test Traceability Matrix
 
@@ -174,6 +190,9 @@ operational actions.
 |---|---|---|---|---|
 | SCRUM-27 / UX-01 | TC-UX01-01 | Design Review / UAT | Verify the exported wireframes communicate the intended operational hierarchy without clipping or ambiguous controls. | Passed |
 | SCRUM-27 / UX-01 | TC-UX01-02 | Structural | Verify Excalidraw scenes and exported PNG evidence are complete and valid. | Passed |
+| SCRUM-4 / FR-04 | TC-FR04-01 | Integration | Verify raw persistence occurs before feature processing and both artifacts share one workflow run ID. | Passed |
+| SCRUM-4 / FR-04 | TC-FR04-02 | System | Execute the decorated task graph through Airflow and verify successful task states and persisted artifacts. | Passed |
+| SCRUM-4 / FR-04 | TC-FR04-03 | System | Verify documented setup, workflow, integration tests, and regression checks from a fresh checkout. | Passed |
 | SCRUM-20 / NFR-04 | TC-NFR04-03 | Regression / CI | Verify documentation changes do not break the existing Sprint 1 validation workflow. | Passed |
 
 ## Test Case Specifications
@@ -266,6 +285,138 @@ operational actions.
 | 4 | The export index mapped each image to its source. | Passed |
 | 5 | Results were recorded in the Week 2 report. | Passed |
 
+### TC-FR04-01 - Workflow Sequence and Artifact Contract
+
+| Field | Description |
+|---|---|
+| Related Requirement | SCRUM-4 / FR-04 |
+| Test Type | Integration |
+| Objective | Verify that raw telemetry is persisted before feature processing and that both output artifacts retain one workflow run ID. |
+| Preconditions | Repository checkout on the SCRUM-4 branch; Python 3.12 or later; no Airflow service required. |
+| Test Data / Parameters | Two temporary asset profiles, run ID `integration-run`, three hourly samples, deterministic seed `7`. |
+| Execution Environment | Local Python standard-library test runner. |
+| Expected Final Result | Raw persistence precedes feature processing; 6 raw rows and 2 feature rows are stored; output filenames and records use `integration-run`; mismatched run IDs are rejected. |
+| Actual Result | Three integration tests passed and verified task order, persisted paths, row counts, asset IDs, and run-ID consistency. |
+| Evidence | `tests/integration/test_sprint1_workflow.py` and commit [`b0f25e9`](https://github.com/swevazquez/SentinelOpsProject/commit/b0f25e9e18764d2316104faa58508ad0cb6cebd9). |
+| Cleanup / Reset | Temporary test directories are removed automatically by the test runner. |
+| Status | Passed |
+
+#### Execution Steps
+
+1. Start from the repository root and review the orchestration integration tests.
+   - Command or action: Open `tests/integration/test_sprint1_workflow.py`.
+   - Expected result: Tests cover persisted artifacts, ordered execution, and rejection of mismatched run IDs.
+2. Execute the orchestration integration tests.
+   - Command or action: `python3 -m unittest tests.integration.test_sprint1_workflow -v`
+   - Expected result: Three named tests execute.
+3. Review the successful-workflow test result.
+   - Command or action: Confirm `test_workflow_persists_raw_and_feature_artifacts_for_one_run` passes.
+   - Expected result: The test verifies 6 raw rows, 2 feature rows, expected filenames, two assets, and one run ID.
+4. Review the dependency-order and run-ID protection results.
+   - Command or action: Confirm the order and mismatched-run-ID tests pass.
+   - Expected result: Feature processing receives the persisted raw path after raw storage, and inconsistent run IDs raise an error.
+5. Record the test summary.
+   - Command or action: Confirm the test runner reports `Ran 3 tests` and `OK`.
+   - Expected result: The integration contract is verified without failures.
+
+#### Step Results
+
+| Step | Actual Result | Status |
+|---|---|---|
+| 1 | The test module contained all three required orchestration checks. | Passed |
+| 2 | Three integration tests executed. | Passed |
+| 3 | Artifact paths, row counts, asset IDs, and run ID matched expectations. | Passed |
+| 4 | Task order was preserved and inconsistent run IDs were rejected. | Passed |
+| 5 | The runner reported three passing tests. | Passed |
+
+### TC-FR04-02 - Airflow DAG Execution
+
+| Field | Description |
+|---|---|
+| Related Requirement | SCRUM-4 / FR-04 |
+| Test Type | System |
+| Objective | Execute the decorated Sprint 1 task graph through Airflow and verify task order, successful states, and persisted artifacts. |
+| Preconditions | Repository root; `.env` created through `./scripts/setup.sh`; Docker and Docker Compose available. |
+| Test Data / Parameters | DAG `sentinelops_sprint1_pipeline`; review date `2026-06-06T12:00:00+00:00`; configured four-asset sample file. |
+| Execution Environment | Apache Airflow 2.10.5 and PostgreSQL 16 through Docker Compose. |
+| Expected Final Result | Airflow loads the DAG, runs `generate_raw_telemetry` before `engineer_feature_output`, marks both tasks and the DAG run successful, and persists 96 raw rows plus 4 feature rows under one run ID. |
+| Actual Result | Airflow loaded the DAG and completed both task instances in order with `success` states. The DAG run succeeded and generated the expected raw and processed artifacts with run ID `airflow-20260606T174045Z`. |
+| Evidence | Airflow task-state output, generated files under `data/raw/` and `data/processed/`, and the verification procedure in `docs/architecture/sprint-1-workflow.md`. |
+| Cleanup / Reset | Run `docker compose down` after review. Generated data remains ignored by Git. |
+| Status | Passed |
+
+#### Execution Steps
+
+1. Prepare and start the workflow services.
+   - Command or action: `./scripts/setup.sh` followed by `docker compose up -d postgres airflow`
+   - Expected result: PostgreSQL becomes healthy and the Airflow container starts.
+2. Confirm the DAG is available.
+   - Command or action: `docker compose exec -T airflow airflow dags list | grep sentinelops_sprint1_pipeline`
+   - Expected result: Airflow lists `sentinelops_sprint1_pipeline`.
+3. Execute the task graph through Airflow.
+   - Command or action: `docker compose exec -T airflow airflow dags test sentinelops_sprint1_pipeline 2026-06-06T12:00:00+00:00`
+   - Expected result: Raw telemetry runs first, feature processing runs second, and the DAG run finishes successfully.
+4. Verify task states and output artifacts.
+   - Command or action: Review Airflow task states and inspect the matching files under `data/raw/` and `data/processed/`.
+   - Expected result: Both tasks report `success`; raw output has 97 CSV lines, processed output has 5 CSV lines, and both use the same run ID.
+5. Stop the review services.
+   - Command or action: `docker compose down`
+   - Expected result: Airflow and PostgreSQL containers are stopped and removed.
+
+#### Step Results
+
+| Step | Actual Result | Status |
+|---|---|---|
+| 1 | PostgreSQL became healthy and Airflow started. | Passed |
+| 2 | Airflow listed the Sprint 1 DAG. | Passed |
+| 3 | Airflow ran both tasks in dependency order and marked the DAG run successful. | Passed |
+| 4 | Both task states were successful; artifacts contained 96 raw rows and 4 feature rows with the same run ID. | Passed |
+| 5 | Temporary containers and the compose network were removed. | Passed |
+
+### TC-FR04-03 - Fresh Checkout Workflow Reproduction
+
+| Field | Description |
+|---|---|
+| Related Requirement | SCRUM-4 / FR-04 |
+| Test Type | System |
+| Objective | Verify that the documented setup, workflow, integration-test, and regression commands succeed from a fresh checkout. |
+| Preconditions | Git, Python 3.12 or later, and access to the SCRUM-4 branch. |
+| Test Data / Parameters | Fresh clone of `SCRUM-4-workflow-orchestration`; run ID `clean-checkout`. |
+| Execution Environment | New temporary directory with no files copied from the existing working tree. |
+| Expected Final Result | Setup creates local configuration, the workflow persists 96 raw rows and 4 feature rows, three integration tests pass, and the complete regression gate passes 16 tests. |
+| Actual Result | Every documented command completed successfully from the fresh clone with the expected artifacts and test counts. |
+| Evidence | Console results recorded in this report and the commands documented in `README.md` and `docs/architecture/sprint-1-workflow.md`. |
+| Cleanup / Reset | Remove the temporary checkout after evidence is recorded. |
+| Status | Passed |
+
+#### Execution Steps
+
+1. Clone the SCRUM-4 branch into a new temporary directory.
+   - Command or action: `git clone --branch SCRUM-4-workflow-orchestration --single-branch https://github.com/swevazquez/SentinelOpsProject.git repo`
+   - Expected result: A new `repo/` checkout contains only committed branch content.
+2. Prepare the documented local configuration.
+   - Command or action: From `repo/`, run `cp .env.example .env && ./scripts/setup.sh`.
+   - Expected result: Setup completes and required data directories exist.
+3. Execute the documented workflow.
+   - Command or action: `./scripts/seed-data.sh clean-checkout`
+   - Expected result: The command creates 96 raw rows and 4 feature rows using run ID `clean-checkout`.
+4. Execute focused and complete validation.
+   - Command or action: `python3 -m unittest tests.integration.test_sprint1_workflow -v` followed by `./scripts/check-ci.sh`.
+   - Expected result: Three integration tests pass, then the complete gate passes 16 tests and validates workflow outputs and DAG syntax.
+5. Review and remove the temporary checkout.
+   - Command or action: Confirm generated artifacts and test summaries, then delete the temporary directory.
+   - Expected result: Reproduction evidence is recorded and no temporary checkout remains.
+
+#### Step Results
+
+| Step | Actual Result | Status |
+|---|---|---|
+| 1 | The branch cloned successfully into a new temporary directory. | Passed |
+| 2 | Setup completed from committed files. | Passed |
+| 3 | The workflow produced 96 raw rows and 4 feature rows. | Passed |
+| 4 | Three integration tests and all 16 regression tests passed. | Passed |
+| 5 | Evidence was recorded; the temporary checkout can be removed without affecting the project workspace. | Passed |
+
 ### TC-NFR04-03 - Repository Regression Validation
 
 | Field | Description |
@@ -277,8 +428,8 @@ operational actions.
 | Test Data / Parameters | Default `RUN_ID=ci-smoke`; representative asset profiles. |
 | Execution Environment | Local macOS shell and GitHub Actions-compatible validation script. |
 | Expected Final Result | Unit tests pass, 96 telemetry rows and 4 feature rows are generated, Airflow syntax passes, and Markdown files are readable. |
-| Actual Result | Thirteen unit tests passed; expected telemetry and feature counts were produced; all remaining checks passed. |
-| Evidence | `./scripts/check-ci.sh` output and the SCRUM-27 branch CI run after push. |
+| Actual Result | Sixteen unit and integration tests passed; expected telemetry and feature counts were produced; all remaining checks passed. |
+| Evidence | `./scripts/check-ci.sh` output and the SCRUM-4 implementation in commit [`b0f25e9`](https://github.com/swevazquez/SentinelOpsProject/commit/b0f25e9e18764d2316104faa58508ad0cb6cebd9). |
 | Cleanup / Reset | Generated smoke files remain ignored under `data/raw/` and `data/processed/`. |
 | Status | Passed |
 
@@ -292,7 +443,7 @@ operational actions.
    - Expected result: Unit tests begin, followed by the Sprint 1 smoke workflow.
 3. Verify automated tests.
    - Command or action: Review the unit-test section of the command output.
-   - Expected result: Thirteen tests pass with no failures.
+   - Expected result: Sixteen tests pass with no failures.
 4. Verify workflow and documentation checks.
    - Command or action: Review generated row counts, Airflow syntax, and Markdown checks.
    - Expected result: 96 telemetry rows and 4 feature rows are persisted; syntax and documentation checks pass.
@@ -306,15 +457,15 @@ operational actions.
 |---|---|---|
 | 1 | Repository scripts were available. | Passed |
 | 2 | The complete CI script executed. | Passed |
-| 3 | Thirteen tests passed. | Passed |
+| 3 | Sixteen tests passed. | Passed |
 | 4 | Expected workflow counts, Airflow syntax, and Markdown checks passed. | Passed |
 | 5 | The command ended with `CI checks passed.` | Passed |
 
 ## Testing Summary
 
-All planned Week 2 wireframe and regression checks passed. The review produced
-corrective design changes rather than only confirming file existence, and the final
-artifacts are reproducible from the documented commands.
+All planned Week 2 wireframe, orchestration, Airflow, clean-checkout, and regression
+checks passed. The reviews produced corrective design and documentation changes, and
+the final artifacts and workflow behavior are reproducible from the documented steps.
 
 ---
 
@@ -322,7 +473,7 @@ artifacts are reproducible from the documented commands.
 
 | Risk / Roadblock | Impact | Mitigation / Next Step |
 |---|---|---|
-| Sprint 1 scope increased while 15 implementation points remain. | Completing orchestration and supporting NFRs by June 14 is at risk. | Keep SCRUM-27 limited to design artifacts, close its review promptly, and begin SCRUM-4 next. |
+| Sprint 1 has 15 points not yet Done, including 8 points in progress. | Completing orchestration and supporting NFRs by June 14 remains schedule-sensitive. | Complete review of SCRUM-4 without expanding scope, then prioritize SCRUM-17, SCRUM-19, and SCRUM-20. |
 | Jira Sprint 1 remains configured as a future sprint despite its May 25 start date. | Native Jira burndown and open-sprint queries are unavailable. | Correct the sprint state in Jira or continue generating report charts from issue status and story points. |
 | Wireframes depend on APIs planned for later stories. | UI implementation cannot yet use live operational data. | Preserve the documented panel-to-data mapping as the integration contract for Sprint 2. |
 
@@ -332,8 +483,7 @@ artifacts are reproducible from the documented commands.
 
 Next week will focus on completing the Sprint 1 workflow foundation.
 
-- Complete review and merge of SCRUM-27.
-- Implement SCRUM-4 workflow orchestration against the groomed Sprint 1 scope.
+- Complete review and merge of SCRUM-4 workflow orchestration.
 - Add SCRUM-17 workflow failure detection and reporting.
 - Close SCRUM-19 and SCRUM-20 with architecture and clean-checkout execution evidence.
 - Update Jira status, sprint burndown, and the next weekly report from accepted work.
@@ -342,8 +492,9 @@ Next week will focus on completing the Sprint 1 workflow foundation.
 
 # Overall Sprint Assessment
 
-Sprint 1 is currently at risk because 15 implementation points remain before the
-June 14 sprint end, excluding the 3-point wireframe story in review. Week 2 improved
-requirements clarity, UI design evidence, testing documentation, and traceability.
-The immediate priority is completing SCRUM-4 and SCRUM-17 without expanding their
-scope into Sprint 2 functionality.
+Sprint 1 is currently at risk because 15 story points are not yet Done before the
+June 14 sprint end. SCRUM-27 is complete, and SCRUM-4 has passed integration,
+Airflow, clean-checkout, and regression validation while awaiting review. Week 2
+improved requirements clarity, UI design evidence, executable orchestration, testing
+documentation, and traceability. The immediate priority is completing SCRUM-4 review
+and implementing SCRUM-17 without expanding scope into Sprint 2 functionality.
