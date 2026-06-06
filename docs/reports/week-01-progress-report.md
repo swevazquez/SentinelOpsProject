@@ -142,7 +142,7 @@ Sprint 1 is underway. `FR-01`, `FR-02`, and `FR-03` are complete. The project fo
 
 Jira issue status and story point estimates were available, but a Jira-generated burndown chart was not available through the current integration tools. The chart below was generated from the Sprint 1 Jira status after `SCRUM-1`, `SCRUM-2`, and `SCRUM-3` were marked done and after Sprint 1 NFR stories were estimated.
 
-![Sprint 1 Week 1 Burndown](../images/week-01-burndown.svg)
+![Sprint 1 Week 1 Burndown](../images/reports/week-01-burndown.svg)
 
 ---
 
