@@ -30,6 +30,7 @@ Weekly reports represent cumulative sprint progress and should reflect:
 - Important commits
 - Testing activities
 - Requirement-to-test mappings
+- Reproducible test execution steps and evidence
 - Burndown progress
 - Risks and blockers
 - Planned work for the following week
@@ -110,6 +111,12 @@ When asked to generate a report:
 
 Use actual repository evidence whenever possible.
 
+Important commits must be linked directly to their GitHub commit pages. Do not report only an unlinked short hash.
+
+Example:
+
+    [`abcdef1`](https://github.com/OWNER/REPOSITORY/commit/FULL_COMMIT_SHA)
+
 Do not fabricate:
 - commits,
 - completed functionality,
@@ -141,7 +148,30 @@ If no backlog changes occurred during the reporting window, explicitly state:
 For all Sprint backlog requirements:
 - maintain requirement-to-test traceability,
 - document acceptance criteria,
-- document current test status.
+- document current test status,
+- provide a complete test specification for every test case in the traceability matrix,
+- include exact execution commands or UI actions,
+- state the expected result for each meaningful step,
+- record actual step results when executed,
+- link supporting evidence such as CI runs, test files, logs, screenshots, or output artifacts,
+- and document cleanup or reset actions.
+
+A test specification is incomplete if it only states a general action such as “run the tests.” Another developer should be able to reproduce the test from the report without reading the implementation first.
+
+For automated tests, include:
+- the narrow command that exercises the specific behavior,
+- the broader regression command,
+- expected pass/fail output,
+- and the relevant test file or CI run.
+
+For integration, system, or workflow tests, include:
+- environment and service startup,
+- test data preparation,
+- workflow or request execution,
+- status and output verification,
+- failure-path checks when applicable,
+- evidence capture,
+- and cleanup.
 
 Test cases may initially be:
 - planned,

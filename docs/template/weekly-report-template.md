@@ -104,10 +104,12 @@ Key contributions include:
 
 ## Important Commits
 
-| Commit ID | Commit Summary | Related Requirement / User Story | Notes |
+Use direct GitHub commit links so each reported code change can be opened and reviewed from the report.
+
+| Commit | Commit Summary | Related Requirement / User Story | Notes |
 |---|---|---|---|
-| [Commit Hash] | [Commit message or summary] | FR-XX / NFR-XX | [Explain relationship to sprint work] |
-| [Commit Hash] | [Commit message or summary] | FR-XX / NFR-XX | [Explain relationship to sprint work] |
+| [`abcdef1`](https://github.com/OWNER/REPOSITORY/commit/FULL_COMMIT_SHA) | [Commit message or summary] | FR-XX / NFR-XX | [Explain relationship to sprint work] |
+| [`1234567`](https://github.com/OWNER/REPOSITORY/commit/FULL_COMMIT_SHA) | [Commit message or summary] | FR-XX / NFR-XX | [Explain relationship to sprint work] |
 
 ## Burndown Summary
 
@@ -142,57 +144,55 @@ Testing activities this week focused on defining and/or executing test cases for
 
 ## Test Case Specifications
 
+Each test specification must provide enough detail for another developer to reproduce the test without consulting the implementation. Include exact setup, commands or UI actions, expected results for meaningful steps, cleanup, and evidence.
+
 ### TC-XX-01 – [Test Case Name]
 
 | Field | Description |
 |---|---|
 | Related Requirement | FR-XX / NFR-XX |
-| Test Type | Unit / System / User Acceptance |
-| Preconditions | [Required setup, data, service, or state] |
-| Test Data / Parameters | [Input data, configuration, or variables] |
-| Test Steps | 1. [Step one] 2. [Step two] 3. [Step three] |
-| Expected Result | [Expected output or behavior] |
-| Actual Result | [Result if executed, otherwise “Not yet executed”] |
+| Test Type | Unit / Integration / System / User Acceptance |
+| Objective | [Specific behavior or requirement being verified] |
+| Preconditions | [Required branch or commit, dependencies, services, configuration, credentials, and starting state] |
+| Test Data / Parameters | [Exact fixtures, input files, values, run IDs, environment variables, or request payloads] |
+| Execution Environment | [Local or CI environment, operating system, runtime/tool versions, and relevant service versions] |
+| Expected Final Result | [Overall expected output, persisted state, response, or observable behavior] |
+| Actual Result | [Observed output and relevant measurements, or “Not yet executed”] |
+| Evidence | [Direct CI run, test file, log, screenshot, output artifact, or commit link] |
+| Cleanup / Reset | [Commands or actions needed to restore the environment, or “None”] |
 | Status | Planned / Passed / Failed / Blocked |
 
-### TC-XX-02 – [Test Case Name]
+#### Execution Steps
 
-| Field | Description |
-|---|---|
-| Related Requirement | FR-XX / NFR-XX |
-| Test Type | Unit / System / User Acceptance |
-| Preconditions | [Required setup, data, service, or state] |
-| Test Data / Parameters | [Input data, configuration, or variables] |
-| Test Steps | 1. [Step one] 2. [Step two] 3. [Step three] |
-| Expected Result | [Expected output or behavior] |
-| Actual Result | [Result if executed, otherwise “Not yet executed”] |
-| Status | Planned / Passed / Failed / Blocked |
+1. [Navigate to the repository or required working directory.]
+   - Command or action: `[exact command or UI action]`
+   - Expected result: [Observable result confirming the step succeeded.]
+2. [Prepare the required test data, configuration, or service state.]
+   - Command or action: `[exact command, payload, or UI action]`
+   - Expected result: [Observable setup result.]
+3. [Execute the behavior under test.]
+   - Command or action: `[exact command, request, workflow trigger, or UI action]`
+   - Expected result: [Observable response or generated artifact.]
+4. [Verify the result against the acceptance criteria.]
+   - Command or action: `[assertion, query, file inspection, or UI check]`
+   - Expected result: [Exact values, status, schema, count, or behavior expected.]
+5. [Capture evidence and perform cleanup when applicable.]
+   - Command or action: `[evidence and cleanup command or action]`
+   - Expected result: [Evidence location and restored environment state.]
 
-### TC-XX-03 – [Test Case Name]
+#### Step Results
 
-| Field | Description |
-|---|---|
-| Related Requirement | FR-XX / NFR-XX |
-| Test Type | Unit / System / User Acceptance |
-| Preconditions | [Required setup, data, service, or state] |
-| Test Data / Parameters | [Input data, configuration, or variables] |
-| Test Steps | 1. [Step one] 2. [Step two] 3. [Step three] |
-| Expected Result | [Expected output or behavior] |
-| Actual Result | [Result if executed, otherwise “Not yet executed”] |
-| Status | Planned / Passed / Failed / Blocked |
+| Step | Actual Result | Status |
+|---|---|---|
+| 1 | [Observed result] | Passed / Failed / Blocked / Not Run |
+| 2 | [Observed result] | Passed / Failed / Blocked / Not Run |
+| 3 | [Observed result] | Passed / Failed / Blocked / Not Run |
+| 4 | [Observed result] | Passed / Failed / Blocked / Not Run |
+| 5 | [Observed result] | Passed / Failed / Blocked / Not Run |
 
-### TC-XX-04 – [Test Case Name]
+Repeat this complete specification for every test case listed in the requirement-to-test traceability matrix. Do not replace execution steps with a general statement such as “run the tests.”
 
-| Field | Description |
-|---|---|
-| Related Requirement | FR-XX / NFR-XX |
-| Test Type | Unit / System / User Acceptance |
-| Preconditions | [Required setup, data, service, or state] |
-| Test Data / Parameters | [Input data, configuration, or variables] |
-| Test Steps | 1. [Step one] 2. [Step two] 3. [Step three] |
-| Expected Result | [Expected output or behavior] |
-| Actual Result | [Result if executed, otherwise “Not yet executed”] |
-| Status | Planned / Passed / Failed / Blocked |
+For automated tests, identify both the narrow test command and the broader regression command when applicable. For workflow or system tests, include service startup, trigger, status verification, output inspection, failure handling, evidence capture, and cleanup.
 
 ## Testing Summary
 
