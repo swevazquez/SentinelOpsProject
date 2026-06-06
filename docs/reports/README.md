@@ -198,7 +198,7 @@ Images should be referenced relative to the report location.
 
 Example:
 
-    ![Sprint Burndown](../images/week-03-burndown.png)
+    ![Sprint Burndown](../images/reports/week-03-burndown.png)
 
 ---
 

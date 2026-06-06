@@ -1,0 +1,31 @@
+flowchart TB
+    subgraph AgentChat["SentinelOps - Operations Assistant"]
+        direction TB
+
+        Header["Assistant | Connection status | Start new conversation"]
+
+        subgraph Conversation["Conversation"]
+            UserQuestion["User message<br/>Ask about assets, predictions, or workflows"]
+            AssistantAnswer["Assistant response<br/>Summary + cited operational data"]
+            ToolEvidence["Tool activity<br/>Approved API | timestamp | result"]
+        end
+
+        SuggestedQuestions["Suggested prompts<br/>Highest-risk assets | Failed workflows | Latest scoring run"]
+
+        subgraph ActionApproval["Operational Action Approval"]
+            ProposedAction["Proposed predefined action"]
+            Impact["Target | parameters | expected impact"]
+            Controls["Approve | Reject"]
+        end
+
+        Composer["Message composer | Send"]
+        SystemMessage["UI States: Thinking | Tool unavailable | Approval required | Error"]
+    end
+
+    Header --> Conversation
+    UserQuestion --> AssistantAnswer
+    AssistantAnswer --> ToolEvidence
+    Conversation --> SuggestedQuestions
+    SuggestedQuestions --> ActionApproval
+    ActionApproval --> Composer
+    Composer --> SystemMessage

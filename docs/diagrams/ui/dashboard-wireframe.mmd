@@ -1,0 +1,40 @@
+flowchart TB
+    subgraph Dashboard["SentinelOps - Operations Overview"]
+        direction TB
+
+        Header["Header: Environment | Last refresh | Refresh"]
+        Navigation["Navigation: Overview | Assets | Workflows | Assistant"]
+
+        subgraph Summary["Operational Summary"]
+            direction LR
+            AssetsAtRisk["Assets at Risk<br/>Count + trend"]
+            ActiveAlerts["Active Alerts<br/>Critical + warning"]
+            WorkflowHealth["Workflow Health<br/>Running / failed"]
+            LastScoringRun["Last Scoring Run<br/>Timestamp + status"]
+        end
+
+        subgraph Main["Primary Workspace"]
+            direction LR
+
+            subgraph AssetPanel["Asset Health"]
+                AssetFilters["Filter: status / priority"]
+                AssetTable["Asset | Health | Risk | Priority | Updated"]
+                AssetAction["Select asset -> Asset Details"]
+            end
+
+            subgraph WorkflowPanel["Workflow Status"]
+                WorkflowStates["Running | Completed | Failed"]
+                WorkflowList["Run | Started | Duration | Status"]
+                WorkflowAction["Select run -> Execution Details"]
+            end
+        end
+
+        PredictionSummary["Prediction Summary<br/>Risk distribution + maintenance priorities"]
+        SystemMessage["UI States: Loading | Empty | Unavailable | Error"]
+    end
+
+    Header --> Navigation
+    Navigation --> Summary
+    Summary --> Main
+    Main --> PredictionSummary
+    PredictionSummary --> SystemMessage

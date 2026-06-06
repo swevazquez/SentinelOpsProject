@@ -1,0 +1,39 @@
+flowchart TB
+    subgraph WorkflowDetails["SentinelOps - Workflow Details"]
+        direction TB
+
+        Header["Back to Workflows | Workflow Name | Run ID | Status | Duration"]
+
+        subgraph Summary["Run Summary"]
+            direction LR
+            RunStatus["Status<br/>Running / Completed / Failed"]
+            TaskProgress["Task Progress<br/>Completed / Total"]
+            StartTime["Started<br/>Timestamp"]
+            RunDuration["Duration<br/>Elapsed time"]
+        end
+
+        subgraph Main["Execution Workspace"]
+            direction LR
+
+            subgraph TaskExecution["Ordered Task Execution"]
+                Generate["1. Generate Telemetry<br/>Status + duration"]
+                Features["2. Engineer Features<br/>Status + duration"]
+                Validate["3. Validate Output<br/>Status + duration"]
+                Generate --> Features --> Validate
+            end
+
+            subgraph FailureDetails["Failure Details"]
+                FailureSummary["Failed task + error summary"]
+                Logs["Task log access + copy error"]
+                Controls["Retry failed task | Rerun workflow"]
+            end
+        end
+
+        Artifacts["Run Artifacts<br/>Raw output | Processed output | Shared run ID"]
+        SystemStates["UI States: Loading | No runs | Unavailable | Permission error"]
+    end
+
+    Header --> Summary
+    Summary --> Main
+    Main --> Artifacts
+    Artifacts --> SystemStates

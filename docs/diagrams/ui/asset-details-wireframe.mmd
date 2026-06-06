@@ -1,0 +1,38 @@
+flowchart TB
+    subgraph AssetDetails["SentinelOps - Asset Details"]
+        direction TB
+
+        Header["Back to Assets | Asset ID | Current status | Last updated"]
+
+        subgraph AssetSummary["Asset Summary"]
+            direction LR
+            RiskScore["Risk Score<br/>Value + severity"]
+            MaintenancePriority["Maintenance Priority<br/>Priority + rationale"]
+            Runtime["Runtime<br/>Current hours"]
+            LatestPrediction["Latest Prediction<br/>Timestamp + model version"]
+        end
+
+        subgraph DetailArea["Asset Analysis"]
+            direction LR
+
+            subgraph Telemetry["Telemetry Trends"]
+                Range["Time range selector"]
+                Chart["Temperature | Vibration | Pressure"]
+                Thresholds["Operational thresholds"]
+            end
+
+            subgraph Recommendations["Maintenance Insight"]
+                Factors["Contributing risk factors"]
+                Recommendation["Recommended action"]
+                Evidence["Prediction run + source feature set"]
+            end
+        end
+
+        History["History<br/>Predictions | Workflow runs | Maintenance events"]
+        SystemMessage["UI States: Loading | No telemetry | Prediction unavailable | Error"]
+    end
+
+    Header --> AssetSummary
+    AssetSummary --> DetailArea
+    DetailArea --> History
+    History --> SystemMessage
