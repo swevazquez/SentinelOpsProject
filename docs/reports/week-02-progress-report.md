@@ -164,62 +164,63 @@ the accepted story status rather than counting in-review work as completed.
 ## Testing Overview
 
 Testing this week included repository regression validation, structural validation of
-the Excalidraw scene files, native rendering of all wireframes, image-dimension checks,
-and a visual containment review for clipping and overlapping elements.
+the Excalidraw scene files, image-dimension checks, and visual review of the exported
+PNG wireframes for clipping, overlapping elements, information hierarchy, and clear
+operational actions.
 
 ## Requirement-to-Test Traceability Matrix
 
 | Requirement ID | Test Case ID | Test Type | Test Objective | Status |
 |---|---|---|---|---|
-| SCRUM-27 / UX-01 | TC-UX01-01 | System / UAT | Verify all editable wireframes render and communicate the intended operational hierarchy without clipping. | Passed |
+| SCRUM-27 / UX-01 | TC-UX01-01 | Design Review / UAT | Verify the exported wireframes communicate the intended operational hierarchy without clipping or ambiguous controls. | Passed |
 | SCRUM-27 / UX-01 | TC-UX01-02 | Structural | Verify Excalidraw scenes and exported PNG evidence are complete and valid. | Passed |
 | SCRUM-20 / NFR-04 | TC-NFR04-03 | Regression / CI | Verify documentation changes do not break the existing Sprint 1 validation workflow. | Passed |
 
 ## Test Case Specifications
 
-### TC-UX01-01 - Wireframe Rendering and Human Review
+### TC-UX01-01 - Wireframe Visual Review
 
 | Field | Description |
 |---|---|
 | Related Requirement | SCRUM-27 / UX-01 |
-| Test Type | System / User Acceptance |
-| Objective | Confirm that all four wireframes render as understandable operational interfaces without clipped labels, overlapping controls, or content outside the canvas. |
-| Preconditions | Branch `SCRUM-27-dashboard-wireframes`; Google Chrome installed; Excalidraw export dependencies available in a temporary local renderer. |
-| Test Data / Parameters | Four `.excalidraw` files under `docs/diagrams/ui/`; 1440 by 1024 export viewport. |
-| Execution Environment | macOS; local Chrome headless renderer; Excalidraw v2 scene format. |
-| Expected Final Result | Each scene renders at 1440 by 1024, all controls and labels are visible, information hierarchy is understandable, and alternate states are represented. |
-| Actual Result | All four scenes rendered. Workflow title/status overlap, artifact-panel overflow, and retry-button clipping were identified and corrected. Final containment review passed. |
+| Test Type | Design Review / User Acceptance |
+| Objective | Confirm that the four exported wireframes present understandable operational interfaces without clipped labels, overlapping controls, ambiguous actions, or missing states. |
+| Preconditions | Branch `SCRUM-27-dashboard-wireframes`; repository files available; PNG viewer capable of displaying images at full resolution. |
+| Test Data / Parameters | Four PNG files under `docs/images/ui/wireframes/`; design specification at `docs/diagrams/ui/README.md`; SCRUM-27 acceptance criteria. |
+| Execution Environment | Repository checkout and any image viewer that can display 1440 by 1024 PNG files at full resolution. |
+| Expected Final Result | Each view has a clear purpose and hierarchy; labels and controls are visible; navigation and actions are understandable; required loading, empty, failure, unavailable, and approval states are documented. |
+| Actual Result | The four exported views were reviewed. Workflow title/status overlap, artifact-panel overflow, and retry-button clipping were identified and corrected. The final exports contain no observed clipping or overlapping controls. |
 | Evidence | `docs/images/ui/wireframes/*.png` and commit [`c075ea1`](https://github.com/swevazquez/SentinelOpsProject/commit/c075ea1f0080963e174dd999152577dd9ea38db8). |
-| Cleanup / Reset | Stop the temporary localhost rendering server and remove temporary renderer files. |
+| Cleanup / Reset | None. The review uses committed PNG exports and does not modify repository files. |
 | Status | Passed |
 
 #### Execution Steps
 
-1. Open the SCRUM-27 branch and locate the editable scenes.
-   - Command or action: `git switch SCRUM-27-dashboard-wireframes && find docs/diagrams/ui -name '*.excalidraw' -type f`
-   - Expected result: Four Excalidraw files are listed.
-2. Render each scene through Excalidraw's native SVG export in a local browser.
-   - Command or action: Open each scene with the local renderer at a 1440 by 1024 viewport.
-   - Expected result: Dashboard, asset details, workflow details, and assistant scenes render without a blank canvas or export error.
-3. Review each rendered scene for information hierarchy and operational meaning.
-   - Command or action: Inspect navigation, summary metrics, detail panels, statuses, evidence, and action controls.
-   - Expected result: Each view has a clear user purpose and consistent navigation; workflow and assistant actions are understandable.
-4. Check boundaries and label containment.
-   - Command or action: Compare text and control bounds and inspect the rendered PNGs at full resolution.
-   - Expected result: No label exceeds its control, no panel content is clipped, and all scene elements remain inside the canvas.
-5. Save evidence and stop temporary services.
-   - Command or action: Save PNGs under `docs/images/ui/wireframes/` and stop the local renderer.
-   - Expected result: Four reviewable PNGs remain in the repository and no temporary server remains active.
+1. Review the wireframe purpose, intended users, and panel dependencies.
+   - Command or action: Open `docs/diagrams/ui/README.md`.
+   - Expected result: The document explains the purpose of each view, expected data sources, alternate states, and traceability to SCRUM-27, SCRUM-10, and FR-10.
+2. Review the operations overview and asset details exports at full resolution.
+   - Command or action: Open `docs/images/ui/wireframes/dashboard-wireframe.png` and `docs/images/ui/wireframes/asset-details-wireframe.png`.
+   - Expected result: Risk, alerts, workflow health, asset priority, telemetry, prediction evidence, and maintenance recommendations are legible and arranged in a clear decision-making order.
+3. Review the workflow details export at full resolution.
+   - Command or action: Open `docs/images/ui/wireframes/workflow-details-wireframe.png`.
+   - Expected result: Task order, status, duration, failure details, artifacts, retry, and rerun controls are visible and understandable without referring to implementation code.
+4. Review the operations assistant export at full resolution.
+   - Command or action: Open `docs/images/ui/wireframes/agent-chat-wireframe.png`.
+   - Expected result: Questions, answers, tool evidence, suggested prompts, action impact, and approval controls are clearly separated.
+5. Compare the four views with the SCRUM-27 acceptance criteria and record any finding.
+   - Command or action: Verify hierarchy, alternate states, panel purpose, expected data dependency, and SCRUM-10 / FR-10 traceability against `docs/diagrams/ui/README.md`.
+   - Expected result: Every acceptance criterion has visible or documented evidence; any clipping, overlap, unclear label, or missing state is recorded for correction.
 
 #### Step Results
 
 | Step | Actual Result | Status |
 |---|---|---|
-| 1 | Four editable Excalidraw scenes were present. | Passed |
-| 2 | All scenes rendered successfully at 1440 by 1024. | Passed |
-| 3 | Each scene presented a coherent operational workflow and consistent navigation. | Passed |
-| 4 | Three workflow-view issues were corrected; the final containment audit reported no overflow. | Passed |
-| 5 | Four PNG evidence files were saved and the temporary server was stopped. | Passed |
+| 1 | The specification identified users, purpose, dependencies, alternate states, and requirement traceability. | Passed |
+| 2 | The overview and asset views presented legible priorities, evidence, and navigation. | Passed |
+| 3 | Three workflow-view issues were identified and corrected; the final export was clear. | Passed |
+| 4 | The assistant view clearly separated information retrieval from approval-gated actions. | Passed |
+| 5 | Each SCRUM-27 acceptance criterion had corresponding visual or documented evidence. | Passed |
 
 ### TC-UX01-02 - Wireframe Artifact Validation
 
@@ -239,9 +240,9 @@ and a visual containment review for clipping and overlapping elements.
 
 #### Execution Steps
 
-1. Navigate to the repository.
-   - Command or action: `cd /Users/ctrvazquez/workspace/capstone/SentinelOpsProject`
-   - Expected result: The repository root is the current directory.
+1. Start from the repository root.
+   - Command or action: Confirm that `README.md`, `docs/`, and `scripts/` are visible in the current directory.
+   - Expected result: The current directory is the SentinelOpsProject repository root.
 2. Validate each Excalidraw file.
    - Command or action: `for file in docs/diagrams/ui/*.excalidraw; do jq -e '.type == "excalidraw" and .version == 2 and (.elements | length > 0)' "$file" >/dev/null || exit 1; done`
    - Expected result: The command exits successfully with no invalid or empty scene.
@@ -283,9 +284,9 @@ and a visual containment review for clipping and overlapping elements.
 
 #### Execution Steps
 
-1. Navigate to the repository.
-   - Command or action: `cd /Users/ctrvazquez/workspace/capstone/SentinelOpsProject`
-   - Expected result: Project scripts and configuration are available.
+1. Start from the repository root.
+   - Command or action: Confirm that `README.md`, `docs/`, and `scripts/check-ci.sh` are visible in the current directory.
+   - Expected result: Project scripts and configuration are available through repository-relative paths.
 2. Execute the regression gate.
    - Command or action: `./scripts/check-ci.sh`
    - Expected result: Unit tests begin, followed by the Sprint 1 smoke workflow.
