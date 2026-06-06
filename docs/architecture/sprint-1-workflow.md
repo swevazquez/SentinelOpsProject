@@ -10,6 +10,22 @@ Sprint 1 establishes the first working SentinelOps vertical slice. The workflow 
 4. Processed feature rows are validated and persisted to `data/processed/features_<run_id>.csv`.
 5. `airflow/dags/sentinelops_sprint1_pipeline.py` coordinates the generation and feature-processing tasks.
 
+## Orchestration Boundary
+
+Airflow remains the scheduler and operational orchestration layer. The reusable
+workflow steps are defined in `services/workflows/sprint1.py` so Airflow and local
+validation execute the same application behavior:
+
+1. `generate_and_persist_raw` loads asset profiles, generates telemetry, validates
+   the raw row contract, and persists the raw artifact.
+2. `engineer_and_persist_features` receives the persisted raw path, validates the
+   input contract, engineers asset-level features, and persists the processed artifact.
+3. `run_sprint1_workflow` invokes those steps in order for local execution and verifies
+   that raw and processed artifacts retain the same workflow run identifier.
+
+This separation keeps Airflow-specific decorators in the DAG while making the
+workflow sequence directly testable without requiring an Airflow service.
+
 ## Raw Telemetry Contract
 
 Raw telemetry storage uses CSV files under `data/raw/`. Each file is named from the workflow or generation run identifier:
@@ -59,16 +75,78 @@ Feature processing requires the raw telemetry schema, rejects empty raw input, a
 
 ## Local Validation
 
-Run the local data slice:
+Run the complete local workflow:
 
 ```bash
 ./scripts/seed-data.sh sprint1-smoke
 ```
 
-Run unit tests:
+Expected artifacts:
 
-```bash
-python3 -m unittest discover -s tests
+```text
+data/raw/telemetry_sprint1-smoke.csv
+data/processed/features_sprint1-smoke.csv
 ```
 
-This workflow satisfies the Sprint 1 foundation for telemetry generation, raw data persistence, feature engineering, and orchestration readiness. Predictive scoring is intentionally deferred to Sprint 2.
+Run the orchestration integration tests:
+
+```bash
+python3 -m unittest tests.integration.test_sprint1_workflow -v
+```
+
+The integration tests verify:
+
+- raw persistence occurs before feature processing,
+- the persisted raw path is passed to feature processing,
+- raw and processed artifacts share one run ID,
+- expected row counts and filenames are produced,
+- and mismatched workflow run IDs are rejected.
+
+Run the complete local regression gate:
+
+```bash
+./scripts/check-ci.sh
+```
+
+## Airflow Verification
+
+Start the Airflow and PostgreSQL services from the repository root:
+
+```bash
+./scripts/setup.sh
+docker compose up -d postgres airflow
+```
+
+Confirm that Airflow loaded the Sprint 1 DAG:
+
+```bash
+docker compose exec -T airflow \
+  airflow dags list | grep sentinelops_sprint1_pipeline
+```
+
+Execute the DAG for a review date:
+
+```bash
+docker compose exec -T airflow \
+  airflow dags test sentinelops_sprint1_pipeline 2026-06-06T12:00:00+00:00
+```
+
+Expected results:
+
+- `generate_raw_telemetry` completes before `engineer_feature_output`,
+- both task instances have a `success` state,
+- the DAG run finishes with a `success` state,
+- raw telemetry contains 96 data rows,
+- processed output contains 4 feature rows,
+- and both filenames and file contents use the same generated run ID.
+
+Inspect the generated artifacts under `data/raw/` and `data/processed/`. Stop the
+review services when verification is complete:
+
+```bash
+docker compose down
+```
+
+This workflow satisfies the Sprint 1 scope for telemetry generation, raw data
+persistence, feature engineering, and workflow orchestration. Predictive scoring is
+intentionally deferred to Sprint 2.
