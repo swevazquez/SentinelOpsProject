@@ -108,6 +108,45 @@ Run the complete local regression gate:
 ./scripts/check-ci.sh
 ```
 
+## Airflow Verification
+
+Start the Airflow and PostgreSQL services from the repository root:
+
+```bash
+./scripts/setup.sh
+docker compose up -d postgres airflow
+```
+
+Confirm that Airflow loaded the Sprint 1 DAG:
+
+```bash
+docker compose exec -T airflow \
+  airflow dags list | grep sentinelops_sprint1_pipeline
+```
+
+Execute the DAG for a review date:
+
+```bash
+docker compose exec -T airflow \
+  airflow dags test sentinelops_sprint1_pipeline 2026-06-06T12:00:00+00:00
+```
+
+Expected results:
+
+- `generate_raw_telemetry` completes before `engineer_feature_output`,
+- both task instances have a `success` state,
+- the DAG run finishes with a `success` state,
+- raw telemetry contains 96 data rows,
+- processed output contains 4 feature rows,
+- and both filenames and file contents use the same generated run ID.
+
+Inspect the generated artifacts under `data/raw/` and `data/processed/`. Stop the
+review services when verification is complete:
+
+```bash
+docker compose down
+```
+
 This workflow satisfies the Sprint 1 scope for telemetry generation, raw data
 persistence, feature engineering, and workflow orchestration. Predictive scoring is
 intentionally deferred to Sprint 2.
