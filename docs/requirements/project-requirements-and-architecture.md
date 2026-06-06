@@ -563,4 +563,4 @@ Jira Board Link:
 
 ## Agile Board Snapshot
 
-![SentinelOps Jira Board](../images/jira-board.png)
+![SentinelOps Jira Board](../images/project/jira-board.png)
