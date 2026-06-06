@@ -29,6 +29,9 @@ data/processed/*
 !data/processed/.gitkeep
 data/samples/*.generated.*
 
+# Generated reports
+*.pdf
+
 # Airflow runtime state
 airflow/logs/
 airflow/*.db
