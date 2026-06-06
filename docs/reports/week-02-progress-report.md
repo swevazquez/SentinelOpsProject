@@ -36,7 +36,7 @@ states, and expected API dependencies are explicit.
 | SCRUM-1 / FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Sprint 1 | Done |
 | SCRUM-2 / FR-02 | Raw Telemetry Storage | High | 3 SP | Sprint 1 | Done |
 | SCRUM-3 / FR-03 | Feature Engineering Processing | High | 5 SP | Sprint 1 | Done |
-| SCRUM-4 / FR-04 | Workflow Orchestration | High | 8 SP | Sprint 1 | In Progress |
+| SCRUM-4 / FR-04 | Workflow Orchestration | High | 8 SP | Sprint 1 | Done |
 | SCRUM-17 / NFR-01 | Failed Workflow Detection and Reporting | High | 3 SP | Sprint 1 | To Do |
 | SCRUM-19 / NFR-03 | Component Responsibility Separation | High | 2 SP | Sprint 1 | To Do |
 | SCRUM-20 / NFR-04 | Repeatable Local Execution | Medium | 2 SP | Sprint 1 | To Do |
@@ -49,7 +49,7 @@ states, and expected API dependencies are explicit.
 | SCRUM-1 / FR-01 | Telemetry Generation and Ingestion | High | 5 SP | Done |
 | SCRUM-2 / FR-02 | Raw Telemetry Storage | High | 3 SP | Done |
 | SCRUM-3 / FR-03 | Feature Engineering Processing | High | 5 SP | Done |
-| SCRUM-4 / FR-04 | Workflow Orchestration | High | 8 SP | In Progress |
+| SCRUM-4 / FR-04 | Workflow Orchestration | High | 8 SP | Done |
 | SCRUM-17 / NFR-01 | Failed Workflow Detection and Reporting | High | 3 SP | To Do |
 | SCRUM-19 / NFR-03 | Component Responsibility Separation | High | 2 SP | To Do |
 | SCRUM-20 / NFR-04 | Repeatable Local Execution | Medium | 2 SP | To Do |
@@ -153,21 +153,19 @@ Key contributions include:
 ## Burndown Summary
 
 Sprint scope increased by 3 points when SCRUM-27 was added. SCRUM-27 is complete
-after PR #4 merged. SCRUM-4 is implemented in PR #5 and remains In Progress while
-acceptance evidence and report updates are completed.
+after PR #4 merged, and SCRUM-4 is complete after PR #5 merged into `main`.
 
 | Metric | Value |
 |---|---|
 | Sprint Total Estimated Effort | 31 story points |
-| Completed Effort | 16 story points |
-| In Progress | 8 story points |
-| Remaining To Do | 7 story points |
-| Sprint Status | At Risk |
+| Completed Effort | 24 story points |
+| Remaining Effort | 7 story points |
+| Sprint Status | On Track |
 
 ## Burndown Chart
 
-The chart reflects the 31-point Sprint 1 scope after SCRUM-27 was added and marked
-Done. SCRUM-4 remains In Progress and is therefore counted as remaining work.
+The chart reflects the active 31-point Sprint 1 scope after SCRUM-27 and SCRUM-4
+were marked Done. Seven story points remain across SCRUM-17, SCRUM-19, and SCRUM-20.
 
 ![Sprint 1 Week 2 Burndown](../images/reports/week-02-burndown.svg)
 
@@ -473,17 +471,15 @@ the final artifacts and workflow behavior are reproducible from the documented s
 
 | Risk / Roadblock | Impact | Mitigation / Next Step |
 |---|---|---|
-| Sprint 1 has 15 points not yet Done, including 8 points in progress. | Completing orchestration and supporting NFRs by June 14 remains schedule-sensitive. | Complete review of SCRUM-4 without expanding scope, then prioritize SCRUM-17, SCRUM-19, and SCRUM-20. |
-| Jira Sprint 1 remains configured as a future sprint despite its May 25 start date. | Native Jira burndown and open-sprint queries are unavailable. | Correct the sprint state in Jira or continue generating report charts from issue status and story points. |
+| Sprint 1 has 7 story points remaining across three NFR stories. | Completing the supporting quality requirements by June 15 remains schedule-sensitive. | Prioritize SCRUM-17, SCRUM-19, and SCRUM-20 and keep their validation evidence narrowly scoped. |
 | Wireframes depend on APIs planned for later stories. | UI implementation cannot yet use live operational data. | Preserve the documented panel-to-data mapping as the integration contract for Sprint 2. |
 
 ---
 
 # Plan for Next Week
 
-Next week will focus on completing the Sprint 1 workflow foundation.
+Next week will focus on completing the remaining Sprint 1 quality requirements.
 
-- Complete review and merge of SCRUM-4 workflow orchestration.
 - Add SCRUM-17 workflow failure detection and reporting.
 - Close SCRUM-19 and SCRUM-20 with architecture and clean-checkout execution evidence.
 - Update Jira status, sprint burndown, and the next weekly report from accepted work.
@@ -492,9 +488,9 @@ Next week will focus on completing the Sprint 1 workflow foundation.
 
 # Overall Sprint Assessment
 
-Sprint 1 is currently at risk because 15 story points are not yet Done before the
-June 14 sprint end. SCRUM-27 is complete, and SCRUM-4 has passed integration,
-Airflow, clean-checkout, and regression validation while awaiting review. Week 2
-improved requirements clarity, UI design evidence, executable orchestration, testing
-documentation, and traceability. The immediate priority is completing SCRUM-4 review
-and implementing SCRUM-17 without expanding scope into Sprint 2 functionality.
+Sprint 1 is on track with 24 of 31 story points complete before the June 15 sprint
+end. SCRUM-27 and SCRUM-4 are Done, with SCRUM-4 passing integration, Airflow,
+clean-checkout, and regression validation before merge. Week 2 improved requirements
+clarity, UI design evidence, executable orchestration, testing documentation, and
+traceability. The immediate priority is implementing SCRUM-17, SCRUM-19, and
+SCRUM-20 without expanding scope into Sprint 2 functionality.
