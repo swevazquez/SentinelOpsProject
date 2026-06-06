@@ -186,8 +186,7 @@ fresh checkout.
 
 | Requirement ID | Test Case ID | Test Type | Test Objective | Status |
 |---|---|---|---|---|
-| SCRUM-27 / UX-01 | TC-UX01-01 | Design Review / UAT | Verify the exported wireframes communicate the intended operational hierarchy without clipping or ambiguous controls. | Passed |
-| SCRUM-27 / UX-01 | TC-UX01-02 | Structural | Verify Excalidraw scenes and exported PNG evidence are complete and valid. | Passed |
+| SCRUM-27 / UX-01 | TC-UX01-01 | Design Review / Structural | Verify each editable wireframe and PNG export is valid, complete, legible, and aligned with the intended operational hierarchy. | Passed |
 | SCRUM-4 / FR-04 | TC-FR04-01 | Integration | Verify raw persistence occurs before feature processing and both artifacts share one workflow run ID. | Passed |
 | SCRUM-4 / FR-04 | TC-FR04-02 | System | Execute the decorated task graph through Airflow and verify successful task states and persisted artifacts. | Passed |
 | SCRUM-4 / FR-04 | TC-FR04-03 | System | Verify documented setup, workflow, integration tests, and regression checks from a fresh checkout. | Passed |
@@ -195,37 +194,49 @@ fresh checkout.
 
 ## Test Case Specifications
 
-### TC-UX01-01 - Wireframe Visual Review
+### TC-UX01-01 - Wireframe Artifact and Visual Review
 
 | Field | Description |
 |---|---|
 | Related Requirement | SCRUM-27 / UX-01 |
-| Test Type | Design Review / User Acceptance |
-| Objective | Confirm that the four exported wireframes present understandable operational interfaces without clipped labels, overlapping controls, ambiguous actions, or missing states. |
-| Preconditions | Branch `SCRUM-27-dashboard-wireframes`; repository files available; PNG viewer capable of displaying images at full resolution. |
-| Test Data / Parameters | Four PNG files under `docs/images/ui/wireframes/`; design specification at `docs/diagrams/ui/README.md`; SCRUM-27 acceptance criteria. |
-| Execution Environment | Repository checkout and any image viewer that can display 1440 by 1024 PNG files at full resolution. |
-| Expected Final Result | Each view has a clear purpose and hierarchy; labels and controls are visible; navigation and actions are understandable; required loading, empty, failure, unavailable, and approval states are documented. |
-| Actual Result | The four exported views were reviewed. Workflow title/status overlap, artifact-panel overflow, and retry-button clipping were identified and corrected. The final exports contain no observed clipping or overlapping controls. |
-| Evidence | `docs/images/ui/wireframes/*.png` and commit [`c075ea1`](https://github.com/swevazquez/SentinelOpsProject/commit/c075ea1f0080963e174dd999152577dd9ea38db8). |
+| Test Type | Design Review / Structural |
+| Objective | Confirm that each editable scene and PNG export is complete and that the four views present understandable operational interfaces without clipped labels, overlapping controls, ambiguous actions, or missing states. |
+| Preconditions | Repository files, `jq`, ImageMagick, and a PNG viewer capable of displaying images at full resolution are available. |
+| Test Data / Parameters | Four Excalidraw and PNG pairs under `docs/diagrams/ui/` and `docs/images/ui/wireframes/`; design specification at `docs/diagrams/ui/README.md`; SCRUM-27 acceptance criteria. |
+| Execution Environment | Repository checkout, local shell with `jq` and ImageMagick `magick`, and an image viewer that can display 1440 by 1024 PNG files at full resolution. |
+| Expected Final Result | Four nonempty Excalidraw v2 scenes validate; four corresponding PNGs report dimensions of 1440 by 1024; each view has a clear purpose and hierarchy; labels, controls, navigation, actions, and required alternate states are understandable. |
+| Actual Result | All four source/export pairs passed structural checks and visual review. Workflow title/status overlap, artifact-panel overflow, and retry-button clipping were identified and corrected. The final exports contain no observed clipping or overlapping controls. |
+| Evidence | Editable files under `docs/diagrams/ui/`, exports under `docs/images/ui/wireframes/`, and commit [`c075ea1`](https://github.com/swevazquez/SentinelOpsProject/commit/c075ea1f0080963e174dd999152577dd9ea38db8). |
 | Cleanup / Reset | None. The review uses committed PNG exports and does not modify repository files. |
 | Status | Passed |
 
+#### Wireframe Parameters
+
+| View | Editable Source | Exported Image | Review Focus |
+|---|---|---|---|
+| Operations overview | `docs/diagrams/ui/dashboard-wireframe.excalidraw` | `docs/images/ui/wireframes/dashboard-wireframe.png` | Risk, alerts, workflow health, asset priority, and navigation. |
+| Asset details | `docs/diagrams/ui/asset-details-wireframe.excalidraw` | `docs/images/ui/wireframes/asset-details-wireframe.png` | Telemetry, prediction evidence, maintenance recommendations, and asset context. |
+| Workflow details | `docs/diagrams/ui/workflow-details-wireframe.excalidraw` | `docs/images/ui/wireframes/workflow-details-wireframe.png` | Task order, status, duration, failure details, artifacts, retry, and rerun controls. |
+| Operations assistant | `docs/diagrams/ui/agent-chat-wireframe.excalidraw` | `docs/images/ui/wireframes/agent-chat-wireframe.png` | Questions, answers, tool evidence, suggested prompts, action impact, and approval controls. |
+
 #### Execution Steps
 
-1. Review the wireframe purpose, intended users, and panel dependencies.
+1. Review the purpose, intended users, panel dependencies, and alternate states for all four views.
    - Command or action: Open `docs/diagrams/ui/README.md`.
    - Expected result: The document explains the purpose of each view, expected data sources, alternate states, and traceability to SCRUM-27, SCRUM-10, and FR-10.
-2. Review the operations overview and asset details exports at full resolution.
-   - Command or action: Open `docs/images/ui/wireframes/dashboard-wireframe.png` and `docs/images/ui/wireframes/asset-details-wireframe.png`.
-   - Expected result: Risk, alerts, workflow health, asset priority, telemetry, prediction evidence, and maintenance recommendations are legible and arranged in a clear decision-making order.
-3. Review the workflow details export at full resolution.
-   - Command or action: Open `docs/images/ui/wireframes/workflow-details-wireframe.png`.
-   - Expected result: Task order, status, duration, failure details, artifacts, retry, and rerun controls are visible and understandable without referring to implementation code.
-4. Review the operations assistant export at full resolution.
-   - Command or action: Open `docs/images/ui/wireframes/agent-chat-wireframe.png`.
-   - Expected result: Questions, answers, tool evidence, suggested prompts, action impact, and approval controls are clearly separated.
-5. Compare the four views with the SCRUM-27 acceptance criteria and record any finding.
+2. Validate every editable source listed in the wireframe parameters.
+   - Command or action: `for file in docs/diagrams/ui/*.excalidraw; do jq -e '.type == "excalidraw" and .version == 2 and (.elements | length > 0)' "$file" >/dev/null || exit 1; done`
+   - Expected result: The command exits successfully with four valid, nonempty Excalidraw v2 scenes.
+3. Validate every exported image listed in the wireframe parameters.
+   - Command or action: `for file in docs/images/ui/wireframes/*.png; do magick identify -format '%f %wx%h\n' "$file"; done`
+   - Expected result: Four filenames are printed and each reports `1440x1024`.
+4. Confirm that every exported image maps to an editable source.
+   - Command or action: Review `docs/images/ui/wireframes/README.md` and compare it with the wireframe parameters.
+   - Expected result: Each of the four PNG files has a corresponding Excalidraw source.
+5. Open each exported image at full resolution and follow the review focus in the wireframe parameters.
+   - Command or action: Inspect each PNG for hierarchy, legibility, clipping, overlapping elements, navigation, and understandable controls.
+   - Expected result: Content is legible, panels follow a clear decision-making order, and actions are understandable without referring to implementation code.
+6. Compare all four views with the SCRUM-27 acceptance criteria and record any finding.
    - Command or action: Verify hierarchy, alternate states, panel purpose, expected data dependency, and SCRUM-10 / FR-10 traceability against `docs/diagrams/ui/README.md`.
    - Expected result: Every acceptance criterion has visible or documented evidence; any clipping, overlap, unclear label, or missing state is recorded for correction.
 
@@ -234,54 +245,11 @@ fresh checkout.
 | Step | Actual Result | Status |
 |---|---|---|
 | 1 | The specification identified users, purpose, dependencies, alternate states, and requirement traceability. | Passed |
-| 2 | The overview and asset views presented legible priorities, evidence, and navigation. | Passed |
-| 3 | Three workflow-view issues were identified and corrected; the final export was clear. | Passed |
-| 4 | The assistant view clearly separated information retrieval from approval-gated actions. | Passed |
-| 5 | Each SCRUM-27 acceptance criterion had corresponding visual or documented evidence. | Passed |
-
-### TC-UX01-02 - Wireframe Artifact Validation
-
-| Field | Description |
-|---|---|
-| Related Requirement | SCRUM-27 / UX-01 |
-| Test Type | Structural |
-| Objective | Verify that editable scenes use the Excalidraw v2 format and that each PNG export has the expected dimensions. |
-| Preconditions | SCRUM-27 wireframe files and ImageMagick are available. |
-| Test Data / Parameters | `docs/diagrams/ui/*.excalidraw`; `docs/images/ui/wireframes/*.png`. |
-| Execution Environment | Local macOS shell with `jq` and ImageMagick `magick`. |
-| Expected Final Result | Four nonempty Excalidraw v2 scenes validate and four PNGs report dimensions of 1440 by 1024. |
-| Actual Result | All scene files passed JSON checks and all four PNGs reported 1440 by 1024 dimensions. |
-| Evidence | Editable files under `docs/diagrams/ui/` and exports under `docs/images/ui/wireframes/`. |
-| Cleanup / Reset | None. |
-| Status | Passed |
-
-#### Execution Steps
-
-1. Start from the repository root.
-   - Command or action: Confirm that `README.md`, `docs/`, and `scripts/` are visible in the current directory.
-   - Expected result: The current directory is the SentinelOpsProject repository root.
-2. Validate each Excalidraw file.
-   - Command or action: `for file in docs/diagrams/ui/*.excalidraw; do jq -e '.type == "excalidraw" and .version == 2 and (.elements | length > 0)' "$file" >/dev/null || exit 1; done`
-   - Expected result: The command exits successfully with no invalid or empty scene.
-3. Inspect every exported PNG.
-   - Command or action: `for file in docs/images/ui/wireframes/*.png; do magick identify -format '%f %wx%h\n' "$file"; done`
-   - Expected result: Four filenames are printed and each reports `1440x1024`.
-4. Confirm source-to-export mapping.
-   - Command or action: Review `docs/images/ui/wireframes/README.md`.
-   - Expected result: Every PNG maps to an editable Excalidraw source.
-5. Record the result.
-   - Command or action: Add the observed result to this test specification.
-   - Expected result: Validation evidence is reproducible from the report.
-
-#### Step Results
-
-| Step | Actual Result | Status |
-|---|---|---|
-| 1 | Repository root was available. | Passed |
 | 2 | Four Excalidraw v2 scenes contained editable elements. | Passed |
 | 3 | Four PNG files reported 1440 by 1024 dimensions. | Passed |
 | 4 | The export index mapped each image to its source. | Passed |
-| 5 | Results were recorded in the Week 2 report. | Passed |
+| 5 | The four views presented legible priorities, evidence, navigation, and controls; three workflow-view issues were corrected before final review. | Passed |
+| 6 | Each SCRUM-27 acceptance criterion had corresponding visual or documented evidence. | Passed |
 
 ### TC-FR04-01 - Workflow Sequence and Artifact Contract
 
