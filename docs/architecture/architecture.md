@@ -203,6 +203,11 @@ The predictive maintenance workflow begins when a pipeline is triggered by a sch
 
 ## Component Responsibilities
 
+The concise table below summarizes the planned system. The implemented ownership
+boundaries, dependency direction, prohibited responsibilities, and automated
+architecture check are defined in
+[`component-responsibilities.md`](component-responsibilities.md).
+
 | Component | Responsibility |
 |---|---|
 | Dashboard UI | Presents asset health, workflow status, and prediction summaries |
