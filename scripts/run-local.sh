@@ -9,4 +9,11 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
+"$ROOT_DIR/scripts/check-prerequisites.sh"
+
+if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
+  echo "Docker Compose is required to start the Airflow and PostgreSQL services." >&2
+  exit 1
+fi
+
 docker compose up --build

@@ -47,29 +47,50 @@ Prediction scoring, operational APIs, dashboard views, and AI-assisted interacti
 
 ## Local Setup
 
-Copy the environment template and run the setup script:
+The Sprint 1 data workflow requires Python 3.12 or later and uses only the Python
+standard library. Docker Compose is optional and is needed only to review the
+Airflow and PostgreSQL services.
+
+Check local prerequisites:
 
 ```bash
-cp .env.example .env
+./scripts/check-prerequisites.sh
+```
+
+Prepare the local environment:
+
+```bash
 ./scripts/setup.sh
 ```
 
-Run the local stack:
+The setup command creates `.env` from `.env.example` when needed and creates local
+runtime directories. It can be run repeatedly without overwriting an existing
+`.env`.
+
+Run the Sprint 1 workflow:
+
+```bash
+./scripts/seed-data.sh local-run
+```
+
+Expected artifacts:
+
+```text
+data/raw/telemetry_local-run.csv
+data/processed/features_local-run.csv
+data/workflow-status/workflow_local-run.json
+```
+
+Run the complete local validation suite:
+
+```bash
+./scripts/check-ci.sh
+```
+
+Start the optional Airflow and PostgreSQL services:
 
 ```bash
 ./scripts/run-local.sh
-```
-
-Seed sample data:
-
-```bash
-./scripts/seed-data.sh
-```
-
-Run the Sprint 1 unit tests:
-
-```bash
-python3 -m unittest discover -s tests
 ```
 
 The Airflow DAG for Sprint 1 is `sentinelops_sprint1_pipeline`.
