@@ -9,6 +9,7 @@ Sprint 1 establishes the first working SentinelOps vertical slice. The workflow 
 3. `services.spark_jobs.features` validates the raw telemetry contract and groups telemetry by `run_id` and `asset_id`.
 4. Processed feature rows are validated and persisted to `data/processed/features_<run_id>.csv`.
 5. `airflow/dags/sentinelops_sprint1_pipeline.py` coordinates the generation and feature-processing tasks.
+6. Workflow state changes are logged and persisted to `data/workflow-status/workflow_<run_id>.json`.
 
 ## Orchestration Boundary
 
@@ -25,6 +26,32 @@ validation execute the same application behavior:
 
 This separation keeps Airflow-specific decorators in the DAG while making the
 workflow sequence directly testable without requiring an Airflow service.
+
+## Workflow Status and Failure Reporting
+
+`services/workflows/status.py` owns the shared workflow status contract. Local
+execution records `running` before the first step, `completed` after all output
+contracts pass, and `failed` when a step raises an exception. The original exception
+is re-raised after failure evidence is written.
+
+The Airflow DAG uses the same reporter through its failure callback. A failed record
+contains the DAG run identifier, failed task identifier, UTC update timestamp, and
+error message. Each state change also emits a log message containing the run
+identifier and status.
+
+Status files use the following structure:
+
+```json
+{
+  "run_id": "sprint1-smoke",
+  "status": "failed",
+  "updated_at": "2026-06-14T12:00:00Z",
+  "step": "engineer_and_persist_features",
+  "error": "raw telemetry missing required fields: run_id"
+}
+```
+
+Generated status files are local runtime evidence and are excluded from Git.
 
 ## Raw Telemetry Contract
 
@@ -86,6 +113,7 @@ Expected artifacts:
 ```text
 data/raw/telemetry_sprint1-smoke.csv
 data/processed/features_sprint1-smoke.csv
+data/workflow-status/workflow_sprint1-smoke.json
 ```
 
 Run the orchestration integration tests:
@@ -100,7 +128,11 @@ The integration tests verify:
 - the persisted raw path is passed to feature processing,
 - raw and processed artifacts share one run ID,
 - expected row counts and filenames are produced,
-- and mismatched workflow run IDs are rejected.
+- mismatched workflow run IDs are rejected,
+- successful runs persist completed status data,
+- failed steps persist the error and failed-step name,
+- status changes include the run ID in logs,
+- and the Airflow failure callback uses the shared status reporter.
 
 Run the complete local regression gate:
 

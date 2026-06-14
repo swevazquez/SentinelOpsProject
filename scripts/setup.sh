@@ -9,6 +9,6 @@ if [[ ! -f .env ]]; then
   echo "Created .env from .env.example"
 fi
 
-mkdir -p data/raw data/processed data/samples
+mkdir -p data/raw data/processed data/samples data/workflow-status
 
 echo "SentinelOps setup complete."

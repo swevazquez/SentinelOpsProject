@@ -16,6 +16,7 @@ from services.spark_jobs.features import (
     engineer_features,
     persist_feature_rows,
 )
+from services.workflows.status import record_workflow_status
 
 
 DEFAULT_START_TIME = datetime(2026, 5, 17, tzinfo=UTC)
@@ -66,30 +67,56 @@ def run_sprint1_workflow(
     hours: int = 24,
     seed: int = 42,
 ) -> Sprint1WorkflowResult:
-    raw_result = generate_and_persist_raw(
+    current_step = "generate_and_persist_raw"
+    record_workflow_status(
         project_root=project_root,
         run_id=run_id,
-        start_time=start_time,
-        hours=hours,
-        seed=seed,
-    )
-    feature_result = engineer_and_persist_features(
-        project_root=project_root,
-        raw_path=raw_result.path,
+        status="running",
+        step=current_step,
     )
 
-    if feature_result.run_id != raw_result.run_id:
-        raise ValueError(
-            "processed features must preserve the raw telemetry workflow run_id"
+    try:
+        raw_result = generate_and_persist_raw(
+            project_root=project_root,
+            run_id=run_id,
+            start_time=start_time,
+            hours=hours,
+            seed=seed,
+        )
+        current_step = "engineer_and_persist_features"
+        feature_result = engineer_and_persist_features(
+            project_root=project_root,
+            raw_path=raw_result.path,
         )
 
-    return Sprint1WorkflowResult(
-        run_id=raw_result.run_id,
-        raw_path=raw_result.path,
-        raw_row_count=raw_result.row_count,
-        feature_path=feature_result.path,
-        feature_row_count=feature_result.row_count,
+        if feature_result.run_id != raw_result.run_id:
+            raise ValueError(
+                "processed features must preserve the raw telemetry workflow run_id"
+            )
+
+        result = Sprint1WorkflowResult(
+            run_id=raw_result.run_id,
+            raw_path=raw_result.path,
+            raw_row_count=raw_result.row_count,
+            feature_path=feature_result.path,
+            feature_row_count=feature_result.row_count,
+        )
+    except Exception as exc:
+        record_workflow_status(
+            project_root=project_root,
+            run_id=run_id,
+            status="failed",
+            step=current_step,
+            error=str(exc),
+        )
+        raise
+
+    record_workflow_status(
+        project_root=project_root,
+        run_id=run_id,
+        status="completed",
     )
+    return result
 
 
 def main() -> None:

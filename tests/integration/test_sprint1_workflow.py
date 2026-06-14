@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -52,9 +53,21 @@ class Sprint1WorkflowTests(unittest.TestCase):
             self.assertTrue(result.raw_path.exists())
             self.assertTrue(result.feature_path.exists())
 
+            status_path = (
+                project_root
+                / "data"
+                / "workflow-status"
+                / "workflow_integration-run.json"
+            )
+            status_record = json.loads(status_path.read_text(encoding="utf-8"))
+
             with result.feature_path.open(newline="", encoding="utf-8") as feature_file:
                 feature_rows = list(csv.DictReader(feature_file))
 
+        self.assertEqual(status_record["run_id"], "integration-run")
+        self.assertEqual(status_record["status"], "completed")
+        self.assertIsNone(status_record["step"])
+        self.assertIsNone(status_record["error"])
         self.assertEqual(
             {row["run_id"] for row in feature_rows},
             {"integration-run"},
@@ -127,6 +140,45 @@ class Sprint1WorkflowTests(unittest.TestCase):
                 project_root=Path("."),
                 run_id="expected",
             )
+
+    @patch("services.workflows.sprint1.engineer_and_persist_features")
+    def test_workflow_records_and_logs_failed_step_without_suppressing_error(
+        self,
+        engineer_features,
+    ):
+        engineer_features.side_effect = RuntimeError("feature processing failed")
+
+        with TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir)
+            config_path = project_root / "data" / "samples" / "asset_profiles.csv"
+            config_path.parent.mkdir(parents=True)
+            config_path.write_text(ASSET_CONFIG, encoding="utf-8")
+
+            with self.assertLogs("services.workflows.status", level="ERROR") as logs:
+                with self.assertRaisesRegex(RuntimeError, "feature processing failed"):
+                    run_sprint1_workflow(
+                        project_root=project_root,
+                        run_id="failed-run",
+                        hours=1,
+                    )
+
+            status_path = (
+                project_root
+                / "data"
+                / "workflow-status"
+                / "workflow_failed-run.json"
+            )
+            status_record = json.loads(status_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(status_record["run_id"], "failed-run")
+        self.assertEqual(status_record["status"], "failed")
+        self.assertEqual(
+            status_record["step"],
+            "engineer_and_persist_features",
+        )
+        self.assertEqual(status_record["error"], "feature processing failed")
+        self.assertIn("run_id=failed-run", logs.output[0])
+        self.assertIn("status=failed", logs.output[0])
 
 
 if __name__ == "__main__":
