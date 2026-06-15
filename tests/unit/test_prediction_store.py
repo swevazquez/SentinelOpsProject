@@ -18,6 +18,8 @@ def prediction_row(
         "model_name": "sentinelops-risk-baseline",
         "model_version": "1.0.0",
         "scored_at": scored_at,
+        "source_feature_path": "data/processed/features_run-1.csv",
+        "source_feature_sha256": "a" * 64,
         "risk_score": risk_score,
         "asset_status": "warning",
         "maintenance_priority": "high",
@@ -98,6 +100,15 @@ class CsvPredictionRepositoryTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "between 0 and 1"):
                 repository.save([prediction_row(risk_score="1.5000")])
+
+    def test_save_rejects_invalid_source_fingerprint(self):
+        with TemporaryDirectory() as temp_dir:
+            repository = CsvPredictionRepository(Path(temp_dir))
+            row = prediction_row()
+            row["source_feature_sha256"] = "not-a-sha256"
+
+            with self.assertRaisesRegex(ValueError, "SHA-256 is invalid"):
+                repository.save([row])
 
 
 if __name__ == "__main__":

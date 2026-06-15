@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import hashlib
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -50,6 +51,9 @@ class PredictiveScoringIntegrationTests(unittest.TestCase):
                 feature_result.path,
                 scored_at=datetime(2026, 6, 15, 16, 0, tzinfo=UTC),
             )
+            expected_source_sha256 = hashlib.sha256(
+                feature_result.path.read_bytes()
+            ).hexdigest()
             repository = CsvPredictionRepository(
                 project_root / "data" / "predictions"
             )
@@ -59,6 +63,20 @@ class PredictiveScoringIntegrationTests(unittest.TestCase):
         self.assertEqual(len(predictions), 2)
         self.assertEqual(storage_result.row_count, 2)
         self.assertEqual(stored_predictions, predictions)
+        self.assertEqual(
+            {
+                prediction["source_feature_path"]
+                for prediction in stored_predictions
+            },
+            {feature_result.path.as_posix()},
+        )
+        self.assertEqual(
+            {
+                prediction["source_feature_sha256"]
+                for prediction in stored_predictions
+            },
+            {expected_source_sha256},
+        )
         self.assertEqual(
             {prediction["asset_id"] for prediction in stored_predictions},
             {"TEST-1", "TEST-2"},

@@ -64,6 +64,19 @@ def _validate_prediction_rows(rows: list[dict[str, str]]) -> str:
         assets = ", ".join(sorted(invalid_scores))
         raise ValueError(f"risk_score must be between 0 and 1 for assets: {assets}")
 
+    invalid_hashes = [
+        row["asset_id"]
+        for row in rows
+        if len(row["source_feature_sha256"]) != 64
+        or any(
+            character not in "0123456789abcdef"
+            for character in row["source_feature_sha256"]
+        )
+    ]
+    if invalid_hashes:
+        assets = ", ".join(sorted(invalid_hashes))
+        raise ValueError(f"source feature SHA-256 is invalid for assets: {assets}")
+
     return run_id
 
 

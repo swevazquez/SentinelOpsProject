@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -26,6 +27,8 @@ PREDICTION_FIELDS = [
     "model_name",
     "model_version",
     "scored_at",
+    "source_feature_path",
+    "source_feature_sha256",
     "risk_score",
     "asset_status",
     "maintenance_priority",
@@ -120,14 +123,34 @@ def maintenance_indicators(risk_score: float) -> dict[str, str]:
     }
 
 
+def _feature_rows_sha256(rows: list[dict[str, str]]) -> str:
+    canonical_rows = json.dumps(
+        sorted(rows, key=lambda row: row["asset_id"]),
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(canonical_rows).hexdigest()
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as input_file:
+        for chunk in iter(lambda: input_file.read(64 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def score_feature_rows(
     rows: list[dict[str, str]],
     *,
     scored_at: datetime | None = None,
+    source_feature_path: str = "in-memory",
+    source_feature_sha256: str | None = None,
 ) -> list[dict[str, str]]:
     _validate_feature_rows(rows)
     scoring_time = (scored_at or datetime.now(UTC)).astimezone(UTC)
     scored_at_value = scoring_time.isoformat().replace("+00:00", "Z")
+    source_sha256 = source_feature_sha256 or _feature_rows_sha256(rows)
 
     predictions: list[dict[str, str]] = []
     for row in sorted(rows, key=lambda item: item["asset_id"]):
@@ -139,6 +162,8 @@ def score_feature_rows(
                 "model_name": MODEL_NAME,
                 "model_version": MODEL_VERSION,
                 "scored_at": scored_at_value,
+                "source_feature_path": source_feature_path,
+                "source_feature_sha256": source_sha256,
                 "risk_score": f"{risk_score:.4f}",
                 **maintenance_indicators(risk_score),
             }
@@ -156,9 +181,12 @@ def score_feature_file(
     *,
     scored_at: datetime | None = None,
 ) -> list[dict[str, str]]:
+    rows = load_feature_rows(input_path)
     return score_feature_rows(
-        load_feature_rows(input_path),
+        rows,
         scored_at=scored_at,
+        source_feature_path=input_path.as_posix(),
+        source_feature_sha256=_file_sha256(input_path),
     )
 
 

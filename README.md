@@ -46,6 +46,7 @@ first Sprint 2 scoring capability in place:
 6. Generate explainable asset risk scores from processed feature rows.
 7. Classify asset status, maintenance priority, and recommended action.
 8. Persist and retrieve prediction results through a repository interface.
+9. Trace predictions to their workflow run and fingerprinted feature input.
 
 PostgreSQL-backed prediction storage, operational APIs, dashboard views, and
 AI-assisted interactions remain later-sprint work.
