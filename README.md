@@ -35,15 +35,18 @@ data                  Local raw, processed, and sample data
 
 ## Development Status
 
-This repository has the Sprint 1 predictive-maintenance foundation in place:
+This repository has the Sprint 1 predictive-maintenance foundation and the
+first Sprint 2 scoring capability in place:
 
 1. Generate representative asset telemetry.
 2. Persist raw telemetry under `data/raw/`.
 3. Process telemetry into asset-level feature rows under `data/processed/`.
 4. Orchestrate the telemetry and feature workflow with Airflow.
 5. Validate core simulator and feature behavior with unit tests.
+6. Generate explainable asset risk scores from processed feature rows.
 
-Prediction scoring, operational APIs, dashboard views, and AI-assisted interactions remain later-sprint work.
+Prediction persistence, operational APIs, dashboard views, and AI-assisted
+interactions remain later-sprint work.
 
 ## Local Setup
 
