@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
+from services.ml.prediction_store import CsvPredictionRepository
 from services.ml.scoring import score_feature_file
 from services.simulator.telemetry import (
     generate_telemetry,
@@ -49,23 +50,33 @@ class PredictiveScoringIntegrationTests(unittest.TestCase):
                 feature_result.path,
                 scored_at=datetime(2026, 6, 15, 16, 0, tzinfo=UTC),
             )
+            repository = CsvPredictionRepository(
+                project_root / "data" / "predictions"
+            )
+            storage_result = repository.save(predictions)
+            stored_predictions = repository.get_by_run("sprint2-run")
 
         self.assertEqual(len(predictions), 2)
+        self.assertEqual(storage_result.row_count, 2)
+        self.assertEqual(stored_predictions, predictions)
         self.assertEqual(
-            {prediction["asset_id"] for prediction in predictions},
+            {prediction["asset_id"] for prediction in stored_predictions},
             {"TEST-1", "TEST-2"},
         )
         self.assertEqual(
-            {prediction["run_id"] for prediction in predictions},
+            {prediction["run_id"] for prediction in stored_predictions},
             {"sprint2-run"},
         )
         self.assertTrue(
-            all(0.0 <= float(prediction["risk_score"]) <= 1.0 for prediction in predictions)
+            all(
+                0.0 <= float(prediction["risk_score"]) <= 1.0
+                for prediction in stored_predictions
+            )
         )
         self.assertEqual(
             {
                 prediction["asset_id"]: prediction["maintenance_priority"]
-                for prediction in predictions
+                for prediction in stored_predictions
             },
             {
                 "TEST-1": "medium",
@@ -73,7 +84,10 @@ class PredictiveScoringIntegrationTests(unittest.TestCase):
             },
         )
         self.assertTrue(
-            all(prediction["recommended_action"] for prediction in predictions)
+            all(
+                prediction["recommended_action"]
+                for prediction in stored_predictions
+            )
         )
 
 

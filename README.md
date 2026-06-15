@@ -45,9 +45,10 @@ first Sprint 2 scoring capability in place:
 5. Validate core simulator and feature behavior with unit tests.
 6. Generate explainable asset risk scores from processed feature rows.
 7. Classify asset status, maintenance priority, and recommended action.
+8. Persist and retrieve prediction results through a repository interface.
 
-Prediction persistence, operational APIs, dashboard views, and AI-assisted
-interactions remain later-sprint work.
+PostgreSQL-backed prediction storage, operational APIs, dashboard views, and
+AI-assisted interactions remain later-sprint work.
 
 ## Local Setup
 

@@ -18,14 +18,15 @@ test -d services/agent
 test -d services/ml
 test -d services/spark-jobs
 test -d services/simulator
+test -d data/predictions
 test -d airflow/dags
 test -d frontend/dashboard
 test -d tests/unit
 
 echo "Checking generated data is not tracked..."
-if git ls-files data/raw data/processed | grep -Ev '(^data/raw/\.gitkeep$|^data/processed/\.gitkeep$)' >/dev/null; then
-  echo "Generated raw or processed data files must not be committed."
-  git ls-files data/raw data/processed
+if git ls-files data/raw data/processed data/predictions | grep -Ev '(^data/raw/\.gitkeep$|^data/processed/\.gitkeep$|^data/predictions/\.gitkeep$)' >/dev/null; then
+  echo "Generated raw, processed, or prediction data files must not be committed."
+  git ls-files data/raw data/processed data/predictions
   exit 1
 fi
 

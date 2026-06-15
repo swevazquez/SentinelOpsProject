@@ -25,9 +25,11 @@ build/
 # Local data and generated artifacts
 data/raw/*
 data/processed/*
+data/predictions/*
 data/workflow-status/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/predictions/.gitkeep
 !data/workflow-status/.gitkeep
 data/samples/*.generated.*
 
