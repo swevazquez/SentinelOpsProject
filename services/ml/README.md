@@ -23,4 +23,14 @@ python3 -m services.ml.scoring \
 ```
 
 The command prints prediction results and maintenance indicators as JSON.
-Prediction persistence is handled by a later Sprint 2 story.
+
+## Prediction Storage
+
+`SCRUM-8` provides a `PredictionRepository` contract and a local CSV
+implementation for the demonstration-scale workflow. Prediction batches are
+stored by workflow run under `data/predictions/` and can be retrieved by run ID
+or asset ID. The full scoring result is preserved for later API and dashboard
+access.
+
+The repository boundary allows the planned PostgreSQL implementation to replace
+local CSV storage without changing scoring or API callers.
