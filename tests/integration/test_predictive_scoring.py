@@ -62,6 +62,19 @@ class PredictiveScoringIntegrationTests(unittest.TestCase):
         self.assertTrue(
             all(0.0 <= float(prediction["risk_score"]) <= 1.0 for prediction in predictions)
         )
+        self.assertEqual(
+            {
+                prediction["asset_id"]: prediction["maintenance_priority"]
+                for prediction in predictions
+            },
+            {
+                "TEST-1": "medium",
+                "TEST-2": "immediate",
+            },
+        )
+        self.assertTrue(
+            all(prediction["recommended_action"] for prediction in predictions)
+        )
 
 
 if __name__ == "__main__":

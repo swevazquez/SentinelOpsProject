@@ -5,6 +5,7 @@ from services.ml.scoring import (
     MODEL_NAME,
     MODEL_VERSION,
     calculate_risk_score,
+    maintenance_indicators,
     score_feature_rows,
 )
 
@@ -62,6 +63,15 @@ class PredictiveScoringTests(unittest.TestCase):
             {prediction["scored_at"] for prediction in predictions},
             {"2026-06-15T15:30:00Z"},
         )
+        self.assertTrue(
+            all(prediction["asset_status"] for prediction in predictions)
+        )
+        self.assertTrue(
+            all(prediction["maintenance_priority"] for prediction in predictions)
+        )
+        self.assertTrue(
+            all(prediction["recommended_action"] for prediction in predictions)
+        )
 
     def test_calculate_risk_score_increases_for_degraded_asset_features(self):
         healthy_score = calculate_risk_score(feature_row())
@@ -98,6 +108,25 @@ class PredictiveScoringTests(unittest.TestCase):
     def test_score_feature_rows_rejects_duplicate_assets(self):
         with self.assertRaisesRegex(ValueError, "one row per asset"):
             score_feature_rows([feature_row(), feature_row()])
+
+    def test_maintenance_indicators_cover_priority_thresholds(self):
+        cases = [
+            (0.0, "healthy", "routine"),
+            (0.25, "watch", "medium"),
+            (0.50, "warning", "high"),
+            (0.75, "critical", "immediate"),
+            (1.0, "critical", "immediate"),
+        ]
+
+        for risk_score, expected_status, expected_priority in cases:
+            with self.subTest(risk_score=risk_score):
+                indicators = maintenance_indicators(risk_score)
+                self.assertEqual(indicators["asset_status"], expected_status)
+                self.assertEqual(
+                    indicators["maintenance_priority"],
+                    expected_priority,
+                )
+                self.assertTrue(indicators["recommended_action"])
 
 
 if __name__ == "__main__":

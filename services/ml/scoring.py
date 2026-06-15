@@ -27,6 +27,9 @@ PREDICTION_FIELDS = [
     "model_version",
     "scored_at",
     "risk_score",
+    "asset_status",
+    "maintenance_priority",
+    "recommended_action",
 ]
 
 
@@ -91,6 +94,32 @@ def calculate_risk_score(feature_row: dict[str, str]) -> float:
     return round(_clamp(score), 4)
 
 
+def maintenance_indicators(risk_score: float) -> dict[str, str]:
+    if risk_score >= 0.75:
+        return {
+            "asset_status": "critical",
+            "maintenance_priority": "immediate",
+            "recommended_action": "Inspect asset and schedule immediate maintenance.",
+        }
+    if risk_score >= 0.50:
+        return {
+            "asset_status": "warning",
+            "maintenance_priority": "high",
+            "recommended_action": "Schedule maintenance within 24 hours.",
+        }
+    if risk_score >= 0.25:
+        return {
+            "asset_status": "watch",
+            "maintenance_priority": "medium",
+            "recommended_action": "Review telemetry trends during the next shift.",
+        }
+    return {
+        "asset_status": "healthy",
+        "maintenance_priority": "routine",
+        "recommended_action": "Continue routine monitoring.",
+    }
+
+
 def score_feature_rows(
     rows: list[dict[str, str]],
     *,
@@ -100,17 +129,21 @@ def score_feature_rows(
     scoring_time = (scored_at or datetime.now(UTC)).astimezone(UTC)
     scored_at_value = scoring_time.isoformat().replace("+00:00", "Z")
 
-    return [
-        {
-            "run_id": row["run_id"],
-            "asset_id": row["asset_id"],
-            "model_name": MODEL_NAME,
-            "model_version": MODEL_VERSION,
-            "scored_at": scored_at_value,
-            "risk_score": f"{calculate_risk_score(row):.4f}",
-        }
-        for row in sorted(rows, key=lambda item: item["asset_id"])
-    ]
+    predictions: list[dict[str, str]] = []
+    for row in sorted(rows, key=lambda item: item["asset_id"]):
+        risk_score = calculate_risk_score(row)
+        predictions.append(
+            {
+                "run_id": row["run_id"],
+                "asset_id": row["asset_id"],
+                "model_name": MODEL_NAME,
+                "model_version": MODEL_VERSION,
+                "scored_at": scored_at_value,
+                "risk_score": f"{risk_score:.4f}",
+                **maintenance_indicators(risk_score),
+            }
+        )
+    return predictions
 
 
 def load_feature_rows(input_path: Path) -> list[dict[str, str]]:
