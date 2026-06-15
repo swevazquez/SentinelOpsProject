@@ -63,6 +63,14 @@ class PredictiveScoringTests(unittest.TestCase):
             {prediction["scored_at"] for prediction in predictions},
             {"2026-06-15T15:30:00Z"},
         )
+        self.assertEqual(
+            {prediction["source_feature_path"] for prediction in predictions},
+            {"in-memory"},
+        )
+        self.assertEqual(
+            {len(prediction["source_feature_sha256"]) for prediction in predictions},
+            {64},
+        )
         self.assertTrue(
             all(prediction["asset_status"] for prediction in predictions)
         )
@@ -108,6 +116,25 @@ class PredictiveScoringTests(unittest.TestCase):
     def test_score_feature_rows_rejects_duplicate_assets(self):
         with self.assertRaisesRegex(ValueError, "one row per asset"):
             score_feature_rows([feature_row(), feature_row()])
+
+    def test_score_feature_rows_produces_stable_input_fingerprint(self):
+        first = score_feature_rows(
+            [
+                feature_row(asset_id="A-101"),
+                feature_row(asset_id="A-100"),
+            ]
+        )
+        second = score_feature_rows(
+            [
+                feature_row(asset_id="A-100"),
+                feature_row(asset_id="A-101"),
+            ]
+        )
+
+        self.assertEqual(
+            first[0]["source_feature_sha256"],
+            second[0]["source_feature_sha256"],
+        )
 
     def test_maintenance_indicators_cover_priority_thresholds(self):
         cases = [

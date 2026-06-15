@@ -34,3 +34,11 @@ access.
 
 The repository boundary allows the planned PostgreSQL implementation to replace
 local CSV storage without changing scoring or API callers.
+
+## Prediction Traceability
+
+`SCRUM-18` records the workflow run ID, processed feature path, and SHA-256
+fingerprint with every prediction. The fingerprint identifies the exact feature
+artifact used during file-based scoring and remains preserved when predictions
+are stored and retrieved. In-memory scoring uses a deterministic fingerprint of
+the canonical feature rows.
