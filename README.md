@@ -48,8 +48,9 @@ first Sprint 2 scoring capability in place:
 8. Persist and retrieve prediction results through a repository interface.
 9. Trace predictions to their workflow run and fingerprinted feature input.
 10. Retrieve workflow execution status for completed, running, and failed runs.
+11. Provide API-facing handlers for asset, workflow, prediction, and health data.
 
-PostgreSQL-backed prediction storage, operational APIs, dashboard views, and
+PostgreSQL-backed prediction storage, HTTP route wiring, dashboard views, and
 AI-assisted interactions remain later-sprint work.
 
 ## Local Setup
