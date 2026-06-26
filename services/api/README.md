@@ -17,10 +17,16 @@ contracts. These handlers provide the behavior that FastAPI routes should expose
 | Predictions by run | `data/predictions/` | Prediction records for one workflow run |
 | Predictions by asset | `data/predictions/` | Prediction history for one asset |
 
-The response contract uses a status code and a JSON-compatible body. Successful
-responses use `{"status": "ok", "data": ...}`. Missing resources return
-`404` with `{"status": "not_found", "message": ...}`. Validation failures return
-`400` with `{"status": "error", "message": ...}`.
+The response contract uses a status code and a JSON-compatible body. All
+responses include `status`, `request_state`, and `message`. Successful responses
+also include `data`.
+
+| State | Status Code | Body Shape |
+|---|---:|---|
+| Normal | 200 | `{"status": "ok", "request_state": "ok", "message": "...", "data": ...}` |
+| Missing resource | 404 | `{"status": "not_found", "request_state": "not_found", "message": "..."}` |
+| Invalid request or malformed source data | 400 | `{"status": "error", "request_state": "error", "message": "..."}` |
+| Unavailable source | 503 | `{"status": "unavailable", "request_state": "unavailable", "message": "..."}` |
 
 ## Planned Workflow Visibility Contract
 
