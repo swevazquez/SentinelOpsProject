@@ -19,32 +19,67 @@ class ApiResponse:
     body: dict[str, Any]
 
 
-def ok(data: dict[str, Any]) -> ApiResponse:
-    return ApiResponse(status_code=200, body={"status": "ok", "data": data})
+def _body(
+    *,
+    status: str,
+    message: str,
+    data: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    body: dict[str, Any] = {
+        "status": status,
+        "message": message,
+        "request_state": status,
+    }
+    if data is not None:
+        body["data"] = data
+    return body
+
+
+def ok(data: dict[str, Any], message: str = "request completed") -> ApiResponse:
+    return ApiResponse(
+        status_code=200,
+        body=_body(status="ok", message=message, data=data),
+    )
 
 
 def not_found(message: str) -> ApiResponse:
     return ApiResponse(
         status_code=404,
-        body={"status": "not_found", "message": message},
+        body=_body(status="not_found", message=message),
     )
 
 
 def validation_error(message: str) -> ApiResponse:
     return ApiResponse(
         status_code=400,
-        body={"status": "error", "message": message},
+        body=_body(status="error", message=message),
+    )
+
+
+def unavailable(message: str) -> ApiResponse:
+    return ApiResponse(
+        status_code=503,
+        body=_body(status="unavailable", message=message),
     )
 
 
 def health_response() -> ApiResponse:
-    return ok({"service": "sentinelops-api", "healthy": True})
+    return ok(
+        {"service": "sentinelops-api", "healthy": True},
+        "api service is healthy",
+    )
 
 
 def list_assets_response(project_root: Path) -> ApiResponse:
-    profiles = load_asset_profiles(
-        project_root / "data" / "samples" / "asset_profiles.csv"
-    )
+    asset_path = project_root / "data" / "samples" / "asset_profiles.csv"
+    if not asset_path.exists():
+        return unavailable(f"asset profile source is unavailable: {asset_path}")
+
+    try:
+        profiles = load_asset_profiles(asset_path)
+    except ValueError as exc:
+        return validation_error(str(exc))
+
     return ok(
         {
             "assets": [
@@ -58,7 +93,8 @@ def list_assets_response(project_root: Path) -> ApiResponse:
                 }
                 for profile in profiles
             ]
-        }
+        },
+        "asset profiles retrieved",
     )
 
 
@@ -70,7 +106,7 @@ def workflow_status_response(project_root: Path, run_id: str) -> ApiResponse:
 
     if status is None:
         return not_found(f"workflow run not found: {run_id}")
-    return ok({"workflow": asdict(status)})
+    return ok({"workflow": asdict(status)}, "workflow status retrieved")
 
 
 def workflow_list_response(project_root: Path) -> ApiResponse:
@@ -78,7 +114,10 @@ def workflow_list_response(project_root: Path) -> ApiResponse:
         statuses = list_workflow_statuses(project_root)
     except ValueError as exc:
         return validation_error(str(exc))
-    return ok({"workflows": [asdict(status) for status in statuses]})
+    return ok(
+        {"workflows": [asdict(status) for status in statuses]},
+        "workflow statuses retrieved",
+    )
 
 
 def workflow_summary_response(project_root: Path) -> ApiResponse:
@@ -86,7 +125,7 @@ def workflow_summary_response(project_root: Path) -> ApiResponse:
         summary = summarize_workflow_statuses(project_root)
     except ValueError as exc:
         return validation_error(str(exc))
-    return ok({"summary": asdict(summary)})
+    return ok({"summary": asdict(summary)}, "workflow summary retrieved")
 
 
 def predictions_by_run_response(project_root: Path, run_id: str) -> ApiResponse:
@@ -99,7 +138,7 @@ def predictions_by_run_response(project_root: Path, run_id: str) -> ApiResponse:
 
     if not predictions:
         return not_found(f"predictions not found for workflow run: {run_id}")
-    return ok({"predictions": predictions})
+    return ok({"predictions": predictions}, "predictions retrieved")
 
 
 def predictions_by_asset_response(project_root: Path, asset_id: str) -> ApiResponse:
@@ -112,4 +151,4 @@ def predictions_by_asset_response(project_root: Path, asset_id: str) -> ApiRespo
 
     if not predictions:
         return not_found(f"predictions not found for asset: {asset_id}")
-    return ok({"predictions": predictions})
+    return ok({"predictions": predictions}, "predictions retrieved")

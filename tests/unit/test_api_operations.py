@@ -51,6 +51,8 @@ class ApiOperationTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.body["status"], "ok")
+        self.assertEqual(response.body["request_state"], "ok")
+        self.assertEqual(response.body["message"], "api service is healthy")
         self.assertTrue(response.body["data"]["healthy"])
 
     def test_list_assets_response_returns_configured_asset_profiles(self):
@@ -63,10 +65,34 @@ class ApiOperationTests(unittest.TestCase):
             response = list_assets_response(project_root)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.body["message"], "asset profiles retrieved")
         self.assertEqual(
             [asset["asset_id"] for asset in response.body["data"]["assets"]],
             ["TEST-1", "TEST-2"],
         )
+
+    def test_list_assets_response_returns_unavailable_when_source_is_missing(self):
+        with TemporaryDirectory() as temp_dir:
+            response = list_assets_response(Path(temp_dir))
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.body["status"], "unavailable")
+        self.assertEqual(response.body["request_state"], "unavailable")
+        self.assertIn("asset profile source is unavailable", response.body["message"])
+
+    def test_list_assets_response_returns_error_for_invalid_source(self):
+        with TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir)
+            asset_path = project_root / "data" / "samples" / "asset_profiles.csv"
+            asset_path.parent.mkdir(parents=True)
+            asset_path.write_text("asset_id\nTEST-1\n", encoding="utf-8")
+
+            response = list_assets_response(project_root)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.body["status"], "error")
+        self.assertEqual(response.body["request_state"], "error")
+        self.assertIn("missing fields", response.body["message"])
 
     def test_workflow_status_response_returns_completed_run(self):
         with TemporaryDirectory() as temp_dir:
@@ -91,6 +117,8 @@ class ApiOperationTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.body["status"], "not_found")
+        self.assertEqual(response.body["request_state"], "not_found")
+        self.assertIn("workflow run not found", response.body["message"])
 
     def test_workflow_status_response_returns_validation_error(self):
         with TemporaryDirectory() as temp_dir:
@@ -98,6 +126,8 @@ class ApiOperationTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.body["status"], "error")
+        self.assertEqual(response.body["request_state"], "error")
+        self.assertIn("file-safe", response.body["message"])
 
     def test_workflow_list_and_summary_responses_return_operational_status(self):
         with TemporaryDirectory() as temp_dir:
@@ -124,6 +154,10 @@ class ApiOperationTests(unittest.TestCase):
         self.assertEqual(summary_response.body["data"]["summary"]["total"], 2)
         self.assertEqual(summary_response.body["data"]["summary"]["running"], 1)
         self.assertEqual(summary_response.body["data"]["summary"]["failed"], 1)
+        self.assertEqual(
+            summary_response.body["message"],
+            "workflow summary retrieved",
+        )
 
     def test_predictions_by_run_response_returns_stored_predictions(self):
         with TemporaryDirectory() as temp_dir:
@@ -164,6 +198,17 @@ class ApiOperationTests(unittest.TestCase):
 
         self.assertEqual(run_response.status_code, 404)
         self.assertEqual(asset_response.status_code, 404)
+        self.assertEqual(run_response.body["request_state"], "not_found")
+        self.assertEqual(asset_response.body["request_state"], "not_found")
+
+    def test_prediction_response_returns_error_for_invalid_identifier(self):
+        with TemporaryDirectory() as temp_dir:
+            response = predictions_by_run_response(Path(temp_dir), "../bad")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.body["status"], "error")
+        self.assertEqual(response.body["request_state"], "error")
+        self.assertIn("file-safe", response.body["message"])
 
 
 if __name__ == "__main__":
