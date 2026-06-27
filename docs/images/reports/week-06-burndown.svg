@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
-  <title id="title">Sprint 2 Burndown Draft Current Through June 27, 2026</title>
-  <desc id="desc">Burndown chart showing Sprint 2 story points decreasing from 31 to 2 Jira remaining, with SCRUM-24 implemented locally and pending review.</desc>
+  <title id="title">Sprint 2 Burndown Current Through June 27, 2026</title>
+  <desc id="desc">Burndown chart showing Sprint 2 story points decreasing from 31 to 0 remaining after SCRUM-24 was merged and transitioned to Done.</desc>
   <rect width="960" height="540" fill="#ffffff"/>
   <text x="90" y="54" fill="#172026" font-family="Arial, sans-serif" font-size="24" font-weight="700">Sprint 2 Burndown</text>
-  <text x="90" y="82" fill="#52616b" font-family="Arial, sans-serif" font-size="14">Draft current through 2026-06-27. Jira remaining is 2 SP until SCRUM-24 is reviewed and merged.</text>
+  <text x="90" y="82" fill="#52616b" font-family="Arial, sans-serif" font-size="14">Final current through 2026-06-27. Jira remaining is 0 SP after SCRUM-24 was merged and transitioned to Done.</text>
 
   <line x1="90" y1="410" x2="840" y2="410" stroke="#33434f" stroke-width="1.5"/>
   <line x1="90" y1="100" x2="90" y2="410" stroke="#33434f" stroke-width="1.5"/>
@@ -42,7 +42,7 @@
   <text transform="translate(24 318) rotate(-90)" fill="#33434f" font-family="Arial, sans-serif" font-size="14" font-weight="700">Story Points Remaining</text>
 
   <polyline fill="none" stroke="#8b949e" stroke-width="3" stroke-dasharray="8 7" points="90,100 840,410"/>
-  <polyline fill="none" stroke="#1f7a6d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="90,100 165,150 240,210 315,240 390,270 465,320 502.5,390"/>
+  <polyline fill="none" stroke="#1f7a6d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="90,100 165,150 240,210 315,240 390,270 465,320 502.5,390 540,410"/>
 
   <g fill="#1f7a6d" stroke="#ffffff" stroke-width="2">
     <circle cx="90" cy="100" r="5"/>
@@ -52,6 +52,7 @@
     <circle cx="390" cy="270" r="5"/>
     <circle cx="465" cy="320" r="5"/>
     <circle cx="502.5" cy="390" r="5"/>
+    <circle cx="540" cy="410" r="5"/>
   </g>
 
   <g font-family="Arial, sans-serif" font-size="12">
@@ -61,11 +62,11 @@
     <line x1="638" y1="164" x2="688" y2="164" stroke="#8b949e" stroke-width="3" stroke-dasharray="8 7"/>
     <text x="698" y="168" fill="#33434f">Ideal remaining</text>
     <circle cx="663" cy="187" r="5" fill="#b7791f"/>
-    <text x="698" y="191" fill="#33434f">SCRUM-24 implemented locally</text>
+    <text x="698" y="191" fill="#33434f">SCRUM-24 merged and Done</text>
   </g>
 
   <g font-family="Arial, sans-serif" font-size="12" fill="#172026">
-    <text x="514" y="392">2 SP Jira remaining</text>
-    <text x="514" y="408">SCRUM-24 validation implemented</text>
+    <text x="552" y="392">0 SP Jira remaining</text>
+    <text x="552" y="408">SCRUM-24 validation merged</text>
   </g>
 </svg>
