@@ -13,6 +13,6 @@ else
   echo "Existing .env preserved."
 fi
 
-mkdir -p data/raw data/processed data/samples data/workflow-status
+mkdir -p data/raw data/processed data/predictions data/performance data/samples data/workflow-status
 
 echo "SentinelOps setup complete."

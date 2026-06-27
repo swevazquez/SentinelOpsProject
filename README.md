@@ -49,9 +49,11 @@ first Sprint 2 scoring capability in place:
 9. Trace predictions to their workflow run and fingerprinted feature input.
 10. Retrieve workflow execution status for completed, running, and failed runs.
 11. Provide API-facing handlers for asset, workflow, prediction, and health data.
+12. Display a directly openable operations dashboard aligned with the reviewed UI wireframe.
+13. Validate repeated demonstration-scale workflow performance.
 
-PostgreSQL-backed prediction storage, HTTP route wiring, dashboard views, and
-AI-assisted interactions remain later-sprint work.
+PostgreSQL-backed prediction storage, HTTP route wiring, and AI-assisted
+interactions remain later-sprint work.
 
 ## Local Setup
 
@@ -94,6 +96,16 @@ Run the complete local validation suite:
 ```bash
 ./scripts/check-ci.sh
 ```
+
+Validate Sprint 2 demo performance:
+
+```bash
+./scripts/check-demo-performance.sh
+```
+
+The performance check runs three 24-hour demo workflows, stores predictions,
+verifies raw, processed, prediction, and workflow-status outputs, and writes
+ignored runtime evidence to `data/performance/latest-demo-performance.json`.
 
 Start the optional Airflow and PostgreSQL services:
 

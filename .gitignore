@@ -26,10 +26,12 @@ build/
 data/raw/*
 data/processed/*
 data/predictions/*
+data/performance/*
 data/workflow-status/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/predictions/.gitkeep
+!data/performance/.gitkeep
 !data/workflow-status/.gitkeep
 data/samples/*.generated.*
 
