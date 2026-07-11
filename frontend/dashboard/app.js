@@ -205,58 +205,6 @@ function renderWorkflows(data) {
   }).join("");
 }
 
-async function refreshWorkflows() {
-  const actionStatus = document.getElementById("workflow-action-status");
-  try {
-    const response = await fetch("/api/workflows");
-    if (!response.ok) {
-      throw new Error(`Workflow status request failed (${response.status}).`);
-    }
-    const payload = await response.json();
-    dashboardData.workflows = payload.data.workflows.map((workflow) => ({
-      ...workflow,
-      label: workflow.step ? workflow.step.replaceAll("_", " ") : "Predictive maintenance",
-      duration: workflow.status === "running" ? "active" : "complete"
-    }));
-    renderWorkflows(dashboardData);
-    renderSummary(dashboardData);
-    return dashboardData.workflows;
-  } catch (error) {
-    actionStatus.textContent = error.message;
-    actionStatus.dataset.state = "error";
-    return null;
-  }
-}
-
-async function runWorkflow() {
-  const button = document.getElementById("run-workflow-button");
-  const actionStatus = document.getElementById("workflow-action-status");
-  button.disabled = true;
-  actionStatus.textContent = "Starting predictive maintenance workflow...";
-  actionStatus.dataset.state = "loading";
-
-  try {
-    const response = await fetch("/api/workflows", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workflow: "predictive-maintenance" })
-    });
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.detail || "Workflow could not be started.");
-    }
-    const runId = payload.data.workflow.run_id;
-    actionStatus.textContent = `Workflow ${runId} started.`;
-    actionStatus.dataset.state = "success";
-    await refreshWorkflows();
-  } catch (error) {
-    actionStatus.textContent = error.message;
-    actionStatus.dataset.state = "error";
-  } finally {
-    button.disabled = false;
-  }
-}
-
 function groupAssetsByStatus(assets) {
   return assets.reduce((groups, asset) => {
     groups[asset.asset_status] = (groups[asset.asset_status] || 0) + 1;
@@ -325,16 +273,12 @@ function initDashboard() {
   document.getElementById("asset-status-filter").addEventListener("change", (event) => {
     renderAssets(dashboardData, event.target.value);
   });
-  document.getElementById("run-workflow-button").addEventListener("click", runWorkflow);
-  document.querySelector(".refresh-button").addEventListener("click", refreshWorkflows);
 
   document.querySelectorAll("[data-view-target]").forEach((control) => {
     control.addEventListener("click", () => {
       showView(control.dataset.viewTarget);
     });
   });
-
-  refreshWorkflows();
 }
 
 document.addEventListener("DOMContentLoaded", initDashboard);
