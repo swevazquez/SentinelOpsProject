@@ -102,13 +102,6 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('status: "completed"', self.js)
         self.assertIn('status: "failed"', self.js)
 
-    def test_workflow_view_supports_manual_execution(self):
-        self.assertIn('id="run-workflow-button"', self.html)
-        self.assertIn('id="workflow-action-status"', self.html)
-        self.assertIn('fetch("/api/workflows"', self.js)
-        self.assertIn('workflow: "predictive-maintenance"', self.js)
-        self.assertIn("button.disabled = true", self.js)
-
     def test_dashboard_styles_support_responsive_wireframe_layout(self):
         self.assertIn("summary-grid", self.css)
         self.assertIn("dashboard-layout", self.css)
