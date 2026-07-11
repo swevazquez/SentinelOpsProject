@@ -17,9 +17,11 @@ workflow API from the same origin.
 
 | Method | Path | Purpose |
 |---|---|---|
+| `GET` | `/api/assets` | Retrieve configured asset profiles for the dashboard. |
 | `POST` | `/api/workflows` | Start the approved `predictive-maintenance` workflow. |
 | `GET` | `/api/workflows` | List workflow execution states. |
 | `GET` | `/api/workflows/{run_id}` | Retrieve one workflow execution state. |
+| `GET` | `/api/predictions/latest` | Retrieve the latest prediction for each asset. |
 
 Manual requests run in a FastAPI background task and return `202 Accepted` with
 a generated run ID. Unsupported workflow names and unexpected request fields

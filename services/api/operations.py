@@ -152,3 +152,14 @@ def predictions_by_asset_response(project_root: Path, asset_id: str) -> ApiRespo
     if not predictions:
         return not_found(f"predictions not found for asset: {asset_id}")
     return ok({"predictions": predictions}, "predictions retrieved")
+
+
+def latest_predictions_response(project_root: Path) -> ApiResponse:
+    try:
+        predictions = CsvPredictionRepository(
+            project_root / "data" / "predictions"
+        ).get_latest()
+    except ValueError as exc:
+        return validation_error(str(exc))
+
+    return ok({"predictions": predictions}, "latest predictions retrieved")

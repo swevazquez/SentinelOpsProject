@@ -44,6 +44,18 @@ class ManualWorkflowApiTests(unittest.TestCase):
         )
         self.assertTrue(prediction_path.exists())
 
+    def test_dashboard_read_endpoints_return_live_sources(self) -> None:
+        assets_response = self.client.get("/api/assets")
+        predictions_response = self.client.get("/api/predictions/latest")
+
+        self.assertEqual(assets_response.status_code, 200)
+        self.assertEqual(
+            assets_response.json()["data"]["assets"][0]["asset_id"],
+            "PUMP-1",
+        )
+        self.assertEqual(predictions_response.status_code, 200)
+        self.assertEqual(predictions_response.json()["data"]["predictions"], [])
+
     def test_unsupported_workflow_does_not_create_status(self) -> None:
         response = self.client.post(
             "/api/workflows", json={"workflow": "unapproved-workflow"}

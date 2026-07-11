@@ -5,11 +5,17 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 
-from services.api.operations import workflow_list_response, workflow_status_response
+from services.api.operations import (
+    latest_predictions_response,
+    list_assets_response,
+    workflow_list_response,
+    workflow_status_response,
+)
 from services.api.workflow_execution import run_predictive_workflow
 from services.workflows.status import record_workflow_status
 
@@ -38,10 +44,23 @@ def create_app(project_root: Path | None = None) -> FastAPI:
         allow_headers=["Content-Type"],
     )
 
+    def operation_response(response: object) -> JSONResponse:
+        return JSONResponse(
+            status_code=response.status_code,
+            content=response.body,
+        )
+
+    @app.get("/api/assets")
+    def list_assets() -> JSONResponse:
+        return operation_response(list_assets_response(root))
+
+    @app.get("/api/predictions/latest")
+    def latest_predictions() -> JSONResponse:
+        return operation_response(latest_predictions_response(root))
+
     @app.get("/api/workflows")
-    def list_workflows() -> dict[str, object]:
-        response = workflow_list_response(root)
-        return response.body
+    def list_workflows() -> JSONResponse:
+        return operation_response(workflow_list_response(root))
 
     @app.get("/api/workflows/{run_id}")
     def get_workflow(run_id: str) -> dict[str, object]:
