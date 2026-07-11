@@ -18,6 +18,7 @@ criteria for FR-10:
 - asset health and maintenance priority,
 - prediction summaries and recommendations,
 - workflow execution status,
+- manual predictive-maintenance workflow execution,
 - and clear normal, missing, invalid, and unavailable response-state mappings.
 
 The dashboard currently uses in-page sample data shaped like the Sprint 2 API
