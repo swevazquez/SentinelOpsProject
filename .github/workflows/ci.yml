@@ -18,7 +18,13 @@ jobs:
           python-version: "3.12"
 
       - name: Install project dependencies
-        run: python -m pip install --upgrade pip && python -m pip install ".[dev]"
+        run: >-
+          python -m pip install --upgrade pip &&
+          python -m pip install
+          "fastapi>=0.115,<1.0"
+          "uvicorn>=0.34,<1.0"
+          "httpx>=0.28,<1.0"
+          "pytest>=8.0"
 
       - name: Run CI validation
         run: ./scripts/check-ci.sh
