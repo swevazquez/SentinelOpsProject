@@ -4,6 +4,7 @@ import unittest
 
 from services.api.operations import (
     health_response,
+    latest_predictions_response,
     list_assets_response,
     predictions_by_asset_response,
     predictions_by_run_response,
@@ -187,6 +188,38 @@ class ApiOperationTests(unittest.TestCase):
         self.assertEqual(
             response.body["data"]["predictions"][0]["asset_id"],
             "TEST-2",
+        )
+
+    def test_latest_predictions_response_returns_one_row_per_asset(self):
+        with TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir)
+            repository = CsvPredictionRepository(project_root / "data" / "predictions")
+            repository.save([prediction_row(scored_at="2026-06-26T10:00:00Z")])
+            repository.save(
+                [
+                    prediction_row(
+                        asset_id="TEST-1",
+                        run_id="run-2",
+                        scored_at="2026-06-26T11:00:00Z",
+                    ),
+                    prediction_row(
+                        asset_id="TEST-2",
+                        run_id="run-2",
+                        scored_at="2026-06-26T11:00:00Z",
+                    ),
+                ]
+            )
+
+            response = latest_predictions_response(project_root)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [row["asset_id"] for row in response.body["data"]["predictions"]],
+            ["TEST-1", "TEST-2"],
+        )
+        self.assertEqual(
+            response.body["data"]["predictions"][0]["run_id"],
+            "run-2",
         )
 
     def test_prediction_responses_return_not_found_when_data_is_missing(self):

@@ -82,6 +82,50 @@ select {
   padding: 8px 18px;
 }
 
+.primary-action {
+  min-height: 40px;
+  border: 1px solid #155eef;
+  border-radius: 6px;
+  padding: 0 16px;
+  background: #155eef;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-action:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.workflow-feedback,
+.action-status {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  min-height: 44px;
+  margin: 14px 20px 0;
+  padding: 10px 14px;
+  color: #475467;
+}
+
+.workflow-feedback:empty,
+.action-status:empty {
+  display: none;
+}
+
+.workflow-feedback[data-state="error"],
+.action-status[data-state="error"] {
+  color: #b42318;
+}
+
+.workflow-feedback[data-state="success"],
+.action-status[data-state="success"] {
+  color: #067647;
+}
+
 .environment-badge {
   align-items: center;
   background: var(--green-soft);
@@ -189,6 +233,7 @@ select {
   font-size: 1.9rem;
   line-height: 1;
   margin-bottom: 8px;
+  overflow-wrap: anywhere;
 }
 
 .metric-card span {
@@ -248,6 +293,8 @@ select {
   align-items: center;
   border-bottom: 1px solid var(--line);
   display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   justify-content: space-between;
   min-height: 52px;
   padding: 0 20px;
@@ -351,7 +398,7 @@ td {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 16px 20px 6px;
+  padding: 16px 20px 8px;
 }
 
 .workflow-state-chip {
@@ -364,7 +411,7 @@ td {
 .workflow-list {
   display: grid;
   gap: 0;
-  padding: 12px 26px 28px;
+  padding: 8px 20px 24px;
 }
 
 .workflow-item {
@@ -383,6 +430,10 @@ td {
 .workflow-item strong {
   display: block;
   margin-bottom: 3px;
+}
+
+.workflow-item[title] {
+  cursor: help;
 }
 
 .workflow-item p,
@@ -413,6 +464,10 @@ td {
   height: 26px;
   margin-bottom: 14px;
   overflow: hidden;
+}
+
+.distribution-bar.is-empty {
+  background: var(--line);
 }
 
 .distribution-segment.healthy {
@@ -448,6 +503,11 @@ td {
 
 .legend-critical {
   color: var(--red);
+}
+
+.legend-empty {
+  color: var(--muted);
+  grid-column: 1 / -1;
 }
 
 .prediction-callout {
@@ -534,12 +594,13 @@ td {
   }
 
   .sidebar nav {
-    display: flex;
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .nav-item {
-    white-space: nowrap;
+    padding: 11px 14px;
+    text-align: center;
   }
 
   .refresh-note {

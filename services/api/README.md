@@ -2,6 +2,31 @@
 
 FastAPI backend for operational endpoints, dashboard data, workflow status, prediction retrieval, and agent coordination.
 
+## Local API and Dashboard
+
+Install the project dependencies and start the FastAPI application from the
+repository root:
+
+```bash
+uv sync --extra dev
+uv run uvicorn services.api.app:app --reload
+```
+
+Open `http://127.0.0.1:8000`. The application serves the dashboard and the
+workflow API from the same origin.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/assets` | Retrieve configured asset profiles for the dashboard. |
+| `POST` | `/api/workflows` | Start the approved `predictive-maintenance` workflow. |
+| `GET` | `/api/workflows` | List workflow execution states. |
+| `GET` | `/api/workflows/{run_id}` | Retrieve one workflow execution state. |
+| `GET` | `/api/predictions/latest` | Retrieve the latest prediction for each asset. |
+
+Manual requests run in a FastAPI background task and return `202 Accepted` with
+a generated run ID. Unsupported workflow names and unexpected request fields
+are rejected before execution.
+
 ## Operational API Contract
 
 `SCRUM-9` adds API-facing operation handlers for the current Sprint 2 data

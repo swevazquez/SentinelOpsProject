@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from html.parser import HTMLParser
 from pathlib import Path
-import re
 import unittest
 
 
@@ -42,8 +41,8 @@ class DashboardUiTests(unittest.TestCase):
         self.parser.feed(self.html)
 
     def test_dashboard_assets_are_directly_openable(self):
-        self.assertIn("./styles.css", self.parser.links)
-        self.assertIn("./app.js", self.parser.scripts)
+        self.assertTrue(any(link.startswith("./styles.css?") for link in self.parser.links))
+        self.assertTrue(any(script.startswith("./app.js?") for script in self.parser.scripts))
         self.assertTrue((DASHBOARD_DIR / "styles.css").is_file())
         self.assertTrue((DASHBOARD_DIR / "app.js").is_file())
 
@@ -82,25 +81,23 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('showView("overview")', self.js)
         self.assertIn("view.hidden = view.dataset.view !== viewName", self.js)
 
-    def test_dashboard_includes_required_api_response_states(self):
-        for state in ("ok", "not_found", "error", "unavailable"):
-            with self.subTest(state=state):
-                self.assertIn(f'status: "{state}"', self.js)
+    def test_dashboard_loads_operational_data_from_api(self):
+        self.assertIn('apiFetch("/api/assets")', self.js)
+        self.assertIn('apiFetch("/api/predictions/latest")', self.js)
+        self.assertIn('apiFetch("/api/workflows")', self.js)
+        self.assertNotIn('asset_id: "PUMP-104"', self.js)
+        self.assertNotIn('run_id: "sprint1-0942"', self.js)
 
-        for status_code in ("200", "400", "404", "503"):
-            with self.subTest(status_code=status_code):
-                self.assertRegex(self.js, rf"statusCode:\s*{status_code}")
-
-    def test_dashboard_sample_data_covers_assets_predictions_and_workflows(self):
-        self.assertGreaterEqual(len(re.findall(r'asset_id: "', self.js)), 5)
-        self.assertIn('asset_id: "PUMP-104"', self.js)
-        self.assertIn('asset_id: "MOTOR-207"', self.js)
-        self.assertIn("risk_score", self.js)
-        self.assertIn("maintenance_priority", self.js)
-        self.assertIn("recommended_action", self.js)
-        self.assertGreaterEqual(len(re.findall(r'run_id: "', self.js)), 3)
-        self.assertIn('status: "completed"', self.js)
-        self.assertIn('status: "failed"', self.js)
+    def test_workflow_view_supports_manual_execution(self):
+        self.assertIn('id="run-workflow-button"', self.html)
+        self.assertIn('id="workflow-action-status"', self.html)
+        self.assertIn('fetch("/api/workflows"', self.js)
+        self.assertIn('workflow: "predictive-maintenance"', self.js)
+        self.assertIn("button.disabled = true", self.js)
+        self.assertIn("Manual execution", self.js)
+        self.assertIn("Run ID:", self.js)
+        self.assertIn(".workflow-feedback", self.css)
+        self.assertIn("padding: 12px 20px", self.css)
 
     def test_dashboard_styles_support_responsive_wireframe_layout(self):
         self.assertIn("summary-grid", self.css)
@@ -110,6 +107,7 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("@media (max-width: 1100px)", self.css)
         self.assertIn("@media (max-width: 760px)", self.css)
         self.assertIn("overflow-x: auto", self.css)
+        self.assertIn("distribution-bar.is-empty", self.css)
 
 
 if __name__ == "__main__":

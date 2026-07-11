@@ -1,121 +1,4 @@
-const dashboardData = {
-  generatedAt: "2026-06-26T19:45:00Z",
-  apiState: {
-    status: "ok",
-    request_state: "ok",
-    message: "Dashboard sample data follows the Sprint 2 operational API contract."
-  },
-  assets: [
-    {
-      asset_id: "PUMP-104",
-      asset_status: "critical",
-      risk_score: 0.92,
-      maintenance_priority: "Immediate",
-      updated_at: "2026-06-26T19:40:00Z",
-      display_updated: "2m ago",
-      recommended_action: "Inspect pump vibration and pressure before the next production cycle."
-    },
-    {
-      asset_id: "MOTOR-207",
-      asset_status: "warning",
-      risk_score: 0.71,
-      maintenance_priority: "High",
-      updated_at: "2026-06-26T19:36:00Z",
-      display_updated: "6m ago",
-      recommended_action: "Review elevated temperature and vibration trend before the next shift."
-    },
-    {
-      asset_id: "FAN-031",
-      asset_status: "warning",
-      risk_score: 0.64,
-      maintenance_priority: "High",
-      updated_at: "2026-06-26T19:34:00Z",
-      display_updated: "8m ago",
-      recommended_action: "Schedule maintenance within 24 hours."
-    },
-    {
-      asset_id: "PUMP-118",
-      asset_status: "healthy",
-      risk_score: 0.18,
-      maintenance_priority: "Routine",
-      updated_at: "2026-06-26T19:30:00Z",
-      display_updated: "12m ago",
-      recommended_action: "Continue scheduled monitoring."
-    },
-    {
-      asset_id: "MOTOR-215",
-      asset_status: "healthy",
-      risk_score: 0.11,
-      maintenance_priority: "Routine",
-      updated_at: "2026-06-26T19:27:00Z",
-      display_updated: "15m ago",
-      recommended_action: "Continue scheduled monitoring."
-    }
-  ],
-  workflows: [
-    {
-      run_id: "sprint1-0942",
-      status: "running",
-      label: "Scoring pipeline",
-      started_at: "2026-06-26T19:42:00Z",
-      duration: "active",
-      step: "score_and_persist_predictions",
-      error: null
-    },
-    {
-      run_id: "sprint1-0910",
-      status: "completed",
-      label: "Feature pipeline",
-      started_at: "2026-06-26T19:10:00Z",
-      duration: "2m 18s",
-      step: "score_and_persist_predictions",
-      error: null
-    },
-    {
-      run_id: "sprint1-0838",
-      status: "completed",
-      label: "Telemetry ingest",
-      started_at: "2026-06-26T18:38:00Z",
-      duration: "1m 04s",
-      step: "engineer_and_persist_features",
-      error: null
-    },
-    {
-      run_id: "failed-run",
-      status: "failed",
-      started_at: "2026-06-26T18:22:00Z",
-      duration: "35s",
-      step: "engineer_and_persist_features",
-      error: "Feature processing failed."
-    }
-  ],
-  responseStates: [
-    {
-      label: "Normal",
-      statusCode: 200,
-      status: "ok",
-      message: "Data is current and available."
-    },
-    {
-      label: "Missing",
-      statusCode: 404,
-      status: "not_found",
-      message: "Requested workflow or prediction record was not found."
-    },
-    {
-      label: "Invalid",
-      statusCode: 400,
-      status: "error",
-      message: "Request identifier or source data failed validation."
-    },
-    {
-      label: "Unavailable",
-      statusCode: 503,
-      status: "unavailable",
-      message: "A required source is unavailable."
-    }
-  ]
-};
+const dashboardData = { assets: [], predictions: [], workflows: [] };
 
 const statusLabels = {
   critical: "Critical",
@@ -136,10 +19,6 @@ function statusPill(status) {
   return `<span class="status-pill status-${status}">${label}</span>`;
 }
 
-function formatPercent(value) {
-  return `${Math.round(value * 100)}%`;
-}
-
 function formatDateTime(value) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -147,6 +26,66 @@ function formatDateTime(value) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(value));
+}
+
+function formatTime(value) {
+  return new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function formatStepLabel(value) {
+  const label = value ? value.replaceAll("_", " ") : "Predictive maintenance";
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+async function apiFetch(path) {
+  const response = await fetch(path);
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.message || payload.detail || `Request failed (${response.status}).`);
+  }
+  return payload.data;
+}
+
+function profileStatus(riskScore) {
+  if (riskScore >= 0.6) return "critical";
+  if (riskScore >= 0.4) return "warning";
+  if (riskScore >= 0.2) return "watch";
+  return "healthy";
+}
+
+function profilePriority(status) {
+  return {
+    critical: "Immediate",
+    warning: "High",
+    watch: "Medium",
+    healthy: "Routine"
+  }[status];
+}
+
+function normalizeAssets(profiles, predictions) {
+  if (predictions.length > 0) {
+    return predictions.map((prediction) => ({
+      ...prediction,
+      risk_score: Number(prediction.risk_score),
+      display_updated: formatDateTime(prediction.scored_at)
+    }));
+  }
+
+  return profiles.map((profile) => {
+    const riskScore = Number(profile.failure_risk);
+    const status = profileStatus(riskScore);
+    return {
+      ...profile,
+      risk_score: riskScore,
+      asset_status: status,
+      maintenance_priority: profilePriority(status),
+      recommended_action: "Run predictive maintenance to calculate the latest asset risk.",
+      display_updated: "Profile baseline"
+    };
+  });
 }
 
 function renderSummary(data) {
@@ -160,11 +99,16 @@ function renderSummary(data) {
   document.getElementById("assets-at-risk-value").textContent = String(atRisk.length);
   document.getElementById("assets-at-risk-note").textContent = `${data.assets.length} monitored assets`;
   document.getElementById("active-alerts-value").textContent = String(critical.length + failedWorkflows.length);
-  document.getElementById("active-alerts-note").textContent = `${critical.length} critical, ${atRisk.length - critical.length} warning`;
+  document.getElementById("active-alerts-note").textContent = `${critical.length} critical, ${atRisk.length - critical.length} other at risk`;
   document.getElementById("workflow-health-value").textContent = failedWorkflows.length === 0 ? "Healthy" : "Degraded";
   document.getElementById("workflow-health-note").textContent = `${data.workflows.filter((workflow) => workflow.status === "running").length} running, ${failedWorkflows.length} failed`;
-  document.getElementById("last-scoring-run-value").textContent = "09:42";
-  document.getElementById("last-scoring-run-note").textContent = `Completed in ${completedWorkflows[0]?.duration || "n/a"}`;
+  const latestCompleted = completedWorkflows[0];
+  document.getElementById("last-scoring-run-value").textContent = latestCompleted?.updated_at
+    ? formatTime(latestCompleted.updated_at)
+    : "None";
+  document.getElementById("last-scoring-run-note").textContent = latestCompleted
+    ? `Completed ${formatDateTime(latestCompleted.updated_at)}`
+    : "No completed scoring run";
 }
 
 function renderAssets(data, filterValue = "all") {
@@ -178,7 +122,7 @@ function renderAssets(data, filterValue = "all") {
     <tr>
       <td><strong>${asset.asset_id}</strong></td>
       <td>${statusPill(asset.asset_status)}</td>
-      <td>${asset.risk_score.toFixed(2)}</td>
+      <td>${Number(asset.risk_score).toFixed(2)}</td>
       <td>${asset.maintenance_priority}</td>
       <td>${asset.display_updated || formatDateTime(asset.updated_at)}</td>
     </tr>
@@ -188,21 +132,88 @@ function renderAssets(data, filterValue = "all") {
 }
 
 function renderWorkflows(data) {
-  document.getElementById("workflow-list").innerHTML = data.workflows.map((workflow) => `
-    <section class="workflow-item">
+  document.getElementById("workflow-list").innerHTML = data.workflows.length > 0
+    ? data.workflows.map((workflow) => `
+    <section class="workflow-item" title="Run ID: ${workflow.run_id}">
       <div>
-        <strong>${workflow.run_id}</strong>
-        <p>${workflow.label}</p>
+        <strong>Manual execution</strong>
+        <p>${workflow.label} · ${formatDateTime(workflow.updated_at)}</p>
       </div>
       ${statusPill(workflow.status)}
     </section>
-  `).join("");
+  `).join("")
+    : '<p class="empty-state">No workflow runs have been recorded.</p>';
 
   const states = ["running", "completed", "failed"];
   document.getElementById("workflow-state-row").innerHTML = states.map((state) => {
     const count = data.workflows.filter((workflow) => workflow.status === state).length;
     return `<span class="workflow-state-chip status-${state}">${statusLabels[state]} ${count}</span>`;
   }).join("");
+}
+
+async function refreshDashboard() {
+  const actionStatus = document.getElementById("workflow-action-status");
+  actionStatus.textContent = "Loading operational data...";
+  actionStatus.dataset.state = "loading";
+  try {
+    const [assetData, predictionData, workflowData] = await Promise.all([
+      apiFetch("/api/assets"),
+      apiFetch("/api/predictions/latest"),
+      apiFetch("/api/workflows")
+    ]);
+    dashboardData.predictions = predictionData.predictions || [];
+    dashboardData.assets = normalizeAssets(
+      assetData.assets || [],
+      dashboardData.predictions
+    );
+    dashboardData.workflows = workflowData.workflows.map((workflow) => ({
+      ...workflow,
+      label: formatStepLabel(workflow.step),
+      duration: workflow.status === "running" ? "active" : "complete"
+    }));
+    renderSummary(dashboardData);
+    renderAssets(dashboardData);
+    renderWorkflows(dashboardData);
+    renderPredictions(dashboardData);
+    document.getElementById("last-refresh-value").textContent = formatDateTime(new Date());
+    actionStatus.textContent = "Operational data refreshed.";
+    actionStatus.dataset.state = "success";
+  } catch (error) {
+    actionStatus.textContent = error.message;
+    actionStatus.dataset.state = "error";
+    renderSummary(dashboardData);
+    renderAssets(dashboardData);
+    renderWorkflows(dashboardData);
+    renderPredictions(dashboardData);
+  }
+}
+
+async function runWorkflow() {
+  const button = document.getElementById("run-workflow-button");
+  const actionStatus = document.getElementById("workflow-action-status");
+  button.disabled = true;
+  actionStatus.textContent = "Starting predictive maintenance workflow...";
+  actionStatus.dataset.state = "loading";
+
+  try {
+    const response = await fetch("/api/workflows", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workflow: "predictive-maintenance" })
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.detail || "Workflow could not be started.");
+    }
+    actionStatus.textContent = "Workflow started. Refreshing status...";
+    actionStatus.dataset.state = "success";
+    await refreshDashboard();
+  } catch (error) {
+    actionStatus.textContent = error.message;
+    actionStatus.dataset.state = "error";
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function groupAssetsByStatus(assets) {
@@ -213,6 +224,16 @@ function groupAssetsByStatus(assets) {
 }
 
 function renderPredictions(data) {
+  const distributionBar = document.getElementById("distribution-bar");
+  const distributionLegend = document.getElementById("distribution-legend");
+  if (data.assets.length === 0) {
+    document.getElementById("prediction-count").textContent = "No prediction data available";
+    distributionBar.classList.add("is-empty");
+    distributionBar.innerHTML = "";
+    distributionLegend.innerHTML = '<span class="legend-empty">Run a workflow to calculate asset risk.</span>';
+    return;
+  }
+
   const statusCounts = groupAssetsByStatus(data.assets);
   const reviewCount = data.assets.filter((asset) => asset.asset_status !== "healthy").length;
   const total = Math.max(data.assets.length, 1);
@@ -221,29 +242,20 @@ function renderPredictions(data) {
   const criticalShare = Math.round(((statusCounts.critical || 0) / total) * 100);
 
   document.getElementById("prediction-count").textContent = `${reviewCount} assets require review`;
-  document.getElementById("distribution-bar").style.setProperty("--healthy-share", String(Math.max(healthyShare, 1)));
-  document.getElementById("distribution-bar").style.setProperty("--warning-share", String(Math.max(warningShare, 1)));
-  document.getElementById("distribution-bar").style.setProperty("--critical-share", String(Math.max(criticalShare, 1)));
-  document.getElementById("distribution-bar").innerHTML = `
+  distributionBar.classList.remove("is-empty");
+  distributionBar.style.setProperty("--healthy-share", String(Math.max(healthyShare, 1)));
+  distributionBar.style.setProperty("--warning-share", String(Math.max(warningShare, 1)));
+  distributionBar.style.setProperty("--critical-share", String(Math.max(criticalShare, 1)));
+  distributionBar.innerHTML = `
     <span class="distribution-segment healthy"></span>
     <span class="distribution-segment warning"></span>
     <span class="distribution-segment critical"></span>
   `;
-  document.getElementById("distribution-legend").innerHTML = `
+  distributionLegend.innerHTML = `
     <span class="legend-healthy">Healthy ${healthyShare}%</span>
     <span class="legend-warning">Warning ${warningShare}%</span>
     <span class="legend-critical">Critical ${criticalShare}%</span>
   `;
-}
-
-function renderStates(data) {
-  document.getElementById("state-grid").innerHTML = data.responseStates.map((state) => `
-    <section class="state-card">
-      <strong>${state.label}</strong>
-      <p>${state.message}</p>
-      <code>${state.statusCode} / ${state.status}</code>
-    </section>
-  `).join("");
 }
 
 function showView(viewName) {
@@ -267,18 +279,21 @@ function initDashboard() {
   renderAssets(dashboardData);
   renderWorkflows(dashboardData);
   renderPredictions(dashboardData);
-  renderStates(dashboardData);
   showView("overview");
 
   document.getElementById("asset-status-filter").addEventListener("change", (event) => {
     renderAssets(dashboardData, event.target.value);
   });
+  document.getElementById("run-workflow-button").addEventListener("click", runWorkflow);
+  document.querySelector(".refresh-button").addEventListener("click", refreshDashboard);
 
   document.querySelectorAll("[data-view-target]").forEach((control) => {
     control.addEventListener("click", () => {
       showView(control.dataset.viewTarget);
     });
   });
+
+  refreshDashboard();
 }
 
 document.addEventListener("DOMContentLoaded", initDashboard);

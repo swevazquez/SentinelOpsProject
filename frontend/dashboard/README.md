@@ -18,10 +18,13 @@ criteria for FR-10:
 - asset health and maintenance priority,
 - prediction summaries and recommendations,
 - workflow execution status,
+- manual predictive-maintenance workflow execution,
 - and clear normal, missing, invalid, and unavailable response-state mappings.
 
-The dashboard currently uses in-page sample data shaped like the Sprint 2 API
-responses. This keeps the UI demonstrable before FastAPI route wiring is added
-and avoids requiring a local development server for review.
+The dashboard reads asset profiles, latest predictions, and workflow execution
+states from the FastAPI service. When no prediction run exists yet, it displays
+the configured asset profiles and labels them as baseline data until a workflow
+is run.
 
-Open `frontend/dashboard/index.html` in a browser to review the page.
+Start the API from the repository root and open `http://127.0.0.1:8000` to review
+the integrated dashboard.

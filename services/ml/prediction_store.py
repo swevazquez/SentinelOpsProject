@@ -25,6 +25,8 @@ class PredictionRepository(Protocol):
 
     def get_by_asset(self, asset_id: str) -> list[dict[str, str]]: ...
 
+    def get_latest(self) -> list[dict[str, str]]: ...
+
 
 def _validate_identifier(value: str, name: str) -> None:
     if not value or any(character in value for character in ("/", "\\", "..")):
@@ -120,6 +122,15 @@ class CsvPredictionRepository:
             if row["asset_id"] == asset_id
         ]
         return sorted(predictions, key=lambda row: row["scored_at"], reverse=True)
+
+    def get_latest(self) -> list[dict[str, str]]:
+        latest_by_asset: dict[str, dict[str, str]] = {}
+        for path in sorted(self.storage_dir.glob("predictions_*.csv")):
+            for row in self._read(path):
+                current = latest_by_asset.get(row["asset_id"])
+                if current is None or row["scored_at"] > current["scored_at"]:
+                    latest_by_asset[row["asset_id"]] = row
+        return sorted(latest_by_asset.values(), key=lambda row: row["asset_id"])
 
     @staticmethod
     def _read(path: Path) -> list[dict[str, str]]:
