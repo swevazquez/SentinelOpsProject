@@ -10,8 +10,8 @@
 | Sprint | Sprint 3 |
 | Reporting Week | Week 7 |
 | Reporting Period | 2026-07-06 to 2026-07-12 |
-| Report Date | 2026-07-11 |
-| Report Status | Current through 2026-07-11 |
+| Report Date | 2026-07-12 |
+| Report Status | Current through 2026-07-12 |
 | Git Repository | <https://github.com/swevazquez/SentinelOpsProject> |
 | Jira Board | <https://psu-capstone-sentinelops.atlassian.net/jira/software/projects/SCRUM/boards/1/backlog> |
 
@@ -21,7 +21,7 @@
 
 Sprint 3 extends the predictive-maintenance MVP with controlled user interaction. The sprint goal is to support manual workflow execution, expose approved read-only agent tools, and establish the foundation for AI-assisted operational queries and approval-gated actions. The significant algorithmic component proposal was also completed so instructor feedback can guide the later machine-learning implementation.
 
-## Groomed Product Backlog and Sprint Backlog
+## Groomed Product Backlog and Highest-Priority Sprint Backlog
 
 | Jira / Requirement | Backlog Item | Priority | Estimate | Current Status |
 |---|---|---:|---:|---|
