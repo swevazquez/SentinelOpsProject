@@ -35,8 +35,8 @@ data                  Local raw, processed, and sample data
 
 ## Development Status
 
-This repository has the Sprint 1 predictive-maintenance foundation and the
-first Sprint 2 scoring capability in place:
+This repository contains the completed Sprint 1 and Sprint 2 predictive-maintenance
+foundation plus the first Sprint 3 interaction slices:
 
 1. Generate representative asset telemetry.
 2. Persist raw telemetry under `data/raw/`.
@@ -48,18 +48,22 @@ first Sprint 2 scoring capability in place:
 8. Persist and retrieve prediction results through a repository interface.
 9. Trace predictions to their workflow run and fingerprinted feature input.
 10. Retrieve workflow execution status for completed, running, and failed runs.
-11. Provide API-facing handlers for asset, workflow, prediction, and health data.
-12. Display a directly openable operations dashboard aligned with the reviewed UI wireframe.
+11. Provide API routes for assets, workflows, latest predictions, and dashboard serving.
+12. Display an API-integrated operations dashboard aligned with the reviewed UI wireframe.
 13. Validate repeated demonstration-scale workflow performance.
+14. Start the supported predictive-maintenance workflow through the dashboard and expose live status.
+15. Provide controlled, read-only agent tools with closed schemas and API-bound execution.
+16. Specify the significant Random Forest remaining-useful-life algorithm component using NASA C-MAPSS FD001.
 
-PostgreSQL-backed prediction storage, HTTP route wiring, and AI-assisted
-interactions remain later-sprint work.
+Current Sprint 3 work remains focused on AI-assisted operational queries, approval-gated
+workflow actions, restricted action enforcement, and agent tool usage logging. The
+assistant query and approval-gated action paths are not yet implemented.
 
 ## Local Setup
 
-The Sprint 1 data workflow requires Python 3.12 or later and uses only the Python
-standard library. Docker Compose is optional and is needed only to review the
-Airflow and PostgreSQL services.
+The local application requires Python 3.12 or later. The API and dashboard use
+FastAPI and Uvicorn; development testing uses HTTPX and pytest. Docker Compose is
+optional and is needed only to review the Airflow and PostgreSQL services.
 
 Check local prerequisites:
 
@@ -76,6 +80,12 @@ Prepare the local environment:
 The setup command creates `.env` from `.env.example` when needed and creates local
 runtime directories. It can be run repeatedly without overwriting an existing
 `.env`.
+
+Install the application and development dependencies:
+
+```bash
+uv sync --extra dev
+```
 
 Run the Sprint 1 workflow:
 
@@ -96,6 +106,25 @@ Run the complete local validation suite:
 ```bash
 ./scripts/check-ci.sh
 ```
+
+Run the focused Sprint 3 tests:
+
+```bash
+uv run pytest tests/integration/test_manual_workflow_api.py \
+  tests/unit/test_api_operations.py \
+  tests/unit/test_dashboard_ui.py \
+  tests/unit/test_agent_tools.py
+```
+
+Start the integrated API and dashboard:
+
+```bash
+uv run uvicorn services.api.app:app --reload
+```
+
+Open `http://127.0.0.1:8000` to review the dashboard. The Workflows view can
+start the supported `predictive-maintenance` workflow and refresh live workflow,
+asset, and prediction data.
 
 Validate Sprint 2 demo performance:
 
@@ -124,6 +153,8 @@ Project documentation is maintained under `docs/`:
 - `docs/architecture/`
 - `docs/images/`
 - `docs/diagrams/`
+- `docs/algorithmic-component.md`
+- `docs/reports/`
 
 Documentation should be concise, traceable to project decisions, and appropriate for a graduate-level software engineering capstone.
 
