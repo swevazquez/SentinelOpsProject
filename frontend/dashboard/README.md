@@ -21,8 +21,9 @@ enterprise theme, reusable design tokens, live API data, and four in-scope views
   detail dialog.
 - Workflows: manual predictive-maintenance execution, status metrics, execution
   history, and the latest pipeline timeline.
-- Assistant: a controlled enterprise preview that documents current context,
-  approved tools, and the pending FR-12 integration without simulating responses.
+- Assistant: an operational query console for supported asset, prediction, and
+  workflow questions, with suggested prompts, structured results, and visible
+  approved-tool evidence.
 
 The dashboard reads asset profiles, latest predictions, and workflow execution
 states from the FastAPI service. When no prediction run exists yet, it displays

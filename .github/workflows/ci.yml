@@ -24,6 +24,7 @@ jobs:
           "fastapi>=0.115,<1.0"
           "uvicorn>=0.34,<1.0"
           "httpx>=0.28,<1.0"
+          "openai>=2.0,<3.0"
           "pytest>=8.0"
 
       - name: Run CI validation
