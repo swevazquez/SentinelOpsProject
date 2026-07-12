@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from services.api.operations import (
     ApiResponse,
+    latest_predictions_response,
     list_assets_response,
     predictions_by_asset_response,
     predictions_by_run_response,
@@ -73,6 +74,12 @@ APPROVED_TOOLS = (
         handler=_no_arguments(workflow_list_response),
     ),
     ToolDefinition(
+        name="get_latest_predictions",
+        description="Retrieve the latest prediction for each scored asset.",
+        input_schema=_object_schema({}),
+        handler=_no_arguments(latest_predictions_response),
+    ),
+    ToolDefinition(
         name="get_workflow",
         description="Retrieve one workflow execution by run identifier.",
         input_schema=_object_schema({"run_id": {"type": "string"}}),
@@ -104,6 +111,19 @@ def tool_schemas() -> list[dict[str, Any]]:
                 "description": tool.description,
                 "parameters": tool.input_schema,
             },
+        }
+        for tool in APPROVED_TOOLS
+    ]
+
+
+def response_tool_schemas() -> list[dict[str, Any]]:
+    return [
+        {
+            "type": "function",
+            "name": tool.name,
+            "description": tool.description,
+            "parameters": tool.input_schema,
+            "strict": True,
         }
         for tool in APPROVED_TOOLS
     ]

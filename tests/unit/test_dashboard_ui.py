@@ -122,6 +122,23 @@ class DashboardUiTests(unittest.TestCase):
         notification_handler = self.js.split('const notificationControl = event.target.closest("[data-notification-type]");', 1)[1]
         notification_handler = notification_handler.split("const accountControl", 1)[0]
         self.assertNotIn("showView(", notification_handler)
+
+    def test_assistant_submits_supported_operational_queries(self):
+        self.assertIn('id="assistant-form"', self.html)
+        self.assertIn('id="assistant-input"', self.html)
+        self.assertIn('data-assistant-prompt="Show highest risk assets"', self.html)
+        self.assertIn('fetch("/api/assistant/query"', self.js)
+        self.assertIn("payload.data.response.answer", self.js)
+        self.assertIn('id="assistant-model-name"', self.html)
+        self.assertIn("payload.data.response.model", self.js)
+        self.assertIn("tool_calls", self.js)
+        self.assertIn("#assistant-view", self.css)
+        self.assertIn("height: calc(100vh - var(--topbar-height)", self.css)
+        self.assertIn(".assistant-transcript", self.css)
+        self.assertIn("overscroll-behavior: contain", self.css)
+        self.assertIn("grid-template-rows: auto minmax(0, 1fr) auto", self.css)
+        self.assertIn('class="panel context-panel context-disclosure" open', self.html)
+        self.assertIn(".context-disclosure[open]", self.css)
         self.assertIn(".workflow-feedback", self.css)
         self.assertIn("padding: var(--space-3) var(--space-4)", self.css)
 

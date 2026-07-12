@@ -500,6 +500,73 @@ async function runWorkflow() {
   }
 }
 
+function assistantResultItems(response) {
+  if (!response.items?.length) return "";
+  if (["highest_risk_assets", "explain_asset_prediction"].includes(response.intent)) {
+    return `<div class="assistant-result-list">${response.items.map((item) => `
+      <button type="button" data-asset-detail="${escapeHtml(item.asset_id)}"><span><strong>${escapeHtml(item.asset_id)}</strong><small>${escapeHtml(item.recommended_action || "Prediction result")}</small></span><span class="risk-chip">${Number(item.risk_score || 0).toFixed(2)}</span><i data-lucide="chevron-right"></i></button>
+    `).join("")}</div>`;
+  }
+  if (["workflow_failures", "workflow_summary"].includes(response.intent)) {
+    return `<div class="assistant-result-list">${response.items.map((item) => `
+      <button type="button" data-workflow-detail="${escapeHtml(item.run_id)}"><span><strong>Predictive maintenance</strong><small>${escapeHtml(formatStepLabel(item.step))} · ${escapeHtml(formatDateTime(item.updated_at))}</small></span>${statusPill(item.status)}<i data-lucide="chevron-right"></i></button>
+    `).join("")}</div>`;
+  }
+  return `<div class="assistant-result-list">${response.items.slice(0, 5).map((item) => `
+    <button type="button" data-asset-detail="${escapeHtml(item.asset_id)}"><span><strong>${escapeHtml(item.asset_id)}</strong><small>Monitored asset</small></span><i data-lucide="chevron-right"></i></button>
+  `).join("")}</div>`;
+}
+
+function appendAssistantMessage(role, content, response = null) {
+  const transcript = document.getElementById("assistant-transcript");
+  const message = document.createElement("section");
+  message.className = `assistant-message assistant-message-${role}`;
+  if (role === "user") {
+    message.innerHTML = `<span class="assistant-message-icon"><i data-lucide="user"></i></span><div><span class="assistant-message-label">You</span><p>${escapeHtml(content)}</p></div>`;
+  } else {
+    const model = response?.model
+      ? `<span>${escapeHtml(response.provider || "model")} · ${escapeHtml(response.model)}</span>`
+      : "";
+    const tools = response?.tool_calls?.length
+      ? `<div class="assistant-tool-evidence"><i data-lucide="wrench"></i>${model}${response.tool_calls.map((tool) => `<span>${escapeHtml(tool.name)} · read only</span>`).join("")}</div>`
+      : "";
+    message.innerHTML = `<span class="assistant-message-icon"><i data-lucide="bot"></i></span><div><span class="assistant-message-label">SentinelOps Assistant</span><p>${escapeHtml(content)}</p>${assistantResultItems(response || {})}${tools}</div>`;
+  }
+  transcript.appendChild(message);
+  transcript.scrollTop = transcript.scrollHeight;
+  refreshIcons();
+}
+
+async function submitAssistantQuery(message) {
+  const input = document.getElementById("assistant-input");
+  const button = document.getElementById("assistant-send-button");
+  const query = message.trim();
+  if (!query || button.disabled) return;
+  appendAssistantMessage("user", query);
+  input.value = "";
+  input.disabled = true;
+  button.disabled = true;
+  button.classList.add("is-loading");
+  try {
+    const response = await fetch("/api/assistant/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: query })
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || "The operational query could not be completed.");
+    document.getElementById("assistant-model-name").textContent = payload.data.response.model;
+    appendAssistantMessage("assistant", payload.data.response.answer, payload.data.response);
+  } catch (error) {
+    appendAssistantMessage("assistant", error.message, { intent: "error", tool_calls: [], items: [] });
+  } finally {
+    input.disabled = false;
+    button.disabled = false;
+    button.classList.remove("is-loading");
+    input.focus();
+  }
+}
+
 function showView(viewName) {
   document.querySelectorAll("[data-view]").forEach((view) => {
     view.hidden = view.dataset.view !== viewName;
@@ -548,6 +615,13 @@ function initDashboard() {
     openWorkflowDetails(dashboardData.workflows[0].run_id);
   });
   document.getElementById("user-menu-button").addEventListener("click", () => toggleHeaderPopover("user-popover", "user-menu-button"));
+  document.getElementById("assistant-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitAssistantQuery(document.getElementById("assistant-input").value);
+  });
+  document.querySelectorAll("[data-assistant-prompt]").forEach((button) => {
+    button.addEventListener("click", () => submitAssistantQuery(button.dataset.assistantPrompt));
+  });
   document.getElementById("workflow-filter-clear").addEventListener("click", () => {
     workflowFilter = "all";
     renderWorkflows(dashboardData);

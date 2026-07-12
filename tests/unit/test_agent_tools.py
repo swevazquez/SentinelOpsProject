@@ -5,7 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from services.agent.tools import APPROVED_TOOLS, execute_tool, tool_schemas
+from services.agent.tools import (
+    APPROVED_TOOLS,
+    execute_tool,
+    response_tool_schemas,
+    tool_schemas,
+)
 from services.ml.prediction_store import CsvPredictionRepository
 from services.ml.scoring import score_feature_rows
 from services.workflows.status import record_workflow_status
@@ -64,11 +69,16 @@ class AgentToolTests(unittest.TestCase):
                 for schema in tool_schemas()
             )
         )
+        self.assertTrue(all(schema["strict"] for schema in response_tool_schemas()))
+        self.assertTrue(
+            all("function" not in schema for schema in response_tool_schemas())
+        )
 
     def test_approved_tools_return_structured_operational_data(self) -> None:
         scenarios = (
             ("list_assets", {}, "assets"),
             ("list_workflows", {}, "workflows"),
+            ("get_latest_predictions", {}, "predictions"),
             ("get_workflow", {"run_id": "run-1"}, "workflow"),
             ("get_predictions_by_run", {"run_id": "run-1"}, "predictions"),
             (
