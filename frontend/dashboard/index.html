@@ -3,151 +3,172 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SentinelOps Operations Dashboard</title>
-    <link rel="stylesheet" href="./styles.css?v=workflow-feedback-2">
+    <title>SentinelOps Operations Console</title>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="stylesheet" href="./tokens.css?v=enterprise-1">
+    <link rel="stylesheet" href="./styles.css?v=enterprise-1">
+    <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   </head>
   <body>
-    <div class="app-frame">
-      <header class="topbar" aria-label="Dashboard header">
-        <div class="brand-row">
-          <strong class="brand">SentinelOps</strong>
-          <span>Operations Overview</span>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Primary navigation">
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">SO</span>
+          <div>
+            <strong>SentinelOps</strong>
+            <span>Operations Console</span>
+          </div>
         </div>
-        <div class="topbar-actions">
-          <span class="environment-badge">LIVE API</span>
-          <button type="button" class="refresh-button">Refresh</button>
+
+        <nav class="primary-nav">
+          <p class="nav-label">Monitor</p>
+          <button type="button" class="nav-item" data-view-target="overview" aria-current="page">
+            <i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Overview</span>
+          </button>
+          <button type="button" class="nav-item" data-view-target="assets">
+            <i data-lucide="factory" aria-hidden="true"></i><span>Assets</span>
+          </button>
+          <button type="button" class="nav-item" data-view-target="workflows">
+            <i data-lucide="workflow" aria-hidden="true"></i><span>Workflows</span>
+          </button>
+
+          <p class="nav-label">Intelligence</p>
+          <button type="button" class="nav-item" data-view-target="assistant">
+            <i data-lucide="bot" aria-hidden="true"></i><span>Assistant</span>
+            <span class="nav-badge">Preview</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="system-indicator">
+            <span class="status-dot" id="sidebar-status-dot"></span>
+            <div><strong id="sidebar-status-label">Connecting</strong><span>SentinelOps API</span></div>
+          </div>
+          <p>Last refresh <span id="last-refresh-value">Not refreshed</span></p>
         </div>
-      </header>
+      </aside>
 
-      <div class="dashboard-layout">
-        <aside class="sidebar" aria-label="Dashboard navigation">
-          <nav>
-            <button type="button" class="nav-item" data-view-target="overview" aria-current="page">Overview</button>
-            <button type="button" class="nav-item" data-view-target="assets">Assets</button>
-            <button type="button" class="nav-item" data-view-target="workflows">Workflows</button>
-            <button type="button" class="nav-item" data-view-target="assistant">Assistant</button>
-          </nav>
-          <p class="refresh-note">Last refresh<br><span id="last-refresh-value">Not refreshed</span></p>
-        </aside>
+      <div class="application-frame">
+        <header class="topbar" aria-label="Operations header">
+          <div class="topbar-context">
+            <span class="eyebrow">Production environment</span>
+            <strong id="header-view-title">Fleet Overview</strong>
+          </div>
+          <div class="topbar-metrics" aria-label="Current operational status">
+            <button type="button" class="header-metric" id="system-summary-button"><span>System</span><strong id="header-system-status">Connecting</strong></button>
+            <button type="button" class="header-metric" id="last-workflow-button"><span>Last workflow</span><strong id="header-last-workflow">No runs</strong></button>
+          </div>
+          <div class="topbar-actions">
+            <div class="popover-anchor">
+            <button type="button" class="icon-button" id="notification-button" aria-label="Notifications" title="Notifications" aria-expanded="false" aria-controls="notification-popover">
+              <i data-lucide="bell" aria-hidden="true"></i><span class="notification-count" id="notification-count" hidden>0</span>
+            </button>
+            <section class="header-popover notification-popover" id="notification-popover" aria-label="Notifications" hidden>
+              <div class="popover-header"><div><span class="panel-kicker">Operational inbox</span><h2>Notifications</h2></div><span class="panel-meta" id="notification-summary">0 open</span></div>
+              <div id="notification-list" class="notification-list"></div>
+            </section>
+            </div>
+            <button type="button" class="button button-secondary refresh-button" aria-live="polite">
+              <i data-lucide="refresh-cw" aria-hidden="true"></i><span>Refresh</span>
+            </button>
+            <div class="popover-anchor">
+            <button type="button" class="user-menu" id="user-menu-button" aria-label="Open user menu" aria-expanded="false" aria-controls="user-popover">
+              <span class="user-avatar">EV</span><span class="user-identity"><strong>Eli Vazquez</strong><span>Administrator</span></span><i data-lucide="chevron-down" aria-hidden="true"></i>
+            </button>
+            <section class="header-popover user-popover" id="user-popover" aria-label="User menu" hidden>
+              <div class="user-popover-profile"><span class="user-avatar">EV</span><div><strong>Eli Vazquez</strong><span>Administrator</span></div></div>
+              <div class="popover-menu"><button type="button" data-account-action="profile"><i data-lucide="user"></i>Profile</button><button type="button" data-account-action="settings"><i data-lucide="settings"></i>Settings</button><button type="button" data-account-action="logout"><i data-lucide="log-out"></i>Log out</button></div>
+            </section>
+            </div>
+          </div>
+        </header>
 
-        <main class="dashboard-shell">
+        <main class="dashboard-main">
           <section id="overview-view" class="view-panel" data-view="overview">
             <header class="page-heading">
-              <h1>Operations Overview</h1>
-              <p>Monitor asset risk, workflow health, and maintenance priorities.</p>
+              <div><span class="eyebrow">Fleet intelligence</span><h1>Fleet Overview</h1><p>Current asset health, prediction risk, and workflow reliability.</p></div>
+              <span class="data-state" id="overview-data-state"><span class="status-dot"></span>Loading live data</span>
             </header>
 
-            <section id="overview" class="summary-grid" aria-label="Operational summary">
-              <article class="metric-card risk" data-testid="assets-at-risk">
-                <p>Assets at Risk</p>
-                <strong id="assets-at-risk-value">0</strong>
-                <span id="assets-at-risk-note">Awaiting data</span>
+            <section id="overview" class="kpi-grid" aria-label="Fleet key performance indicators">
+              <article class="kpi-card"><div class="kpi-icon info"><i data-lucide="factory"></i></div><p>Total Assets</p><strong id="total-assets-value">0</strong><span id="total-assets-note">Awaiting inventory</span></article>
+              <article class="kpi-card"><div class="kpi-icon healthy"><i data-lucide="circle-check"></i></div><p>Healthy Assets</p><strong id="healthy-assets-value">0</strong><span id="healthy-assets-note">Awaiting predictions</span></article>
+              <article class="kpi-card"><div class="kpi-icon critical"><i data-lucide="triangle-alert"></i></div><p>High Risk Assets</p><strong id="high-risk-assets-value">0</strong><span id="high-risk-assets-note">No critical assets</span></article>
+              <article class="kpi-card"><div class="kpi-icon warning"><i data-lucide="bell-ring"></i></div><p>Active Alerts</p><strong id="active-alerts-value">0</strong><span id="active-alerts-note">No active alerts</span></article>
+              <article class="kpi-card"><div class="kpi-icon healthy"><i data-lucide="activity"></i></div><p>Workflow Success</p><strong id="workflow-success-value">—</strong><span id="workflow-success-note">No execution history</span></article>
+              <article class="kpi-card"><div class="kpi-icon info"><i data-lucide="brain-circuit"></i></div><p>Last Prediction Run</p><strong id="last-prediction-value">None</strong><span id="last-prediction-note">No scored predictions</span></article>
+            </section>
+
+            <section class="overview-grid overview-grid-primary">
+              <article class="panel chart-panel" aria-labelledby="fleet-health-title">
+                <div class="panel-header"><div><span class="panel-kicker">Condition</span><h2 id="fleet-health-title">Fleet Health Snapshot</h2></div><span class="panel-meta" id="fleet-health-meta">0 assets</span></div>
+                <div class="fleet-health-chart" id="fleet-health-chart"></div>
+                <div class="chart-legend" id="fleet-health-legend"></div>
               </article>
-              <article class="metric-card alerts" data-testid="active-alerts">
-                <p>Active Alerts</p>
-                <strong id="active-alerts-value">0</strong>
-                <span id="active-alerts-note">No alerts</span>
-              </article>
-              <article class="metric-card healthy" data-testid="workflow-health">
-                <p>Workflow Health</p>
-                <strong id="workflow-health-value">Unknown</strong>
-                <span id="workflow-health-note">No workflow runs</span>
-              </article>
-              <article class="metric-card scoring" data-testid="last-scoring-run">
-                <p>Last Scoring Run</p>
-                <strong id="last-scoring-run-value">None</strong>
-                <span id="last-scoring-run-note">No scoring run available</span>
+
+              <article class="panel chart-panel" aria-labelledby="prediction-summary-title">
+                <div class="panel-header"><div><span class="panel-kicker">Model output</span><h2 id="prediction-summary-title">Prediction Distribution</h2></div><span class="panel-meta" id="prediction-count">No predictions</span></div>
+                <div class="donut-layout"><div class="donut-chart" id="prediction-donut"><div><strong id="prediction-review-count">0</strong><span>at risk</span></div></div><div class="donut-legend" id="prediction-legend"></div></div>
               </article>
             </section>
 
-            <article class="panel prediction-panel" aria-labelledby="prediction-summary-title">
-              <div class="panel-header">
-                <h2 id="prediction-summary-title">Prediction Summary</h2>
-              </div>
-              <div class="prediction-grid">
-                <section>
-                  <p class="panel-caption">Risk distribution</p>
-                  <div class="distribution-bar" id="distribution-bar" aria-label="Risk distribution"></div>
-                  <div class="distribution-legend" id="distribution-legend"></div>
-                </section>
-                <aside class="prediction-callout">
-                  <strong id="prediction-count">0 assets require review</strong>
-                  <button type="button" class="text-action" data-view-target="assets">Open prioritized asset list</button>
-                </aside>
-              </div>
+            <section class="overview-grid overview-grid-secondary">
+              <article class="panel" aria-labelledby="workflow-overview-title">
+                <div class="panel-header"><div><span class="panel-kicker">Automation</span><h2 id="workflow-overview-title">Workflow Status</h2></div><button type="button" class="button button-ghost" data-view-target="workflows">View all<i data-lucide="arrow-right"></i></button></div>
+                <div class="compact-workflows" id="overview-workflow-list"></div>
+              </article>
+              <article class="panel" aria-labelledby="recent-alerts-title">
+                <div class="panel-header"><div><span class="panel-kicker">Attention required</span><h2 id="recent-alerts-title">Recent Alerts</h2></div><span class="panel-meta" id="alert-panel-count">0 open</span></div>
+                <div class="alert-list" id="recent-alert-list"></div>
+              </article>
+            </section>
+
+            <article class="panel table-panel" aria-labelledby="highest-risk-title">
+              <div class="panel-header"><div><span class="panel-kicker">Priority queue</span><h2 id="highest-risk-title">Highest Risk Assets</h2></div><button type="button" class="button button-ghost" data-view-target="assets">Open asset registry<i data-lucide="arrow-right"></i></button></div>
+              <div class="table-wrap"><table><thead><tr><th>Asset</th><th>Health</th><th>Risk</th><th>Priority</th><th>Recommended Action</th><th>Updated</th></tr></thead><tbody id="risk-asset-table-body"></tbody></table></div>
             </article>
           </section>
 
           <section id="assets-view" class="view-panel" data-view="assets" hidden>
-            <header class="page-heading">
-              <h1>Asset Health</h1>
-              <p>Review asset condition, prediction risk, priority, and latest update timing.</p>
-            </header>
-            <article id="asset-health" class="panel asset-panel" aria-labelledby="asset-health-title">
-              <div class="panel-header">
-                <h2 id="asset-health-title">Asset Health</h2>
-                <label class="filter-control">
-                  <span>Status:</span>
-                  <select id="asset-status-filter" aria-label="Filter assets by status">
-                    <option value="all">All</option>
-                    <option value="critical">Critical</option>
-                    <option value="warning">Warning</option>
-                    <option value="watch">Watch</option>
-                    <option value="healthy">Healthy</option>
-                  </select>
-                </label>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th scope="col">Asset</th>
-                      <th scope="col">Health</th>
-                      <th scope="col">Risk</th>
-                      <th scope="col">Priority</th>
-                      <th scope="col">Updated</th>
-                    </tr>
-                  </thead>
-                  <tbody id="asset-table-body"></tbody>
-                </table>
-              </div>
-              <p id="asset-empty-state" class="empty-state" hidden>No assets match the selected status.</p>
+            <header class="page-heading"><div><span class="eyebrow">Asset registry</span><h1>Asset Health</h1><p>Prioritize maintenance using current risk, condition, and recommendation data.</p></div><span class="data-state"><span class="status-dot healthy"></span><span id="asset-count-label">0 assets</span></span></header>
+            <article id="asset-health" class="panel table-panel" aria-labelledby="asset-health-title">
+              <div class="panel-header asset-toolbar-header"><div><span class="panel-kicker">Live inventory</span><h2 id="asset-health-title">Monitored Assets</h2></div><div class="asset-toolbar"><label class="search-control"><i data-lucide="search"></i><input id="asset-search" type="search" placeholder="Search asset ID" aria-label="Search assets"></label><label class="select-control"><span>Status</span><select id="asset-status-filter" aria-label="Filter assets by status"><option value="all">All</option><option value="critical">Critical</option><option value="warning">Warning</option><option value="watch">Watch</option><option value="healthy">Healthy</option></select></label><label class="select-control"><span>Sort</span><select id="asset-sort" aria-label="Sort assets"><option value="risk-desc">Risk: high to low</option><option value="risk-asc">Risk: low to high</option><option value="asset-asc">Asset ID</option><option value="updated-desc">Recently updated</option></select></label></div></div>
+              <div class="table-wrap"><table class="asset-table"><thead><tr><th>Asset</th><th>Health</th><th>Risk Score</th><th>Priority</th><th>Model Confidence</th><th>Recommended Action</th><th>Updated</th><th><span class="sr-only">Details</span></th></tr></thead><tbody id="asset-table-body"></tbody></table></div>
+              <div id="asset-empty-state" class="empty-state" hidden><i data-lucide="search-x"></i><strong>No assets found</strong><span>Adjust the search or status filter.</span></div>
             </article>
           </section>
 
           <section id="workflows-view" class="view-panel" data-view="workflows" hidden>
-            <header class="page-heading">
-              <h1>Workflow Status</h1>
-              <p>Inspect running, completed, and failed workflow runs and execution state.</p>
-            </header>
-            <article id="workflow-status" class="panel workflow-panel" aria-labelledby="workflow-status-title">
-              <div class="panel-header">
-                <h2 id="workflow-status-title">Workflow Status</h2>
-                <button type="button" class="primary-action" id="run-workflow-button">Run workflow</button>
-              </div>
-              <div id="workflow-action-status" class="workflow-feedback action-status" role="status" aria-live="polite"></div>
-              <div class="workflow-state-row" id="workflow-state-row" aria-label="Workflow state counts"></div>
-              <div class="workflow-list" id="workflow-list"></div>
-            </article>
+            <header class="page-heading"><div><span class="eyebrow">Pipeline operations</span><h1>Workflow Execution</h1><p>Start predictive processing and inspect the latest execution history.</p></div><button type="button" class="button button-primary" id="run-workflow-button"><i data-lucide="play"></i><span>Run workflow</span></button></header>
+            <div id="workflow-action-status" class="workflow-feedback" role="status" aria-live="polite"></div>
+            <section class="workflow-kpis" id="workflow-state-row" aria-label="Workflow state counts"></section>
+            <section class="workflow-layout">
+              <article id="workflow-status" class="panel" aria-labelledby="workflow-status-title"><div class="panel-header"><div><span class="panel-kicker">Execution history</span><h2 id="workflow-status-title">Recent Runs</h2></div><button type="button" class="filter-summary" id="workflow-filter-clear" hidden><span id="workflow-run-count">0 runs</span><i data-lucide="x"></i></button><span class="panel-meta" id="workflow-run-count-default">0 runs</span></div><div class="workflow-list" id="workflow-list"></div></article>
+              <article class="panel timeline-panel" aria-labelledby="workflow-timeline-title"><div class="panel-header"><div><span class="panel-kicker" id="workflow-timeline-kicker">Latest execution</span><h2 id="workflow-timeline-title">Pipeline Timeline</h2></div></div><div class="pipeline-timeline" id="pipeline-timeline"></div></article>
+            </section>
           </section>
 
           <section id="assistant-view" class="view-panel" data-view="assistant" hidden>
-            <header class="page-heading">
-              <h1>Operations Assistant</h1>
-              <p>Operational assistant integration is not enabled for this release.</p>
-            </header>
-            <article id="system-states" class="panel states-panel" aria-labelledby="system-states-title">
-              <div class="panel-header">
-                <h2 id="system-states-title">UI States</h2>
-                <span class="panel-action">Unavailable</span>
-              </div>
-              <p class="empty-state">No assistant service is connected to the dashboard.</p>
-            </article>
+            <header class="page-heading"><div><span class="eyebrow">Operational intelligence</span><h1>Operations Assistant</h1><p>Controlled access to fleet, prediction, and workflow context.</p></div><span class="badge badge-info">Preview</span></header>
+            <section class="assistant-layout">
+              <article id="system-states" class="panel assistant-console" aria-labelledby="assistant-console-title">
+                <div class="panel-header"><div><span class="panel-kicker">Read-only session</span><h2 id="assistant-console-title">Assistant Console</h2></div><span class="policy-indicator"><i data-lucide="shield-check"></i>Approved tools only</span></div>
+                <div class="assistant-empty"><div class="assistant-symbol"><i data-lucide="bot"></i></div><strong>Operational query service is not connected yet</strong><p>The controlled read-only tools are available in the agent service. Conversation and model integration will be introduced under FR-12.</p><div class="prompt-grid" aria-label="Planned example prompts"><button type="button" disabled>Show highest risk assets</button><button type="button" disabled>Explain an asset prediction</button><button type="button" disabled>Summarize workflow failures</button></div></div>
+                <div class="assistant-composer"><input type="text" disabled placeholder="Assistant integration is pending"><button type="button" class="icon-button" disabled aria-label="Send query"><i data-lucide="send"></i></button></div>
+              </article>
+              <aside class="assistant-context">
+                <article class="panel context-panel"><div class="panel-header"><div><span class="panel-kicker">Current context</span><h2>System Context</h2></div></div><dl><div><dt>Environment</dt><dd>Production demo</dd></div><div><dt>Assets loaded</dt><dd id="assistant-asset-count">0</dd></div><div><dt>Workflow runs</dt><dd id="assistant-workflow-count">0</dd></div><div><dt>Access mode</dt><dd>Read only</dd></div></dl></article>
+                <article class="panel context-panel"><div class="panel-header"><div><span class="panel-kicker">Policy</span><h2>Available Tools</h2></div></div><ul class="tool-list"><li><i data-lucide="factory"></i><span><strong>Asset lookup</strong><small>Approved</small></span></li><li><i data-lucide="workflow"></i><span><strong>Workflow status</strong><small>Approved</small></span></li><li><i data-lucide="brain-circuit"></i><span><strong>Prediction lookup</strong><small>Approved</small></span></li><li class="tool-restricted"><i data-lucide="lock-keyhole"></i><span><strong>Operational actions</strong><small>Approval required</small></span></li></ul></article>
+              </aside>
+            </section>
           </section>
         </main>
       </div>
     </div>
 
-    <script src="./app.js?v=workflow-feedback-2"></script>
+    <dialog id="asset-detail-dialog" class="asset-dialog"><div class="dialog-header"><div><span class="panel-kicker">Asset detail</span><h2 id="asset-dialog-title">Asset</h2></div><button type="button" class="icon-button" id="close-asset-dialog" aria-label="Close asset details"><i data-lucide="x"></i></button></div><div id="asset-dialog-content" class="asset-dialog-content"></div></dialog>
+    <dialog id="workflow-detail-dialog" class="asset-dialog workflow-dialog"><div class="dialog-header"><div><span class="panel-kicker">Workflow execution</span><h2 id="workflow-dialog-title">Run details</h2></div><button type="button" class="icon-button" id="close-workflow-dialog" aria-label="Close workflow details"><i data-lucide="x"></i></button></div><div id="workflow-dialog-content" class="asset-dialog-content"></div></dialog>
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <script src="./app.js?v=enterprise-1"></script>
   </body>
 </html>

@@ -35,14 +35,17 @@ class DashboardHtmlParser(HTMLParser):
 class DashboardUiTests(unittest.TestCase):
     def setUp(self) -> None:
         self.html = (DASHBOARD_DIR / "index.html").read_text(encoding="utf-8")
+        self.tokens = (DASHBOARD_DIR / "tokens.css").read_text(encoding="utf-8")
         self.css = (DASHBOARD_DIR / "styles.css").read_text(encoding="utf-8")
         self.js = (DASHBOARD_DIR / "app.js").read_text(encoding="utf-8")
         self.parser = DashboardHtmlParser()
         self.parser.feed(self.html)
 
     def test_dashboard_assets_are_directly_openable(self):
+        self.assertTrue(any(link.startswith("./tokens.css?") for link in self.parser.links))
         self.assertTrue(any(link.startswith("./styles.css?") for link in self.parser.links))
         self.assertTrue(any(script.startswith("./app.js?") for script in self.parser.scripts))
+        self.assertTrue((DASHBOARD_DIR / "tokens.css").is_file())
         self.assertTrue((DASHBOARD_DIR / "styles.css").is_file())
         self.assertTrue((DASHBOARD_DIR / "app.js").is_file())
 
@@ -62,8 +65,8 @@ class DashboardUiTests(unittest.TestCase):
         self.assertTrue(required_sections.issubset(self.parser.ids))
         visible_text = " ".join(self.parser.visible_text)
         self.assertIn("Asset Health", visible_text)
-        self.assertIn("Workflow Status", visible_text)
-        self.assertIn("Prediction Summary", visible_text)
+        self.assertIn("Workflow Execution", visible_text)
+        self.assertIn("Prediction Distribution", visible_text)
 
     def test_dashboard_opens_to_overview_only(self):
         self.assertIn('data-view="overview"', self.html)
@@ -78,7 +81,8 @@ class DashboardUiTests(unittest.TestCase):
                 self.assertIn(f'data-view-target="{view_name}"', self.html)
 
         self.assertIn("function showView(viewName)", self.js)
-        self.assertIn('showView("overview")', self.js)
+        self.assertIn('get("view")', self.js)
+        self.assertIn('requestedView : "overview"', self.js)
         self.assertIn("view.hidden = view.dataset.view !== viewName", self.js)
 
     def test_dashboard_loads_operational_data_from_api(self):
@@ -94,20 +98,68 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('fetch("/api/workflows"', self.js)
         self.assertIn('workflow: "predictive-maintenance"', self.js)
         self.assertIn("button.disabled = true", self.js)
-        self.assertIn("Manual execution", self.js)
-        self.assertIn("Run ID:", self.js)
+        self.assertIn("Predictive maintenance", self.js)
+        self.assertIn('id="workflow-detail-dialog"', self.html)
+        self.assertIn("function openWorkflowDetails(runId)", self.js)
+        self.assertIn("Run identifier", self.js)
+
+    def test_workflow_history_supports_status_filters(self):
+        self.assertIn('data-workflow-filter="${state}"', self.js)
+        self.assertIn('id="workflow-filter-clear"', self.html)
+        self.assertIn('workflow.status === workflowFilter', self.js)
+
+    def test_header_controls_provide_actionable_feedback(self):
+        self.assertIn('id="notification-popover"', self.html)
+        self.assertIn('data-notification-type="${alert.targetType}"', self.js)
+        self.assertIn('id="user-popover"', self.html)
+        self.assertIn('refreshLabel.textContent = "Refreshing"', self.js)
+        self.assertNotIn('id="header-alert-count"', self.html)
+
+    def test_detail_drill_down_preserves_the_current_view(self):
+        self.assertIn('class="interactive-table-row"', self.js)
+        self.assertIn('tabindex="0" role="button"', self.js)
+        self.assertIn('event.target.matches(".interactive-table-row")', self.js)
+        notification_handler = self.js.split('const notificationControl = event.target.closest("[data-notification-type]");', 1)[1]
+        notification_handler = notification_handler.split("const accountControl", 1)[0]
+        self.assertNotIn("showView(", notification_handler)
         self.assertIn(".workflow-feedback", self.css)
-        self.assertIn("padding: 12px 20px", self.css)
+        self.assertIn("padding: var(--space-3) var(--space-4)", self.css)
+
+    def test_dashboard_has_enterprise_design_system_and_in_scope_navigation(self):
+        for token in (
+            "--color-bg-canvas",
+            "--color-healthy",
+            "--color-warning",
+            "--color-critical",
+            "--space-4",
+            "--radius-lg",
+        ):
+            self.assertIn(token, self.tokens)
+
+        self.assertIn("lucide", self.html)
+        self.assertIn('data-lucide="layout-dashboard"', self.html)
+        for view_name in ("overview", "assets", "workflows", "assistant"):
+            self.assertIn(f'data-view-target="{view_name}"', self.html)
+        for out_of_scope_view in ("predictions", "analytics", "settings"):
+            self.assertNotIn(f'data-view="{out_of_scope_view}"', self.html)
+
+    def test_assets_support_search_sort_and_details(self):
+        self.assertIn('id="asset-search"', self.html)
+        self.assertIn('id="asset-sort"', self.html)
+        self.assertIn('id="asset-detail-dialog"', self.html)
+        self.assertIn("function openAssetDetails(assetId)", self.js)
+        self.assertIn("model_confidence", self.js)
 
     def test_dashboard_styles_support_responsive_wireframe_layout(self):
-        self.assertIn("summary-grid", self.css)
-        self.assertIn("dashboard-layout", self.css)
+        self.assertIn("kpi-grid", self.css)
+        self.assertIn("app-shell", self.css)
         self.assertIn(".view-panel", self.css)
         self.assertIn("[hidden]", self.css)
+        self.assertIn("@media (max-width: 1400px)", self.css)
         self.assertIn("@media (max-width: 1100px)", self.css)
-        self.assertIn("@media (max-width: 760px)", self.css)
+        self.assertIn("@media (max-width: 820px)", self.css)
         self.assertIn("overflow-x: auto", self.css)
-        self.assertIn("distribution-bar.is-empty", self.css)
+        self.assertIn(".donut-chart", self.css)
 
 
 if __name__ == "__main__":
