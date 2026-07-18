@@ -54,10 +54,14 @@ foundation plus the first Sprint 3 interaction slices:
 14. Start the supported predictive-maintenance workflow through the dashboard and expose live status.
 15. Provide controlled, read-only agent tools with closed schemas and API-bound execution.
 16. Specify the significant Random Forest remaining-useful-life algorithm component using NASA C-MAPSS FD001.
+17. Provide a modern operational dashboard with consistent cross-view interactions and a reusable design system.
+18. Answer supported asset, prediction, and workflow questions through the OpenAI Responses API and approved tools.
+19. Acquire and validate FD001 data, generate capped RUL labels, and create reproducible engine-level partitions.
 
-Current Sprint 3 work remains focused on AI-assisted operational queries, approval-gated
-workflow actions, restricted action enforcement, and agent tool usage logging. The
-assistant query and approval-gated action paths are not yet implemented.
+Current Sprint 3 work remains focused on approval-gated workflow actions,
+restricted action enforcement, and agent tool usage logging. Informational
+assistant queries are implemented through read-only tools; workflow actions remain
+unavailable until the approval, restriction, and audit controls are complete.
 
 ## Local Setup
 
@@ -111,9 +115,12 @@ Run the focused Sprint 3 tests:
 
 ```bash
 uv run pytest tests/integration/test_manual_workflow_api.py \
+  tests/integration/test_assistant_query_api.py \
   tests/unit/test_api_operations.py \
   tests/unit/test_dashboard_ui.py \
-  tests/unit/test_agent_tools.py
+  tests/unit/test_agent_tools.py \
+  tests/unit/test_agent_assistant.py \
+  tests/unit/test_cmapss.py
 ```
 
 Start the integrated API and dashboard:

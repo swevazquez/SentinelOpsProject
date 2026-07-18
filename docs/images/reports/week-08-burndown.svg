@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="440" viewBox="0 0 900 440" role="img" aria-labelledby="title desc">
+  <title id="title">Sprint 3 Week 8 Burndown</title>
+  <desc id="desc">Sprint 3 began with 22 story points. Remaining effort fell from 22 points on July 6 to 13 on July 11 and 8 on July 12. Adding SCRUM-30 raised the scope to 32 and remaining effort to 13 on July 17. Completing SCRUM-30 reduced remaining effort to 8 on July 18.</desc>
+  <rect width="900" height="440" fill="#ffffff"/>
+  <g stroke="#d0d5dd" stroke-width="1">
+    <line x1="80" y1="350" x2="850" y2="350"/>
+    <line x1="80" y1="280" x2="850" y2="280"/>
+    <line x1="80" y1="210" x2="850" y2="210"/>
+    <line x1="80" y1="140" x2="850" y2="140"/>
+    <line x1="80" y1="70" x2="850" y2="70"/>
+  </g>
+  <g fill="#475467" font-family="Arial, sans-serif" font-size="14">
+    <text x="48" y="355">0</text>
+    <text x="40" y="285">8</text>
+    <text x="32" y="215">16</text>
+    <text x="32" y="145">24</text>
+    <text x="32" y="75">32</text>
+    <text x="72" y="385">Jul 6</text>
+    <text x="270" y="385">Jul 11</text>
+    <text x="345" y="385">Jul 12</text>
+    <text x="535" y="385">Jul 17</text>
+    <text x="610" y="385">Jul 18</text>
+    <text x="815" y="385">Jul 26</text>
+    <text x="80" y="34" font-size="20" font-weight="700" fill="#101828">Sprint 3 Remaining Effort</text>
+  </g>
+  <path d="M90 157 L840 350" fill="none" stroke="#98a2b3" stroke-width="3" stroke-dasharray="8 7"/>
+  <path d="M90 157 L290 236 L365 280 L555 236 L630 280" fill="none" stroke="#155eef" stroke-width="5"/>
+  <g fill="#155eef">
+    <circle cx="90" cy="157" r="7"/>
+    <circle cx="290" cy="236" r="7"/>
+    <circle cx="365" cy="280" r="7"/>
+    <circle cx="555" cy="236" r="7"/>
+    <circle cx="630" cy="280" r="7"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="13" font-weight="700">
+    <text x="100" y="147" fill="#155eef">22 remaining</text>
+    <text x="245" y="226" fill="#155eef">13</text>
+    <text x="372" y="301" fill="#155eef">8</text>
+    <text x="500" y="216" fill="#b54708">+5 scope</text>
+    <text x="562" y="226" fill="#155eef">13</text>
+    <text x="640" y="300" fill="#155eef">8 remaining</text>
+    <text x="760" y="330" fill="#667085">Ideal</text>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="13" fill="#475467">
+    <rect x="80" y="405" width="18" height="4" fill="#155eef"/>
+    <text x="106" y="412">Actual remaining effort</text>
+    <line x1="300" y1="407" x2="324" y2="407" stroke="#98a2b3" stroke-width="3" stroke-dasharray="7 5"/>
+    <text x="334" y="412">Ideal from original 22-point baseline</text>
+  </g>
+</svg>
