@@ -4,9 +4,11 @@ import json
 import os
 from pathlib import Path
 from typing import Any, Protocol
+from uuid import uuid4
 
 from openai import OpenAI
 
+from services.agent.audit import default_audit_logger
 from services.agent.tools import execute_tool, response_tool_schemas
 
 
@@ -137,6 +139,7 @@ def answer_operational_query(
         raise ValueError("message must not be empty")
 
     model_name = model or os.getenv("OPENAI_MODEL", DEFAULT_MODEL)
+    correlation_id = str(uuid4())
     model_client = client or OpenAIResponsesClient()
     conversation_input: list[Any] = [{"role": "user", "content": query}]
     response = model_client.create_response(
@@ -171,13 +174,30 @@ def answer_operational_query(
             try:
                 arguments = json.loads(call.arguments)
             except json.JSONDecodeError as exc:
+                default_audit_logger(project_root).record(
+                    correlation_id=correlation_id,
+                    operation_type="tool",
+                    operation_name=call.name,
+                    outcome="rejected",
+                    duration_ms=0,
+                    error_category="validation_error",
+                )
                 raise ValueError("model returned invalid tool arguments") from exc
             if not isinstance(arguments, dict):
+                default_audit_logger(project_root).record(
+                    correlation_id=correlation_id,
+                    operation_type="tool",
+                    operation_name=call.name,
+                    outcome="rejected",
+                    duration_ms=0,
+                    error_category="validation_error",
+                )
                 raise ValueError("model tool arguments must be an object")
             tool_result = execute_tool(
                 project_root=project_root,
                 tool_name=call.name,
                 arguments=arguments,
+                correlation_id=correlation_id,
             )
             safe_body = _safe_tool_body(tool_result["result"])
             tool_evidence.append(
@@ -216,6 +236,7 @@ def answer_operational_query(
         raise RuntimeError("assistant returned no answer")
     return {
         "answer": answer,
+        "correlation_id": correlation_id,
         "intent": intent,
         "tool_calls": tool_evidence,
         "items": items,

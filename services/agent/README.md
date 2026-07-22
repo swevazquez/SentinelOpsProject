@@ -50,3 +50,16 @@ Preparing an action request does not execute the workflow. The request is
 immutable and marked as requiring approval so the later approval gate can match
 the exact reviewed action before permitting a write. Unknown operations and
 direct storage or shell actions are rejected before any side effect.
+
+## Agent Operation Audit Log
+
+`SCRUM-23` records every agent-tool attempt as one JSON Lines event under
+`data/audit/agent-operations.jsonl`. Events include a UTC timestamp, a
+system-generated correlation ID, the tool name, outcome, duration, and a fixed
+error category when applicable. Successful, missing-result, validation-failure,
+and unapproved-tool attempts remain distinguishable.
+
+Audit events do not contain tool arguments, model prompts, exception messages,
+API keys, or other secrets. Invalid operation names are replaced with a fixed
+label instead of being written verbatim. The audit writer also supports action
+events so approval decisions can use the same evidence format.

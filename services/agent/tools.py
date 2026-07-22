@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import Any, Callable
+from uuid import uuid4
 
+from services.agent.audit import AgentAuditLogger, default_audit_logger
 from services.api.operations import (
     ApiResponse,
     latest_predictions_response,
@@ -134,14 +137,45 @@ def execute_tool(
     project_root: Path,
     tool_name: str,
     arguments: dict[str, str],
+    correlation_id: str | None = None,
+    audit_logger: AgentAuditLogger | None = None,
 ) -> dict[str, Any]:
-    tool = TOOL_REGISTRY.get(tool_name)
-    if tool is None:
-        raise ValueError(f"tool is not approved: {tool_name}")
-    response = tool.handler(project_root, arguments)
-    return {
-        "tool": tool.name,
-        "read_only": tool.read_only,
-        "status_code": response.status_code,
-        "result": response.body,
-    }
+    started_at = perf_counter()
+    request_id = correlation_id or str(uuid4())
+    logger = audit_logger or default_audit_logger(project_root)
+    outcome = "failed"
+    error_category: str | None = None
+    try:
+        tool = TOOL_REGISTRY.get(tool_name)
+        if tool is None:
+            raise ValueError(f"tool is not approved: {tool_name}")
+        response = tool.handler(project_root, arguments)
+        if 200 <= response.status_code < 300:
+            outcome = "succeeded"
+        elif response.status_code == 404:
+            outcome = "not_found"
+        else:
+            outcome = "rejected"
+            error_category = f"http_{response.status_code}"
+        return {
+            "tool": tool.name,
+            "read_only": tool.read_only,
+            "status_code": response.status_code,
+            "result": response.body,
+        }
+    except (TypeError, ValueError):
+        outcome = "rejected"
+        error_category = "validation_error"
+        raise
+    except Exception:
+        error_category = "execution_error"
+        raise
+    finally:
+        logger.record(
+            correlation_id=request_id,
+            operation_type="tool",
+            operation_name=tool_name if isinstance(tool_name, str) else "invalid_operation_name",
+            outcome=outcome,
+            duration_ms=(perf_counter() - started_at) * 1000,
+            error_category=error_category,
+        )
