@@ -37,3 +37,16 @@ execution.
 The registry intentionally contains no workflow-trigger or other write-capable
 tool. Operational actions remain unavailable until `SCRUM-14` adds an explicit
 approval gate.
+
+## Restricted Operational Actions
+
+`SCRUM-22` defines a separate allowlist for AI-assisted operational actions. The
+only supported action is a request to start the `predictive-maintenance`
+workflow. Its payload uses a closed schema, rejects unsupported workflows and
+extra arguments, and produces a stable SHA-256 fingerprint over the validated
+request.
+
+Preparing an action request does not execute the workflow. The request is
+immutable and marked as requiring approval so the later approval gate can match
+the exact reviewed action before permitting a write. Unknown operations and
+direct storage or shell actions are rejected before any side effect.
