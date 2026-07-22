@@ -1064,6 +1064,7 @@ tbody tr:last-child td {
   color: var(--color-healthy);
 }
 
+.badge-warning,
 .status-warning {
   background: var(--color-warning-soft);
   border-color: #62531e;
@@ -1555,6 +1556,23 @@ button.workflow-state-card[aria-pressed="true"] {
 .assistant-tool-evidence svg { height: 14px; width: 14px; }
 .assistant-tool-evidence span { background: var(--color-bg-canvas); border-radius: var(--radius-sm); padding: 3px var(--space-2); }
 
+.assistant-action-card {
+  align-items: center;
+  background: var(--color-warning-soft);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+}
+
+.assistant-action-card > span { color: var(--color-warning); }
+.assistant-action-card > span svg { height: 20px; width: 20px; }
+.assistant-action-card > div { display: grid; gap: var(--space-1); }
+.assistant-action-card small { color: var(--color-text-secondary); }
+
 .assistant-composer {
   border-top: 1px solid var(--color-border-subtle);
   display: grid;
@@ -1774,6 +1792,23 @@ button.workflow-state-card[aria-pressed="true"] {
   padding: var(--space-4);
 }
 
+.approval-impact {
+  align-items: center;
+  background: var(--color-warning-soft);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: auto 1fr;
+  padding: var(--space-4);
+}
+
+.approval-impact > span { color: var(--color-warning); }
+.approval-impact > span svg { height: 28px; width: 28px; }
+.approval-impact p { color: var(--color-text-secondary); margin: var(--space-1) 0 0; }
+.approval-fingerprint { font-family: var(--font-family-mono); overflow-wrap: anywhere; }
+.approval-actions { display: flex; gap: var(--space-3); justify-content: flex-end; }
+
 .maintenance-callout strong {
   color: var(--color-warning);
   display: block;
@@ -1847,11 +1882,11 @@ button.workflow-state-card[aria-pressed="true"] {
   }
 
   .assistant-layout {
-    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-columns: 1fr;
   }
 
   .assistant-context {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .asset-toolbar-header {
@@ -1917,7 +1952,8 @@ button.workflow-state-card[aria-pressed="true"] {
     grid-template-columns: 1fr;
   }
 
-  .assistant-layout {
-    grid-template-columns: minmax(0, 1fr) 280px;
-  }
+  .assistant-action-card { grid-template-columns: auto minmax(0, 1fr); }
+  .assistant-action-card .button { grid-column: 1 / -1; width: 100%; }
+  .approval-actions { flex-direction: column-reverse; }
+  .approval-actions .button { justify-content: center; width: 100%; }
 }

@@ -6,6 +6,7 @@ const dashboardData = {
 };
 
 let workflowFilter = "all";
+let pendingAssistantAction = null;
 
 const viewTitles = {
   overview: "Fleet Overview",
@@ -517,6 +518,12 @@ function assistantResultItems(response) {
   `).join("")}</div>`;
 }
 
+function assistantActionCard(response) {
+  const action = response?.action_request;
+  if (!action) return "";
+  return `<div class="assistant-action-card"><span><i data-lucide="shield-alert"></i></span><div><strong>Approval required</strong><small>${escapeHtml(action.impact)}</small></div><button type="button" class="button button-secondary" data-review-action="${escapeHtml(action.approval_id)}">Review action</button></div>`;
+}
+
 function appendAssistantMessage(role, content, response = null) {
   const transcript = document.getElementById("assistant-transcript");
   const message = document.createElement("section");
@@ -528,13 +535,76 @@ function appendAssistantMessage(role, content, response = null) {
       ? `<span>${escapeHtml(response.provider || "model")} · ${escapeHtml(response.model)}</span>`
       : "";
     const tools = response?.tool_calls?.length
-      ? `<div class="assistant-tool-evidence"><i data-lucide="wrench"></i>${model}${response.tool_calls.map((tool) => `<span>${escapeHtml(tool.name)} · read only</span>`).join("")}</div>`
+      ? `<div class="assistant-tool-evidence"><i data-lucide="wrench"></i>${model}${response.tool_calls.map((tool) => `<span>${escapeHtml(tool.name)} · ${tool.read_only ? "read only" : "approval required"}</span>`).join("")}</div>`
       : "";
-    message.innerHTML = `<span class="assistant-message-icon"><i data-lucide="bot"></i></span><div><span class="assistant-message-label">SentinelOps Assistant</span><p>${escapeHtml(content)}</p>${assistantResultItems(response || {})}${tools}</div>`;
+    message.innerHTML = `<span class="assistant-message-icon"><i data-lucide="bot"></i></span><div><span class="assistant-message-label">SentinelOps Assistant</span><p>${escapeHtml(content)}</p>${assistantResultItems(response || {})}${assistantActionCard(response)}${tools}</div>`;
   }
   transcript.appendChild(message);
   transcript.scrollTop = transcript.scrollHeight;
   refreshIcons();
+}
+
+function openAssistantApproval(approvalId) {
+  if (!pendingAssistantAction || pendingAssistantAction.approval_id !== approvalId) return;
+  document.getElementById("approval-action-name").textContent = "Start predictive maintenance";
+  document.getElementById("approval-action-impact").textContent = pendingAssistantAction.impact;
+  document.getElementById("approval-action-expiry").textContent = formatDateTime(pendingAssistantAction.expires_at);
+  document.getElementById("approval-action-fingerprint").textContent = pendingAssistantAction.fingerprint;
+  document.getElementById("approval-dialog-status").textContent = "Review the exact action before deciding.";
+  document.getElementById("approval-dialog-status").dataset.state = "pending";
+  document.getElementById("approve-assistant-action").disabled = false;
+  document.getElementById("deny-assistant-action").disabled = false;
+  document.getElementById("assistant-approval-dialog").showModal();
+}
+
+async function decideAssistantAction(decision) {
+  if (!pendingAssistantAction) return;
+  const approveButton = document.getElementById("approve-assistant-action");
+  const denyButton = document.getElementById("deny-assistant-action");
+  const status = document.getElementById("approval-dialog-status");
+  approveButton.disabled = true;
+  denyButton.disabled = true;
+  status.textContent = decision === "approved" ? "Approving and starting the workflow..." : "Rejecting the action...";
+  status.dataset.state = "loading";
+  try {
+    const decisionResponse = await fetch(`/api/assistant/approvals/${encodeURIComponent(pendingAssistantAction.approval_id)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ decision })
+    });
+    const decisionPayload = await decisionResponse.json();
+    if (!decisionResponse.ok) throw new Error(decisionPayload.detail || "The approval decision could not be recorded.");
+    if (decision === "denied") {
+      status.textContent = "Action rejected. No workflow was started.";
+      status.dataset.state = "success";
+      appendAssistantMessage("assistant", "The workflow action was rejected. No operational change was made.");
+      pendingAssistantAction = null;
+      return;
+    }
+    const executionResponse = await fetch("/api/assistant/actions/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        approval_id: pendingAssistantAction.approval_id,
+        action: pendingAssistantAction.action,
+        arguments: pendingAssistantAction.arguments
+      })
+    });
+    const executionPayload = await executionResponse.json();
+    if (!executionResponse.ok) throw new Error(executionPayload.detail || "The approved action could not be executed.");
+    const runId = executionPayload.data.workflow.run_id;
+    status.textContent = `Workflow accepted as ${runId}.`;
+    status.dataset.state = "success";
+    appendAssistantMessage("assistant", `The approved predictive-maintenance workflow was started. Run ID: ${runId}`);
+    showToast("Approved workflow started.", "success");
+    pendingAssistantAction = null;
+    await refreshDashboard({ announce: false });
+  } catch (error) {
+    status.textContent = error.message;
+    status.dataset.state = "error";
+    approveButton.disabled = false;
+    denyButton.disabled = false;
+  }
 }
 
 async function submitAssistantQuery(message) {
@@ -556,6 +626,7 @@ async function submitAssistantQuery(message) {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.detail || "The operational query could not be completed.");
     document.getElementById("assistant-model-name").textContent = payload.data.response.model;
+    if (payload.data.response.action_request) pendingAssistantAction = payload.data.response.action_request;
     appendAssistantMessage("assistant", payload.data.response.answer, payload.data.response);
   } catch (error) {
     appendAssistantMessage("assistant", error.message, { intent: "error", tool_calls: [], items: [] });
@@ -635,6 +706,12 @@ function initDashboard() {
   document.getElementById("workflow-detail-dialog").addEventListener("click", (event) => {
     if (event.target === event.currentTarget) event.currentTarget.close();
   });
+  document.getElementById("close-approval-dialog").addEventListener("click", () => document.getElementById("assistant-approval-dialog").close());
+  document.getElementById("assistant-approval-dialog").addEventListener("click", (event) => {
+    if (event.target === event.currentTarget) event.currentTarget.close();
+  });
+  document.getElementById("approve-assistant-action").addEventListener("click", () => decideAssistantAction("approved"));
+  document.getElementById("deny-assistant-action").addEventListener("click", () => decideAssistantAction("denied"));
   document.addEventListener("click", (event) => {
     const viewControl = event.target.closest("[data-view-target]");
     if (viewControl) showView(viewControl.dataset.viewTarget);
@@ -642,6 +719,8 @@ function initDashboard() {
     if (assetControl) openAssetDetails(assetControl.dataset.assetDetail);
     const workflowControl = event.target.closest("[data-workflow-detail]");
     if (workflowControl) openWorkflowDetails(workflowControl.dataset.workflowDetail);
+    const actionControl = event.target.closest("[data-review-action]");
+    if (actionControl) openAssistantApproval(actionControl.dataset.reviewAction);
     const filterControl = event.target.closest("[data-workflow-filter]");
     if (filterControl) {
       workflowFilter = workflowFilter === filterControl.dataset.workflowFilter ? "all" : filterControl.dataset.workflowFilter;

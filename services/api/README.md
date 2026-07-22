@@ -21,7 +21,9 @@ workflow API from the same origin.
 | `POST` | `/api/workflows` | Start the approved `predictive-maintenance` workflow. |
 | `GET` | `/api/workflows` | List workflow execution states. |
 | `GET` | `/api/workflows/{run_id}` | Retrieve one workflow execution state. |
-| `POST` | `/api/assistant/query` | Submit a supported read-only operational query. |
+| `POST` | `/api/assistant/query` | Submit a supported operational query or prepare an approved action. |
+| `POST` | `/api/assistant/approvals/{approval_id}` | Approve or reject one prepared action. |
+| `POST` | `/api/assistant/actions/execute` | Execute the exact approved action once. |
 | `GET` | `/api/predictions/latest` | Retrieve the latest prediction for each asset. |
 
 Manual requests run in a FastAPI background task and return `202 Accepted` with

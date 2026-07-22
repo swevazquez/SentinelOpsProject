@@ -57,11 +57,14 @@ foundation plus the first Sprint 3 interaction slices:
 17. Provide a modern operational dashboard with consistent cross-view interactions and a reusable design system.
 18. Answer supported asset, prediction, and workflow questions through the OpenAI Responses API and approved tools.
 19. Acquire and validate FD001 data, generate capped RUL labels, and create reproducible engine-level partitions.
+20. Restrict AI-assisted writes to the predefined predictive-maintenance action.
+21. Record sanitized, correlated audit evidence for every agent operation attempt.
+22. Require exact, time-limited, single-use approval before an assistant action executes.
 
-Current Sprint 3 work remains focused on approval-gated workflow actions,
-restricted action enforcement, and agent tool usage logging. Informational
-assistant queries are implemented through read-only tools; workflow actions remain
-unavailable until the approval, restriction, and audit controls are complete.
+The Sprint 3 interaction slice now supports informational queries through
+read-only tools and one approval-gated predictive-maintenance action. Unknown,
+malformed, denied, expired, modified, and replayed action requests are rejected
+before operational writes, and every attempt produces sanitized audit evidence.
 
 ## Local Setup
 

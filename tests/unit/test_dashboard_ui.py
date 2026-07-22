@@ -142,6 +142,17 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn(".workflow-feedback", self.css)
         self.assertIn("padding: var(--space-3) var(--space-4)", self.css)
 
+    def test_assistant_requires_explicit_approval_for_operational_actions(self):
+        self.assertIn('data-assistant-prompt="Run predictive maintenance"', self.html)
+        self.assertIn('id="assistant-approval-dialog"', self.html)
+        self.assertIn('id="approve-assistant-action"', self.html)
+        self.assertIn('id="deny-assistant-action"', self.html)
+        self.assertIn('fetch(`/api/assistant/approvals/${encodeURIComponent', self.js)
+        self.assertIn('fetch("/api/assistant/actions/execute"', self.js)
+        self.assertIn("pendingAssistantAction.fingerprint", self.js)
+        self.assertIn("function decideAssistantAction(decision)", self.js)
+        self.assertIn(".assistant-action-card", self.css)
+
     def test_dashboard_has_enterprise_design_system_and_in_scope_navigation(self):
         for token in (
             "--color-bg-canvas",

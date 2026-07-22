@@ -29,12 +29,14 @@ data/predictions/*
 data/performance/*
 data/workflow-status/*
 data/audit/*
+data/approvals/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/predictions/.gitkeep
 !data/performance/.gitkeep
 !data/workflow-status/.gitkeep
 !data/audit/.gitkeep
+!data/approvals/.gitkeep
 data/samples/*.generated.*
 
 # Generated reports
