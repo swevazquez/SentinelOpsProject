@@ -28,11 +28,13 @@ data/processed/*
 data/predictions/*
 data/performance/*
 data/workflow-status/*
+data/audit/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/predictions/.gitkeep
 !data/performance/.gitkeep
 !data/workflow-status/.gitkeep
+!data/audit/.gitkeep
 data/samples/*.generated.*
 
 # Generated reports
