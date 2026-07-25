@@ -159,8 +159,10 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("function assistantWorkflowLink(response)", self.js)
         self.assertIn('data-workflow-link="${runId}"', self.js)
         self.assertIn("View completed workflow", self.js)
-        self.assertIn('showView("workflows")', self.js)
-        self.assertIn("openWorkflowDetails(runId)", self.js)
+        self.assertIn('href="?view=assistant&amp;run=', self.js)
+        self.assertIn("openWorkflowDetails(workflowLink.dataset.workflowLink)", self.js)
+        self.assertIn("openWorkflowDetails(requestedRunId)", self.js)
+        self.assertNotIn('window.history.pushState({}, "", `?view=workflows&run=', self.js)
         self.assertIn(".assistant-workflow-link", self.css)
 
     def test_dashboard_has_enterprise_design_system_and_in_scope_navigation(self):
