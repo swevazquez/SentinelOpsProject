@@ -521,7 +521,34 @@ function assistantResultItems(response) {
 function assistantActionCard(response) {
   const action = response?.action_request;
   if (!action) return "";
-  return `<div class="assistant-action-card"><span><i data-lucide="shield-alert"></i></span><div><strong>Approval required</strong><small>${escapeHtml(action.impact)}</small></div><button type="button" class="button button-secondary" data-review-action="${escapeHtml(action.approval_id)}">Review action</button></div>`;
+  return `
+    <section class="assistant-action-card" data-approval-card="${escapeHtml(action.approval_id)}" data-state="pending" aria-label="Approval required">
+      <div class="assistant-action-heading"><span><i data-lucide="shield-alert"></i></span><div><strong>Approval required</strong><small>Review this protected operation before it runs.</small></div></div>
+      <div class="assistant-action-impact"><strong>Start predictive maintenance</strong><p>${escapeHtml(action.impact)}</p></div>
+      <dl class="assistant-action-details">
+        <div><dt>Expires</dt><dd>${escapeHtml(formatDateTime(action.expires_at))}</dd></div>
+        <div><dt>Request fingerprint</dt><dd class="approval-fingerprint">${escapeHtml(action.fingerprint)}</dd></div>
+      </dl>
+      <p class="assistant-action-status" data-approval-status role="status" aria-live="polite">Waiting for your decision.</p>
+      <div class="assistant-action-controls">
+        <button type="button" class="button button-secondary" data-assistant-decision="denied" data-approval-id="${escapeHtml(action.approval_id)}">Reject</button>
+        <button type="button" class="button button-primary" data-assistant-decision="approved" data-approval-id="${escapeHtml(action.approval_id)}"><i data-lucide="play"></i>Approve and run</button>
+      </div>
+    </section>`;
+}
+
+function assistantWorkflowLink(response) {
+  const workflow = response?.workflow;
+  if (!workflow?.run_id) return "";
+  const runId = escapeHtml(workflow.run_id);
+  const completed = workflow.status === "completed";
+  return `
+    <a class="assistant-workflow-link" href="?view=workflows&amp;run=${escapeHtml(encodeURIComponent(workflow.run_id))}" data-workflow-link="${runId}">
+      <span><i data-lucide="${completed ? "circle-check" : "workflow"}"></i></span>
+      <span><strong>${completed ? "View completed workflow" : "View workflow run"}</strong><small>${runId}</small></span>
+      ${statusPill(workflow.status)}
+      <i data-lucide="arrow-right"></i>
+    </a>`;
 }
 
 function appendAssistantMessage(role, content, response = null) {
@@ -537,31 +564,26 @@ function appendAssistantMessage(role, content, response = null) {
     const tools = response?.tool_calls?.length
       ? `<div class="assistant-tool-evidence"><i data-lucide="wrench"></i>${model}${response.tool_calls.map((tool) => `<span>${escapeHtml(tool.name)} · ${tool.read_only ? "read only" : "approval required"}</span>`).join("")}</div>`
       : "";
-    message.innerHTML = `<span class="assistant-message-icon"><i data-lucide="bot"></i></span><div><span class="assistant-message-label">SentinelOps Assistant</span><p>${escapeHtml(content)}</p>${assistantResultItems(response || {})}${assistantActionCard(response)}${tools}</div>`;
+    message.innerHTML = `<span class="assistant-message-icon"><i data-lucide="bot"></i></span><div><span class="assistant-message-label">SentinelOps Assistant</span><p>${escapeHtml(content)}</p>${assistantResultItems(response || {})}${assistantActionCard(response)}${assistantWorkflowLink(response)}${tools}</div>`;
   }
   transcript.appendChild(message);
   transcript.scrollTop = transcript.scrollHeight;
   refreshIcons();
 }
 
-function openAssistantApproval(approvalId) {
-  if (!pendingAssistantAction || pendingAssistantAction.approval_id !== approvalId) return;
-  document.getElementById("approval-action-name").textContent = "Start predictive maintenance";
-  document.getElementById("approval-action-impact").textContent = pendingAssistantAction.impact;
-  document.getElementById("approval-action-expiry").textContent = formatDateTime(pendingAssistantAction.expires_at);
-  document.getElementById("approval-action-fingerprint").textContent = pendingAssistantAction.fingerprint;
-  document.getElementById("approval-dialog-status").textContent = "Review the exact action before deciding.";
-  document.getElementById("approval-dialog-status").dataset.state = "pending";
-  document.getElementById("approve-assistant-action").disabled = false;
-  document.getElementById("deny-assistant-action").disabled = false;
-  document.getElementById("assistant-approval-dialog").showModal();
+function findAssistantApprovalCard(approvalId) {
+  return [...document.querySelectorAll("[data-approval-card]")]
+    .find((card) => card.dataset.approvalCard === approvalId);
 }
 
-async function decideAssistantAction(decision) {
-  if (!pendingAssistantAction) return;
-  const approveButton = document.getElementById("approve-assistant-action");
-  const denyButton = document.getElementById("deny-assistant-action");
-  const status = document.getElementById("approval-dialog-status");
+async function decideAssistantAction(decision, approvalId) {
+  if (!pendingAssistantAction || pendingAssistantAction.approval_id !== approvalId) return;
+  const card = findAssistantApprovalCard(approvalId);
+  if (!card) return;
+  const approveButton = card.querySelector('[data-assistant-decision="approved"]');
+  const denyButton = card.querySelector('[data-assistant-decision="denied"]');
+  const controls = card.querySelector(".assistant-action-controls");
+  const status = card.querySelector("[data-approval-status]");
   approveButton.disabled = true;
   denyButton.disabled = true;
   status.textContent = decision === "approved" ? "Approving and starting the workflow..." : "Rejecting the action...";
@@ -577,6 +599,8 @@ async function decideAssistantAction(decision) {
     if (decision === "denied") {
       status.textContent = "Action rejected. No workflow was started.";
       status.dataset.state = "success";
+      card.dataset.state = "denied";
+      controls.hidden = true;
       appendAssistantMessage("assistant", "The workflow action was rejected. No operational change was made.");
       pendingAssistantAction = null;
       return;
@@ -592,13 +616,26 @@ async function decideAssistantAction(decision) {
     });
     const executionPayload = await executionResponse.json();
     if (!executionResponse.ok) throw new Error(executionPayload.detail || "The approved action could not be executed.");
-    const runId = executionPayload.data.workflow.run_id;
-    status.textContent = `Workflow accepted as ${runId}.`;
-    status.dataset.state = "success";
-    appendAssistantMessage("assistant", `The approved predictive-maintenance workflow was started. Run ID: ${runId}`);
-    showToast("Approved workflow started.", "success");
-    pendingAssistantAction = null;
+    const acceptedWorkflow = executionPayload.data.workflow;
+    const runId = acceptedWorkflow.run_id;
     await refreshDashboard({ announce: false });
+    const workflow = dashboardData.workflows.find((candidate) => candidate.run_id === runId) || acceptedWorkflow;
+    const completed = workflow.status === "completed";
+    status.textContent = completed
+      ? `Approved. Workflow completed as ${runId}.`
+      : `Approved. Workflow started as ${runId}.`;
+    status.dataset.state = "success";
+    card.dataset.state = "approved";
+    controls.hidden = true;
+    pendingAssistantAction = null;
+    appendAssistantMessage(
+      "assistant",
+      completed
+        ? "The approved predictive-maintenance workflow completed successfully."
+        : "The approved predictive-maintenance workflow started successfully.",
+      { workflow }
+    );
+    showToast(completed ? "Approved workflow completed." : "Approved workflow started.", "success");
   } catch (error) {
     status.textContent = error.message;
     status.dataset.state = "error";
@@ -669,9 +706,11 @@ function toggleHeaderPopover(popoverId, buttonId) {
   document.getElementById(buttonId).setAttribute("aria-expanded", String(willOpen));
 }
 
-function initDashboard() {
+async function initDashboard() {
   renderAll(dashboardData);
-  const requestedView = new URLSearchParams(window.location.search).get("view");
+  const requestedParameters = new URLSearchParams(window.location.search);
+  const requestedView = requestedParameters.get("view");
+  const requestedRunId = requestedParameters.get("run");
   showView(Object.hasOwn(viewTitles, requestedView) ? requestedView : "overview");
 
   document.getElementById("asset-search").addEventListener("input", () => renderAssets(dashboardData));
@@ -706,12 +745,6 @@ function initDashboard() {
   document.getElementById("workflow-detail-dialog").addEventListener("click", (event) => {
     if (event.target === event.currentTarget) event.currentTarget.close();
   });
-  document.getElementById("close-approval-dialog").addEventListener("click", () => document.getElementById("assistant-approval-dialog").close());
-  document.getElementById("assistant-approval-dialog").addEventListener("click", (event) => {
-    if (event.target === event.currentTarget) event.currentTarget.close();
-  });
-  document.getElementById("approve-assistant-action").addEventListener("click", () => decideAssistantAction("approved"));
-  document.getElementById("deny-assistant-action").addEventListener("click", () => decideAssistantAction("denied"));
   document.addEventListener("click", (event) => {
     const viewControl = event.target.closest("[data-view-target]");
     if (viewControl) showView(viewControl.dataset.viewTarget);
@@ -719,8 +752,18 @@ function initDashboard() {
     if (assetControl) openAssetDetails(assetControl.dataset.assetDetail);
     const workflowControl = event.target.closest("[data-workflow-detail]");
     if (workflowControl) openWorkflowDetails(workflowControl.dataset.workflowDetail);
-    const actionControl = event.target.closest("[data-review-action]");
-    if (actionControl) openAssistantApproval(actionControl.dataset.reviewAction);
+    const workflowLink = event.target.closest("[data-workflow-link]");
+    if (workflowLink) {
+      event.preventDefault();
+      const runId = workflowLink.dataset.workflowLink;
+      showView("workflows");
+      window.history.pushState({}, "", `?view=workflows&run=${encodeURIComponent(runId)}`);
+      openWorkflowDetails(runId);
+    }
+    const actionControl = event.target.closest("[data-assistant-decision]");
+    if (actionControl) {
+      decideAssistantAction(actionControl.dataset.assistantDecision, actionControl.dataset.approvalId);
+    }
     const filterControl = event.target.closest("[data-workflow-filter]");
     if (filterControl) {
       workflowFilter = workflowFilter === filterControl.dataset.workflowFilter ? "all" : filterControl.dataset.workflowFilter;
@@ -752,7 +795,11 @@ function initDashboard() {
   });
 
   refreshIcons();
-  refreshDashboard({ announce: false });
+  await refreshDashboard({ announce: false });
+  if (requestedRunId) {
+    showView("workflows");
+    openWorkflowDetails(requestedRunId);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", initDashboard);

@@ -22,6 +22,7 @@ Use the approved read-only tools to retrieve current facts before making operati
 Never invent asset data, prediction values, workflow state, identifiers, or maintenance recommendations.
 You may prepare the approved start_workflow action when the user explicitly asks to run predictive maintenance.
 Preparing an action never executes it. Explain the impact and require explicit approval before execution.
+The application presents approval controls in the conversation. Do not ask the user to reply with approval or include an approval identifier in the answer.
 If a request is outside the supported operational scope, state that briefly and list the supported areas.
 Keep answers concise and suitable for maintenance managers and reliability engineers.
 Return plain text without Markdown syntax. Use short lines when listing operational facts."""
@@ -292,6 +293,11 @@ def answer_operational_query(
     answer = response.output_text.strip()
     if not answer:
         raise RuntimeError("assistant returned no answer")
+    if action_request is not None:
+        answer = (
+            "I prepared the predictive-maintenance workflow action. "
+            "Review the protected operation below before it runs."
+        )
     return {
         "answer": answer,
         "correlation_id": correlation_id,

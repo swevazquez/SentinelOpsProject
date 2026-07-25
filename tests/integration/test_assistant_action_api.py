@@ -43,7 +43,14 @@ class AssistantActionApiTests(unittest.TestCase):
             json={"message": "Run predictive maintenance"},
         )
         self.assertEqual(response.status_code, 200)
-        action = response.json()["data"]["response"]["action_request"]
+        assistant_response = response.json()["data"]["response"]
+        self.assertEqual(
+            assistant_response["answer"],
+            "I prepared the predictive-maintenance workflow action. "
+            "Review the protected operation below before it runs.",
+        )
+        self.assertNotIn("approval_id", assistant_response["answer"])
+        action = assistant_response["action_request"]
         self.assertEqual(action["status"], "pending")
         return action
 
