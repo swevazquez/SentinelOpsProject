@@ -543,7 +543,7 @@ function assistantWorkflowLink(response) {
   const runId = escapeHtml(workflow.run_id);
   const completed = workflow.status === "completed";
   return `
-    <a class="assistant-workflow-link" href="?view=assistant&amp;run=${escapeHtml(encodeURIComponent(workflow.run_id))}" data-workflow-link="${runId}">
+    <a class="assistant-workflow-link" href="?view=assistant" data-workflow-link="${runId}">
       <span><i data-lucide="${completed ? "circle-check" : "workflow"}"></i></span>
       <span><strong>${completed ? "View completed workflow" : "View workflow run"}</strong><small>${runId}</small></span>
       ${statusPill(workflow.status)}
@@ -710,7 +710,6 @@ async function initDashboard() {
   renderAll(dashboardData);
   const requestedParameters = new URLSearchParams(window.location.search);
   const requestedView = requestedParameters.get("view");
-  const requestedRunId = requestedParameters.get("run");
   showView(Object.hasOwn(viewTitles, requestedView) ? requestedView : "overview");
 
   document.getElementById("asset-search").addEventListener("input", () => renderAssets(dashboardData));
@@ -793,9 +792,6 @@ async function initDashboard() {
 
   refreshIcons();
   await refreshDashboard({ announce: false });
-  if (requestedRunId) {
-    openWorkflowDetails(requestedRunId);
-  }
 }
 
 document.addEventListener("DOMContentLoaded", initDashboard);
