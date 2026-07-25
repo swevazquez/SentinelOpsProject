@@ -20,6 +20,7 @@ class WorkflowStatus:
     updated_at: str
     step: str | None = None
     error: str | None = None
+    approval_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -37,17 +38,21 @@ def record_workflow_status(
     status: WorkflowState,
     step: str | None = None,
     error: str | None = None,
+    approval_id: str | None = None,
 ) -> Path:
+    output_dir = project_root / STATUS_STORAGE_DIR
+    output_path = output_dir / f"workflow_{run_id}.json"
+    if approval_id is None and output_path.exists():
+        approval_id = _load_status_file(output_path).approval_id
     record = WorkflowStatus(
         run_id=run_id,
         status=status,
         updated_at=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         step=step,
         error=error,
+        approval_id=approval_id,
     )
-    output_dir = project_root / STATUS_STORAGE_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"workflow_{run_id}.json"
     output_path.write_text(
         json.dumps(asdict(record), indent=2) + "\n",
         encoding="utf-8",
@@ -94,6 +99,7 @@ def _load_status_file(path: Path) -> WorkflowStatus:
         updated_at=payload["updated_at"],
         step=payload.get("step"),
         error=payload.get("error"),
+        approval_id=payload.get("approval_id"),
     )
 
 

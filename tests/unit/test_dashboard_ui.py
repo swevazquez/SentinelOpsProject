@@ -142,6 +142,28 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn(".workflow-feedback", self.css)
         self.assertIn("padding: var(--space-3) var(--space-4)", self.css)
 
+    def test_assistant_requires_explicit_approval_for_operational_actions(self):
+        self.assertIn('data-assistant-prompt="Run predictive maintenance"', self.html)
+        self.assertNotIn('id="assistant-approval-dialog"', self.html)
+        self.assertIn('data-approval-card="${escapeHtml(action.approval_id)}"', self.js)
+        self.assertIn('data-assistant-decision="approved"', self.js)
+        self.assertIn('data-assistant-decision="denied"', self.js)
+        self.assertIn('fetch(`/api/assistant/approvals/${encodeURIComponent', self.js)
+        self.assertIn('fetch("/api/assistant/actions/execute"', self.js)
+        self.assertIn("action.fingerprint", self.js)
+        self.assertIn("function decideAssistantAction(decision, approvalId)", self.js)
+        self.assertIn(".assistant-action-card", self.css)
+        self.assertIn(".assistant-action-controls", self.css)
+
+    def test_assistant_links_completed_actions_to_workflow_details(self):
+        self.assertIn("function assistantWorkflowLink(response)", self.js)
+        self.assertIn('data-workflow-link="${runId}"', self.js)
+        self.assertIn("View completed workflow", self.js)
+        self.assertIn('href="?view=assistant"', self.js)
+        self.assertIn("openWorkflowDetails(workflowLink.dataset.workflowLink)", self.js)
+        self.assertNotIn('get("run")', self.js)
+        self.assertIn(".assistant-workflow-link", self.css)
+
     def test_dashboard_has_enterprise_design_system_and_in_scope_navigation(self):
         for token in (
             "--color-bg-canvas",

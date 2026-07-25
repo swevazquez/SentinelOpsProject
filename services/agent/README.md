@@ -63,3 +63,16 @@ Audit events do not contain tool arguments, model prompts, exception messages,
 API keys, or other secrets. Invalid operation names are replaced with a fixed
 label instead of being written verbatim. The audit writer also supports action
 events so approval decisions can use the same evidence format.
+
+## Approval-Gated Workflow Execution
+
+`SCRUM-14` allows the assistant to prepare the approved workflow action but not
+execute it. The service stores an immutable, ten-minute approval record and
+returns its impact, expiration, and request fingerprint to the dashboard for
+review. An administrator may approve or reject that exact request.
+
+Execution succeeds only when the approval is current, approved, unconsumed, and
+matches the prepared action fingerprint. Denied, expired, modified, and replayed
+requests are rejected before workflow status or prediction data changes. A
+successful execution consumes the approval once and preserves its identifier on
+the workflow status record for traceability.
