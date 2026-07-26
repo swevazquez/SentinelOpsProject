@@ -110,6 +110,10 @@ result.
   presented as an RUL estimate.
 - Each completed workflow shows a concise condition summary, and its execution
   completion is visually distinct from critical, warning, or watch findings.
+- The operational inbox accumulates warning and critical findings across all
+  runs in the active demonstration session.
+- Opening a notification shows the result from the run that produced the
+  finding and marks only that notification as read.
 
 ### FR-RUL-06: Explain RUL through grounded assistant tools
 

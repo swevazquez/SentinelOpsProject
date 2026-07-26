@@ -3,11 +3,14 @@ const dashboardData = {
   predictions: [],
   assets: [],
   workflows: [],
+  findings: [],
   demo: null
 };
 
 let workflowFilter = "all";
 let pendingAssistantAction = null;
+let notificationSessionId = null;
+let acknowledgedNotificationIds = new Set();
 
 const viewTitles = {
   overview: "Fleet Overview",
@@ -198,28 +201,70 @@ function assetCounts(assets) {
   }, { healthy: 0, watch: 0, warning: 0, critical: 0 });
 }
 
-function operationalAlerts(data) {
-  const assetAlerts = data.assets
-    .filter((asset) => ["critical", "warning"].includes(asset.asset_status))
-    .map((asset) => ({
-      severity: asset.asset_status,
-      title: `${asset.asset_id} is ${asset.asset_status}`,
-      detail: asset.recommended_action,
-      time: asset.display_updated,
+function notificationStorageKey(sessionId) {
+  return `sentinelops.acknowledged-notifications.${sessionId}`;
+}
+
+function syncNotificationSession(sessionId) {
+  const currentSessionId = sessionId || "no-session";
+  if (notificationSessionId === currentSessionId) return;
+  notificationSessionId = currentSessionId;
+  try {
+    const storedIds = JSON.parse(
+      window.localStorage.getItem(notificationStorageKey(currentSessionId)) || "[]"
+    );
+    acknowledgedNotificationIds = new Set(
+      Array.isArray(storedIds) ? storedIds : []
+    );
+  } catch {
+    acknowledgedNotificationIds = new Set();
+  }
+}
+
+function acknowledgeNotification(notificationId) {
+  acknowledgedNotificationIds.add(notificationId);
+  try {
+    window.localStorage.setItem(
+      notificationStorageKey(notificationSessionId || "no-session"),
+      JSON.stringify([...acknowledgedNotificationIds])
+    );
+  } catch {
+    // The in-memory acknowledgment still applies when browser storage is unavailable.
+  }
+}
+
+function allOperationalAlerts(data) {
+  const assetAlerts = data.findings
+    .filter((prediction) => ["critical", "warning"].includes(prediction.asset_status))
+    .map((prediction) => ({
+      notificationId: `asset:${prediction.run_id}:${prediction.asset_id}`,
+      severity: prediction.asset_status,
+      title: `${prediction.asset_id} is ${prediction.asset_status}`,
+      detail: prediction.recommended_action,
+      time: formatDateTime(prediction.scored_at),
       targetType: "asset",
-      targetId: asset.asset_id
+      targetId: prediction.asset_id,
+      runId: prediction.run_id
     }));
   const workflowAlerts = data.workflows
     .filter((workflow) => workflow.status === "failed")
     .map((workflow) => ({
+      notificationId: `workflow:${workflow.run_id}`,
       severity: "critical",
       title: "Workflow execution failed",
       detail: workflow.error || formatStepLabel(workflow.step),
       time: formatDateTime(workflow.updated_at),
       targetType: "workflow",
-      targetId: workflow.run_id
+      targetId: workflow.run_id,
+      runId: workflow.run_id
     }));
   return [...assetAlerts, ...workflowAlerts];
+}
+
+function operationalAlerts(data) {
+  return allOperationalAlerts(data).filter(
+    (alert) => !acknowledgedNotificationIds.has(alert.notificationId)
+  );
 }
 
 function renderHeader(data) {
@@ -245,8 +290,8 @@ function renderHeader(data) {
 
 function renderNotifications(alerts) {
   document.getElementById("notification-list").innerHTML = alerts.length
-    ? alerts.slice(0, 6).map((alert) => `
-      <button type="button" class="notification-item" data-notification-type="${alert.targetType}" data-notification-id="${escapeHtml(alert.targetId)}">
+    ? alerts.map((alert) => `
+      <button type="button" class="notification-item" data-notification-type="${alert.targetType}" data-notification-id="${escapeHtml(alert.notificationId)}">
         <span class="alert-icon ${alert.severity === "critical" ? "critical" : ""}"><i data-lucide="${alert.severity === "critical" ? "octagon-alert" : "triangle-alert"}"></i></span>
         <span><strong>${escapeHtml(alert.title)}</strong><small>${escapeHtml(alert.detail)}</small><time>${escapeHtml(alert.time)}</time></span>
         <i data-lucide="chevron-right" aria-hidden="true"></i>
@@ -336,11 +381,12 @@ function renderOverviewWorkflows(data) {
 }
 
 function renderAlerts(data) {
-  const alerts = operationalAlerts(data).slice(0, 5);
+  const alerts = operationalAlerts(data);
+  const visibleAlerts = alerts.slice(0, 5);
   document.getElementById("alert-panel-count").textContent = `${alerts.length} open`;
-  document.getElementById("recent-alert-list").innerHTML = alerts.length
-    ? alerts.map((alert) => `
-      <button type="button" class="alert-row interactive-row" data-notification-type="${alert.targetType}" data-notification-id="${escapeHtml(alert.targetId)}"><span class="alert-icon ${alert.severity === "critical" ? "critical" : ""}"><i data-lucide="${alert.severity === "critical" ? "octagon-alert" : "triangle-alert"}"></i></span><span class="row-copy"><strong>${escapeHtml(alert.title)}</strong><small>${escapeHtml(alert.detail)}</small></span><span class="cell-muted">${escapeHtml(alert.time)}</span><i class="row-chevron" data-lucide="chevron-right"></i></button>
+  document.getElementById("recent-alert-list").innerHTML = visibleAlerts.length
+    ? visibleAlerts.map((alert) => `
+      <button type="button" class="alert-row interactive-row" data-notification-type="${alert.targetType}" data-notification-id="${escapeHtml(alert.notificationId)}"><span class="alert-icon ${alert.severity === "critical" ? "critical" : ""}"><i data-lucide="${alert.severity === "critical" ? "octagon-alert" : "triangle-alert"}"></i></span><span class="row-copy"><strong>${escapeHtml(alert.title)}</strong><small>${escapeHtml(alert.detail)}</small></span><span class="cell-muted">${escapeHtml(alert.time)}</span><i class="row-chevron" data-lucide="chevron-right"></i></button>
     `).join("")
     : '<div class="empty-state"><i data-lucide="circle-check"></i><strong>No active alerts</strong><span>The fleet has no critical asset or workflow conditions.</span></div>';
 }
@@ -498,8 +544,15 @@ function renderPipelineTimeline(workflow, targetId = "pipeline-timeline") {
   }).join("");
 }
 
-function openAssetDetails(assetId) {
-  const asset = dashboardData.assets.find((candidate) => candidate.asset_id === assetId);
+function openAssetDetails(assetId, runId = null) {
+  const historicalPrediction = runId
+    ? dashboardData.findings.find(
+      (prediction) => prediction.asset_id === assetId && prediction.run_id === runId
+    )
+    : null;
+  const asset = historicalPrediction
+    ? normalizeAssets([], [historicalPrediction])[0]
+    : dashboardData.assets.find((candidate) => candidate.asset_id === assetId);
   if (!asset) return;
   const rulSummary = formatRul(asset.remaining_useful_life_cycles);
   const explanation = asset.rul_available
@@ -590,7 +643,21 @@ async function refreshDashboard({ announce = true } = {}) {
       ...workflow,
       label: formatStepLabel(workflow.step)
     }));
+    const findingRuns = dashboardData.workflows.filter(
+      (workflow) => workflow.status === "completed"
+        && workflow.result_summary?.finding_count
+    );
+    const findingResults = await Promise.all(
+      findingRuns.map((workflow) =>
+        optionalApiFetch(`/api/predictions/runs/${encodeURIComponent(workflow.run_id)}`)
+      )
+    );
+    dashboardData.findings = findingResults
+      .flatMap((result) => result.predictions || [])
+      .filter((prediction) => ["critical", "warning"].includes(prediction.asset_status))
+      .sort((left, right) => (right.scored_at || "").localeCompare(left.scored_at || ""));
     dashboardData.demo = demoData.scenario;
+    syncNotificationSession(dashboardData.demo?.session_id);
     renderAll(dashboardData);
     document.getElementById("last-refresh-value").textContent = formatDateTime(new Date());
     if (announce) {
@@ -968,10 +1035,20 @@ async function initDashboard() {
     const notificationControl = event.target.closest("[data-notification-type]");
     if (notificationControl) {
       closeHeaderPopovers();
-      if (notificationControl.dataset.notificationType === "asset") {
-        openAssetDetails(notificationControl.dataset.notificationId);
-      } else {
-        openWorkflowDetails(notificationControl.dataset.notificationId);
+      const alert = allOperationalAlerts(dashboardData).find(
+        (candidate) => candidate.notificationId === notificationControl.dataset.notificationId
+      );
+      if (alert) {
+        acknowledgeNotification(alert.notificationId);
+        if (alert.targetType === "asset") {
+          openAssetDetails(alert.targetId, alert.runId);
+        } else {
+          openWorkflowDetails(alert.targetId);
+        }
+        renderHeader(dashboardData);
+        renderSummary(dashboardData);
+        renderAlerts(dashboardData);
+        refreshIcons();
       }
     }
     const accountControl = event.target.closest("[data-account-action]");

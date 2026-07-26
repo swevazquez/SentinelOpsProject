@@ -135,6 +135,11 @@ class DashboardUiTests(unittest.TestCase):
     def test_header_controls_provide_actionable_feedback(self):
         self.assertIn('id="notification-popover"', self.html)
         self.assertIn('data-notification-type="${alert.targetType}"', self.js)
+        self.assertIn('data-notification-id="${escapeHtml(alert.notificationId)}"', self.js)
+        self.assertIn("function allOperationalAlerts(data)", self.js)
+        self.assertIn("function acknowledgeNotification(notificationId)", self.js)
+        self.assertIn("dashboardData.findings = findingResults", self.js)
+        self.assertNotIn("alerts.slice(0, 6)", self.js)
         self.assertIn('id="user-popover"', self.html)
         self.assertIn('refreshLabel.textContent = "Refreshing"', self.js)
         self.assertNotIn('id="header-alert-count"', self.html)
@@ -214,7 +219,7 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('id="asset-search"', self.html)
         self.assertIn('id="asset-sort"', self.html)
         self.assertIn('id="asset-detail-dialog"', self.html)
-        self.assertIn("function openAssetDetails(assetId)", self.js)
+        self.assertIn("function openAssetDetails(assetId, runId = null)", self.js)
         self.assertIn("model_confidence", self.js)
 
     def test_dashboard_exposes_rul_without_confusing_it_with_risk(self):
