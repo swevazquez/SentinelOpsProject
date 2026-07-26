@@ -17,13 +17,16 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - name: Install project dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]"
+        run: uv sync --extra dev --locked
 
       - name: Run CI validation
-        run: ./scripts/check-ci.sh
+        run: uv run ./scripts/check-ci.sh
 
       - name: Check Jira traceability
         if: github.event_name == 'pull_request'
