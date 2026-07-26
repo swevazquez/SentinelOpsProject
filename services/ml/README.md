@@ -77,9 +77,42 @@ engines. Its validation results were:
 | Median-RUL baseline, all validation rows | 35.27 | 43.73 |
 | Median-RUL baseline, macro average across engines | 35.84 | 44.33 |
 
-The current story trains and evaluates the model only. Workflow inference,
-operational persistence, and dashboard presentation are delivered by subsequent
-Sprint 4 stories.
+`SCRUM-31` trains and evaluates the model. Runtime inference and operational
+persistence are described below; dashboard presentation remains a subsequent
+Sprint 4 story.
+
+## Versioned RUL Inference
+
+`SCRUM-32` integrates the approved versioned artifact into the existing
+predictive workflow. RUL mode validates the artifact schema, semantic model
+version, dataset contract, ordered temporal feature contract, serialized payload,
+feature count, and model checksum before loading the estimator. It accepts
+C-MAPSS-compatible CSV trajectories with engine, cycle, setting, and sensor
+fields; labels may be present but are not required for inference.
+
+The runtime applies the exact selected-sensor and causal rolling-window contract
+stored during training. It scores every observed cycle and persists the
+latest-cycle estimate for each engine as a capped maintenance horizon from 0 to
+125 cycles. The operational mapping is:
+
+| Predicted RUL | Risk | Health | Status | Priority |
+| ---: | ---: | ---: | --- | --- |
+| `0` to `31.25` cycles | `0.75` to `1.00` | `0.00` to `0.25` | Critical | Immediate |
+| `>31.25` to `62.50` cycles | `0.50` to `<0.75` | `>0.25` to `0.50` | Warning | High |
+| `>62.50` to `93.75` cycles | `0.25` to `<0.50` | `>0.50` to `0.75` | Watch | Medium |
+| `>93.75` to `125` cycles | `0.00` to `<0.25` | `>0.75` to `1.00` | Healthy | Routine |
+
+Risk is `1 - (bounded RUL / 125)` and health is
+`bounded RUL / 125`. Both are clamped to `[0, 1]`. Each stored result includes
+the workflow run, prediction timestamp, input path and checksum, model name,
+semantic model version and checksum, dataset identifier, serialized
+feature-contract version, RUL, risk, health, status, priority, and recommended
+action.
+
+The rule-based workflow remains the default. RUL inference is selected through
+`POST /api/workflows` with `inference_mode` set to `rul`. A missing, corrupt, or
+incompatible artifact produces an observable failed workflow status before the
+atomic prediction repository writes a new file.
 
 ## Predictive Scoring
 

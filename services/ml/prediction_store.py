@@ -2,13 +2,29 @@ from __future__ import annotations
 
 import csv
 from dataclasses import dataclass
+import math
 from pathlib import Path
 from typing import Protocol
 
-from services.ml.scoring import PREDICTION_FIELDS
+from services.ml.scoring import LEGACY_PREDICTION_FIELDS, PREDICTION_FIELDS
 
 
 DEFAULT_PREDICTION_STORAGE_DIR = Path("data/predictions")
+REQUIRED_PREDICTION_FIELDS = (
+    "run_id",
+    "asset_id",
+    "prediction_type",
+    "model_name",
+    "model_version",
+    "scored_at",
+    "source_feature_path",
+    "source_feature_sha256",
+    "risk_score",
+    "health_score",
+    "asset_status",
+    "maintenance_priority",
+    "recommended_action",
+)
 
 
 @dataclass(frozen=True)
@@ -39,7 +55,7 @@ def _validate_prediction_rows(rows: list[dict[str, str]]) -> str:
 
     missing_fields = [
         field
-        for field in PREDICTION_FIELDS
+        for field in REQUIRED_PREDICTION_FIELDS
         if any(field not in row or row[field] == "" for row in rows)
     ]
     if missing_fields:
@@ -61,10 +77,13 @@ def _validate_prediction_rows(rows: list[dict[str, str]]) -> str:
         row["asset_id"]
         for row in rows
         if not 0.0 <= float(row["risk_score"]) <= 1.0
+        or not 0.0 <= float(row["health_score"]) <= 1.0
     ]
     if invalid_scores:
         assets = ", ".join(sorted(invalid_scores))
-        raise ValueError(f"risk_score must be between 0 and 1 for assets: {assets}")
+        raise ValueError(
+            f"risk_score and health_score must be between 0 and 1 for assets: {assets}"
+        )
 
     invalid_hashes = [
         row["asset_id"]
@@ -78,6 +97,43 @@ def _validate_prediction_rows(rows: list[dict[str, str]]) -> str:
     if invalid_hashes:
         assets = ", ".join(sorted(invalid_hashes))
         raise ValueError(f"source feature SHA-256 is invalid for assets: {assets}")
+
+    invalid_types = [
+        row["asset_id"]
+        for row in rows
+        if row["prediction_type"] not in ("risk_baseline", "rul")
+    ]
+    if invalid_types:
+        assets = ", ".join(sorted(invalid_types))
+        raise ValueError(f"prediction_type is invalid for assets: {assets}")
+
+    for row in rows:
+        if row["prediction_type"] != "rul":
+            continue
+        required_rul_fields = (
+            "model_artifact_sha256",
+            "dataset_id",
+            "feature_contract_version",
+            "remaining_useful_life_cycles",
+        )
+        missing_rul_fields = [
+            field for field in required_rul_fields if not row[field]
+        ]
+        if missing_rul_fields:
+            raise ValueError(
+                "RUL prediction rows missing required fields: "
+                + ", ".join(missing_rul_fields)
+            )
+        remaining_useful_life = float(row["remaining_useful_life_cycles"])
+        if not math.isfinite(remaining_useful_life) or remaining_useful_life < 0:
+            raise ValueError(
+                "remaining_useful_life_cycles must be finite and nonnegative"
+            )
+        artifact_hash = row["model_artifact_sha256"]
+        if len(artifact_hash) != 64 or any(
+            character not in "0123456789abcdef" for character in artifact_hash
+        ):
+            raise ValueError("model artifact SHA-256 is invalid")
 
     return run_id
 
@@ -136,6 +192,19 @@ class CsvPredictionRepository:
     def _read(path: Path) -> list[dict[str, str]]:
         with path.open(newline="", encoding="utf-8") as input_file:
             reader = csv.DictReader(input_file)
-            if reader.fieldnames != PREDICTION_FIELDS:
+            if reader.fieldnames == PREDICTION_FIELDS:
+                return list(reader)
+            if reader.fieldnames != LEGACY_PREDICTION_FIELDS:
                 raise ValueError(f"prediction file has an invalid schema: {path}")
-            return list(reader)
+            return [
+                {
+                    **row,
+                    "prediction_type": "risk_baseline",
+                    "model_artifact_sha256": "",
+                    "dataset_id": "",
+                    "feature_contract_version": "",
+                    "remaining_useful_life_cycles": "",
+                    "health_score": f"{1.0 - float(row['risk_score']):.4f}",
+                }
+                for row in reader
+            ]
