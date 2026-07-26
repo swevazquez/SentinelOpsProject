@@ -19,11 +19,21 @@ from services.agent.approvals import ApprovalError, ApprovalStore
 from services.agent.audit import default_audit_logger
 from services.api.operations import (
     latest_predictions_response,
+    latest_rul_predictions_response,
     list_assets_response,
     predictions_by_asset_response,
     predictions_by_run_response,
+    rul_prediction_by_asset_response,
     workflow_list_response,
     workflow_status_response,
+)
+from services.api.rul_demo import (
+    RulDemoBusyError,
+    RulDemoCompleteError,
+    release_rul_demo_run,
+    reserve_rul_demo_batch,
+    reset_rul_demo,
+    rul_demo_status,
 )
 from services.api.workflow_execution import run_predictive_workflow
 from services.ml.rul_training import DEFAULT_MODEL_VERSION, SEMANTIC_VERSION_PATTERN
@@ -37,7 +47,7 @@ class WorkflowRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     workflow: str
-    inference_mode: Literal["baseline", "rul"] = "baseline"
+    inference_mode: Literal["baseline", "rul"] = "rul"
     model_version: str | None = None
 
 
@@ -95,6 +105,14 @@ def create_app(
     def latest_predictions() -> JSONResponse:
         return operation_response(latest_predictions_response(root))
 
+    @app.get("/api/predictions/rul/latest")
+    def latest_rul_predictions() -> JSONResponse:
+        return operation_response(latest_rul_predictions_response(root))
+
+    @app.get("/api/predictions/rul/assets/{asset_id}")
+    def rul_prediction_by_asset(asset_id: str) -> JSONResponse:
+        return operation_response(rul_prediction_by_asset_response(root, asset_id))
+
     @app.get("/api/predictions/runs/{run_id}")
     def predictions_by_run(run_id: str) -> JSONResponse:
         return operation_response(predictions_by_run_response(root, run_id))
@@ -113,6 +131,34 @@ def create_app(
         if response.status_code != 200:
             raise HTTPException(response.status_code, response.body["message"])
         return response.body
+
+    @app.get("/api/workflows/rul-demo/status")
+    def get_rul_demo_status() -> dict[str, object]:
+        try:
+            scenario = rul_demo_status(root)
+        except ValueError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        return {
+            "status": "ok",
+            "request_state": scenario["status"],
+            "message": "RUL demo status retrieved",
+            "data": {"scenario": scenario},
+        }
+
+    @app.post("/api/workflows/rul-demo/reset")
+    def reset_rul_demo_scenario() -> dict[str, object]:
+        try:
+            scenario = reset_rul_demo(root)
+        except RulDemoBusyError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        return {
+            "status": "ok",
+            "request_state": scenario["status"],
+            "message": "RUL demo reset; prior run history was retained",
+            "data": {"scenario": scenario},
+        }
 
     @app.post("/api/assistant/query")
     def query_assistant(request: AssistantQueryRequest) -> dict[str, object]:
@@ -187,7 +233,21 @@ def create_app(
                 action_name=action_name,
                 arguments=request.arguments,
             )
+            scenario = rul_demo_status(root)
+            if scenario["status"] == "running":
+                raise RulDemoBusyError(
+                    f"RUL demo workflow is already running: "
+                    f"{scenario['active_run_id']}"
+                )
+            if scenario["status"] == "complete":
+                raise RulDemoCompleteError(
+                    "RUL demo scenario is complete; reset it before starting "
+                    "another run"
+                )
             approval = approvals.authorize(request.approval_id, prepared_action)
+        except (RulDemoBusyError, RulDemoCompleteError) as exc:
+            _record_action_failure(root, request, started_at, "demo_state_error")
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         except LookupError as exc:
             _record_action_failure(root, request, started_at, "approval_not_found")
             raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -200,6 +260,7 @@ def create_app(
 
         try:
             run_id = _run_id()
+            batch = reserve_rul_demo_batch(root, run_id)
             record_workflow_status(
                 project_root=root,
                 run_id=run_id,
@@ -212,8 +273,16 @@ def create_app(
                 run_predictive_workflow,
                 project_root=root,
                 run_id=run_id,
+                inference_mode="rul",
+                model_version=DEFAULT_MODEL_VERSION,
+                rul_trajectory_path=batch.trajectory_path,
             )
+        except (RulDemoBusyError, RulDemoCompleteError) as exc:
+            _record_action_failure(root, request, started_at, "demo_state_error")
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         except Exception:
+            if "run_id" in locals():
+                release_rul_demo_run(root, run_id)
             _record_action_failure(root, request, started_at, "execution_error")
             raise
         default_audit_logger(root).record(
@@ -233,6 +302,12 @@ def create_app(
                     "status": "running",
                     "step": "queued",
                     "approval_id": approval.approval_id,
+                    "inference_mode": "rul",
+                    "model_version": DEFAULT_MODEL_VERSION,
+                    "demo_checkpoint": {
+                        "number": batch.checkpoint_index + 1,
+                        "label": batch.checkpoint_label,
+                    },
                 }
             },
         }
@@ -259,6 +334,14 @@ def create_app(
                 detail="model_version must use semantic MAJOR.MINOR.PATCH format",
             )
         run_id = _run_id()
+        batch = None
+        if request.inference_mode == "rul":
+            try:
+                batch = reserve_rul_demo_batch(root, run_id)
+            except (RulDemoBusyError, RulDemoCompleteError) as exc:
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
+            except ValueError as exc:
+                raise HTTPException(status_code=503, detail=str(exc)) from exc
         record_workflow_status(
             project_root=root,
             run_id=run_id,
@@ -271,6 +354,7 @@ def create_app(
             run_id=run_id,
             inference_mode=request.inference_mode,
             model_version=model_version,
+            rul_trajectory_path=batch.trajectory_path if batch else None,
         )
         return {
             "status": "accepted",
@@ -284,6 +368,14 @@ def create_app(
                     "inference_mode": request.inference_mode,
                     "model_version": (
                         model_version if request.inference_mode == "rul" else None
+                    ),
+                    "demo_checkpoint": (
+                        {
+                            "number": batch.checkpoint_index + 1,
+                            "label": batch.checkpoint_label,
+                        }
+                        if batch
+                        else None
                     ),
                 }
             },

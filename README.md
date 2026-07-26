@@ -62,6 +62,8 @@ foundation plus the first Sprint 3 interaction slices:
 22. Require exact, time-limited, single-use approval before an assistant action executes.
 23. Train and evaluate a seeded Random Forest RUL model with engine-isolated FD001 data, temporal features, baseline metrics, and a versioned artifact.
 24. Run versioned RUL inference through the predictive workflow with safe artifact validation, bounded maintenance indicators, persisted traceability, and API retrieval.
+25. Compare and explain stored RUL results through dedicated APIs, the dashboard,
+    and grounded read-only assistant tools with explicit unavailable states.
 
 The Sprint 3 interaction slice now supports informational queries through
 read-only tools and one approval-gated predictive-maintenance action. Unknown,
@@ -151,21 +153,30 @@ Open `http://127.0.0.1:8000` to review the dashboard. The Workflows view can
 start the supported `predictive-maintenance` workflow and refresh live workflow,
 asset, and prediction data.
 
-The dashboard and assistant continue to use the deterministic baseline flow.
-After preparing FD001 and training the model, a reviewer can run the explicit
-RUL path through the API:
+After preparing FD001 and training model version `1.0.0`, the dashboard,
+assistant action, and API run RUL inference by default:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/workflows \
   -H 'Content-Type: application/json' \
-  -d '{"workflow":"predictive-maintenance","inference_mode":"rul","model_version":"1.0.0"}'
+  -d '{"workflow":"predictive-maintenance"}'
 ```
 
-Use the returned run ID with
-`GET /api/predictions/runs/{run_id}`. The response contains one latest-cycle
-prediction per validation engine, including RUL, bounded risk and health,
-maintenance guidance, model version and checksum, dataset and feature-contract
-versions, workflow run ID, input fingerprint, and prediction timestamp.
+The repeatable demonstration advances four held-out FD001 engines through 40%,
+60%, 80%, and 100% of their recorded lifecycles. Every run stores a new
+label-free trajectory, its source metadata, workflow status, and RUL results.
+After checkpoint four, reset the scenario from the Workflows view or
+`POST /api/workflows/rul-demo/reset`. Reset clears the active workflow history,
+status counters, and Asset Health view, but retains prior inputs, predictions,
+and workflow records as historical evidence available through direct run
+endpoints. Completed runs distinguish successful pipeline execution from asset
+findings and summarize the condition counts and shortest RUL.
+
+Use the returned run ID with `GET /api/predictions/runs/{run_id}`, retrieve the
+scenario with `GET /api/workflows/rul-demo/status`, or retrieve the current RUL
+view with `GET /api/predictions/rul/latest`. The deterministic rule-based path
+remains available for development and local testing by explicitly sending
+`"inference_mode":"baseline"`.
 
 Validate Sprint 2 demo performance:
 

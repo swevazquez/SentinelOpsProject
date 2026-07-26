@@ -13,6 +13,7 @@ from services.agent.tools import (
 )
 from services.ml.prediction_store import CsvPredictionRepository
 from services.ml.scoring import score_feature_rows
+from tests.unit.test_api_operations import rul_prediction_row
 from services.workflows.status import record_workflow_status
 
 
@@ -56,6 +57,9 @@ class AgentToolTests(unittest.TestCase):
         CsvPredictionRepository(self.project_root / "data" / "predictions").save(
             predictions
         )
+        CsvPredictionRepository(self.project_root / "data" / "predictions").save(
+            [rul_prediction_row()]
+        )
 
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
@@ -79,11 +83,17 @@ class AgentToolTests(unittest.TestCase):
             ("list_assets", {}, "assets"),
             ("list_workflows", {}, "workflows"),
             ("get_latest_predictions", {}, "predictions"),
+            ("get_latest_rul_predictions", {}, "predictions"),
             ("get_workflow", {"run_id": "run-1"}, "workflow"),
             ("get_predictions_by_run", {"run_id": "run-1"}, "predictions"),
             (
                 "get_predictions_by_asset",
                 {"asset_id": "PUMP-1"},
+                "predictions",
+            ),
+            (
+                "get_rul_prediction_by_asset",
+                {"asset_id": "FD001-ENGINE-005"},
                 "predictions",
             ),
         )
@@ -97,6 +107,18 @@ class AgentToolTests(unittest.TestCase):
                 self.assertEqual(response["status_code"], 200)
                 self.assertTrue(response["read_only"])
                 self.assertIn(expected_key, response["result"]["data"])
+
+    def test_rul_tool_reports_unavailable_without_a_placeholder(self) -> None:
+        response = execute_tool(
+            project_root=self.project_root,
+            tool_name="get_rul_prediction_by_asset",
+            arguments={"asset_id": "PUMP-1"},
+        )
+
+        self.assertEqual(response["status_code"], 404)
+        self.assertEqual(response["result"]["request_state"], "not_found")
+        self.assertIn("unavailable", response["result"]["message"])
+        self.assertNotIn("estimate", response["result"])
 
     def test_unknown_tool_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "not approved"):

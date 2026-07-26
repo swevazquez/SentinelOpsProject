@@ -210,6 +210,11 @@ select:focus-visible {
   box-shadow: 0 0 0 4px rgb(240 106 106 / 10%);
 }
 
+.status-dot[data-state="watch"] {
+  background: var(--color-info);
+  box-shadow: 0 0 0 4px var(--color-info-soft);
+}
+
 .sidebar-footer p {
   margin: 0 var(--space-2);
 }
@@ -448,6 +453,34 @@ select:focus-visible {
 .popover-header h2 {
   font-size: var(--font-size-md);
   margin: var(--space-1) 0 0;
+}
+
+.popover-header-actions {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.popover-action {
+  background: transparent;
+  border: 0;
+  color: var(--color-info);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  padding: 0;
+}
+
+.popover-action:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+}
+
+.popover-action:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
 }
 
 .notification-list {
@@ -1034,6 +1067,7 @@ tbody tr:last-child td {
 .badge,
 .status-pill,
 .risk-chip,
+.rul-chip,
 .workflow-state-chip {
   align-items: center;
   border: 1px solid transparent;
@@ -1084,6 +1118,19 @@ tbody tr:last-child td {
   border-color: var(--color-border-strong);
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
+}
+
+.rul-chip {
+  background: var(--color-info-soft);
+  border-color: #28557f;
+  color: var(--color-info);
+  font-variant-numeric: tabular-nums;
+}
+
+.rul-chip.rul-unavailable {
+  background: var(--color-bg-panel-elevated);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-muted);
 }
 
 .row-action {
@@ -1177,6 +1224,78 @@ tbody tr:last-child td {
   padding: var(--space-3) var(--space-4);
 }
 
+.rul-demo-panel {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+.rul-demo-summary,
+.rul-demo-actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-4);
+  justify-content: space-between;
+}
+
+.rul-demo-summary h2 {
+  font-size: var(--font-size-lg);
+  margin: var(--space-1) 0;
+}
+
+.rul-demo-summary p,
+.rul-demo-history-note {
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.rul-demo-progress {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.rul-demo-checkpoint {
+  background: var(--color-bg-panel-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-2);
+  min-height: 74px;
+  padding: var(--space-3);
+}
+
+.rul-demo-checkpoint strong {
+  font-size: var(--font-size-sm);
+}
+
+.rul-demo-checkpoint span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.rul-demo-checkpoint.complete {
+  background: var(--color-healthy-soft);
+  border-color: #245d42;
+}
+
+.rul-demo-checkpoint.next {
+  background: var(--color-info-soft);
+  border-color: #28557f;
+}
+
+.rul-demo-history-note {
+  align-items: center;
+  display: flex;
+  font-size: var(--font-size-xs);
+  gap: var(--space-2);
+}
+
+.rul-demo-history-note svg {
+  height: 15px;
+  width: 15px;
+}
+
 .workflow-feedback:empty {
   display: none;
 }
@@ -1191,6 +1310,24 @@ tbody tr:last-child td {
   background: var(--color-critical-soft);
   border-color: #6b2d35;
   color: var(--color-critical);
+}
+
+.workflow-feedback[data-state="critical"] {
+  background: var(--color-critical-soft);
+  border-color: #6b2d35;
+  color: var(--color-critical);
+}
+
+.workflow-feedback[data-state="warning"] {
+  background: var(--color-warning-soft);
+  border-color: #62531e;
+  color: var(--color-warning);
+}
+
+.workflow-feedback[data-state="watch"] {
+  background: var(--color-info-soft);
+  border-color: #28557f;
+  color: var(--color-info);
 }
 
 .workflow-kpis {
@@ -1864,6 +2001,12 @@ button.workflow-state-card[aria-pressed="true"] {
   margin-bottom: var(--space-1);
 }
 
+.prediction-explanation {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
 .toast-region {
   bottom: var(--space-6);
   display: grid;
@@ -1949,6 +2092,16 @@ button.workflow-state-card[aria-pressed="true"] {
 }
 
 @media (max-width: 820px) {
+  .rul-demo-summary,
+  .rul-demo-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rul-demo-progress {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   :root {
     --sidebar-width: 76px;
   }

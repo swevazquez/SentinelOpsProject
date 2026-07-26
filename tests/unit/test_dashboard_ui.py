@@ -87,7 +87,7 @@ class DashboardUiTests(unittest.TestCase):
 
     def test_dashboard_loads_operational_data_from_api(self):
         self.assertIn('apiFetch("/api/assets")', self.js)
-        self.assertIn('apiFetch("/api/predictions/latest")', self.js)
+        self.assertIn('optionalApiFetch("/api/predictions/rul/latest")', self.js)
         self.assertIn('apiFetch("/api/workflows")', self.js)
         self.assertNotIn('asset_id: "PUMP-104"', self.js)
         self.assertNotIn('run_id: "sprint1-0942"', self.js)
@@ -102,6 +102,30 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('id="workflow-detail-dialog"', self.html)
         self.assertIn("function openWorkflowDetails(runId)", self.js)
         self.assertIn("Run identifier", self.js)
+        self.assertIn('inference_mode: "rul"', self.js)
+        self.assertIn("function waitForWorkflowCompletion(runId)", self.js)
+        self.assertIn("function workflowSummaryText(workflow)", self.js)
+        self.assertIn("RUL checkpoint completed:", self.js)
+
+    def test_workflow_view_exposes_repeatable_rul_demo_controls(self):
+        self.assertIn('id="rul-demo-status"', self.html)
+        self.assertIn('id="rul-demo-progress"', self.html)
+        self.assertIn('id="reset-rul-demo-button"', self.html)
+        self.assertIn('apiFetch("/api/workflows/rul-demo/status")', self.js)
+        self.assertIn('fetch("/api/workflows/rul-demo/reset"', self.js)
+        self.assertIn("demo.checkpoint_labels.map", self.js)
+        self.assertIn("evidence remains available by direct run URL", self.js)
+        self.assertIn("dashboardData.assets = normalizeAssets([],", self.js)
+        self.assertIn("No current RUL results", self.js)
+        self.assertIn("Run checkpoint 1", self.js)
+
+    def test_workflow_completion_distinguishes_execution_from_findings(self):
+        self.assertIn("function workflowOutcome(workflow)", self.js)
+        self.assertIn("function workflowStatusPill(workflow)", self.js)
+        self.assertIn("workflow.result_summary.outcome_status", self.js)
+        self.assertIn("<span>Execution</span>", self.js)
+        self.assertIn("<span>Asset outcome</span>", self.js)
+        self.assertIn("Condition summary", self.js)
 
     def test_workflow_history_supports_status_filters(self):
         self.assertIn('data-workflow-filter="${state}"', self.js)
@@ -111,6 +135,17 @@ class DashboardUiTests(unittest.TestCase):
     def test_header_controls_provide_actionable_feedback(self):
         self.assertIn('id="notification-popover"', self.html)
         self.assertIn('data-notification-type="${alert.targetType}"', self.js)
+        self.assertIn('data-notification-id="${escapeHtml(alert.notificationId)}"', self.js)
+        self.assertIn("function allOperationalAlerts(data)", self.js)
+        self.assertIn("function acknowledgeNotification(notificationId)", self.js)
+        self.assertIn("function acknowledgeAllNotifications(alerts)", self.js)
+        self.assertIn('id="clear-notifications-button"', self.html)
+        self.assertIn(
+            'document.getElementById("clear-notifications-button").disabled',
+            self.js,
+        )
+        self.assertIn("dashboardData.findings = findingResults", self.js)
+        self.assertNotIn("alerts.slice(0, 6)", self.js)
         self.assertIn('id="user-popover"', self.html)
         self.assertIn('refreshLabel.textContent = "Refreshing"', self.js)
         self.assertNotIn('id="header-alert-count"', self.html)
@@ -126,7 +161,10 @@ class DashboardUiTests(unittest.TestCase):
     def test_assistant_submits_supported_operational_queries(self):
         self.assertIn('id="assistant-form"', self.html)
         self.assertIn('id="assistant-input"', self.html)
-        self.assertIn('data-assistant-prompt="Show highest risk assets"', self.html)
+        self.assertIn(
+            'data-assistant-prompt="Show assets with the shortest RUL"',
+            self.html,
+        )
         self.assertIn('fetch("/api/assistant/query"', self.js)
         self.assertIn("payload.data.response.answer", self.js)
         self.assertIn('id="assistant-model-name"', self.html)
@@ -150,6 +188,7 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('data-assistant-decision="denied"', self.js)
         self.assertIn('fetch(`/api/assistant/approvals/${encodeURIComponent', self.js)
         self.assertIn('fetch("/api/assistant/actions/execute"', self.js)
+        self.assertIn("await waitForWorkflowCompletion(runId)", self.js)
         self.assertIn("action.fingerprint", self.js)
         self.assertIn("function decideAssistantAction(decision, approvalId)", self.js)
         self.assertIn(".assistant-action-card", self.css)
@@ -186,8 +225,26 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('id="asset-search"', self.html)
         self.assertIn('id="asset-sort"', self.html)
         self.assertIn('id="asset-detail-dialog"', self.html)
-        self.assertIn("function openAssetDetails(assetId)", self.js)
+        self.assertIn("function openAssetDetails(assetId, runId = null)", self.js)
         self.assertIn("model_confidence", self.js)
+
+    def test_dashboard_exposes_rul_without_confusing_it_with_risk(self):
+        self.assertIn("<th>Risk Score</th><th>RUL</th>", self.html)
+        self.assertIn('value="rul-asc">RUL: shortest horizon', self.html)
+        self.assertIn("function formatRul(value)", self.js)
+        self.assertIn('optionalApiFetch("/api/predictions/rul/latest")', self.js)
+        self.assertIn("prediction?.prediction_type === \"rul\"", self.js)
+        self.assertIn("remaining_useful_life_cycles", self.js)
+        self.assertIn("asset.rul_available", self.js)
+        self.assertIn("RUL is unavailable because no compatible stored", self.js)
+        self.assertIn("not a guaranteed failure date", self.js)
+        self.assertIn('class="rul-chip', self.js)
+        self.assertIn(".rul-chip.rul-unavailable", self.css)
+        self.assertIn(
+            'data-assistant-prompt="What is the RUL for FD001-ENGINE-002?"',
+            self.html,
+        )
+        self.assertIn('"compare_rul", "explain_asset_rul"', self.js)
 
     def test_dashboard_styles_support_responsive_wireframe_layout(self):
         self.assertIn("kpi-grid", self.css)

@@ -19,16 +19,29 @@ enterprise theme, reusable design tokens, live API data, and four in-scope views
   and highest-risk assets.
 - Assets: search, filtering, sorting, richer prediction fields, and an asset
   detail dialog.
-- Workflows: manual predictive-maintenance execution, status metrics, execution
-  history, and the latest pipeline timeline.
+- Workflows: a repeatable four-checkpoint RUL lifecycle demonstration, scenario
+  progress and reset controls, status metrics, execution history, and the latest
+  pipeline timeline.
 - Assistant: an operational query console for supported asset, prediction, and
   workflow questions, with suggested prompts, structured results, and visible
   approved-tool evidence.
 
-The dashboard reads asset profiles, latest predictions, and workflow execution
-states from the FastAPI service. When no prediction run exists yet, it displays
-the configured asset profiles and labels them as baseline data until a workflow
-is run.
+The dashboard reads the configured RUL scenario, latest predictions, and
+workflow execution states from the FastAPI service. The default workflow replays
+four held-out FD001 engines at 40%, 60%, 80%, and 100% of their lifecycles. It
+waits for the selected checkpoint to complete before refreshing the maintenance
+view and presents a short condition summary. Workflow execution completion is
+shown separately from the asset outcome, so critical or warning findings are not
+represented by a green completion badge. Reset begins a visually clean session
+with no active executions or assets, but retains prior workflow, input, and
+prediction evidence for direct historical retrieval.
+
+The operational inbox accumulates warning and critical findings from every run
+in the active demo session. Opening a notification displays that run's asset
+result and marks only that notification as read. Read state is retained for the
+current session across page refreshes. The inbox also provides a `Clear all`
+action that marks all current notifications as read. A demo reset starts a new
+empty inbox.
 
 ## Design System
 

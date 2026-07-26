@@ -21,10 +21,14 @@ workflow API from the same origin.
 | `POST` | `/api/workflows` | Start the approved `predictive-maintenance` workflow. |
 | `GET` | `/api/workflows` | List workflow execution states. |
 | `GET` | `/api/workflows/{run_id}` | Retrieve one workflow execution state. |
+| `GET` | `/api/workflows/rul-demo/status` | Retrieve the repeatable RUL scenario checkpoint and engine set. |
+| `POST` | `/api/workflows/rul-demo/reset` | Start a new scenario session without deleting prior run evidence. |
 | `POST` | `/api/assistant/query` | Submit a supported operational query or prepare an approved action. |
 | `POST` | `/api/assistant/approvals/{approval_id}` | Approve or reject one prepared action. |
 | `POST` | `/api/assistant/actions/execute` | Execute the exact approved action once. |
 | `GET` | `/api/predictions/latest` | Retrieve the latest prediction for each asset. |
+| `GET` | `/api/predictions/rul/latest` | Retrieve only the latest compatible RUL predictions. |
+| `GET` | `/api/predictions/rul/assets/{asset_id}` | Retrieve only stored RUL history for one asset. |
 | `GET` | `/api/predictions/runs/{run_id}` | Retrieve predictions for one workflow run. |
 | `GET` | `/api/predictions/assets/{asset_id}` | Retrieve prediction history for one asset. |
 
@@ -32,14 +36,23 @@ Manual requests run in a FastAPI background task and return `202 Accepted` with
 a generated run ID. Unsupported workflow names and unexpected request fields
 are rejected before execution.
 
-The existing request remains the default rule-based demonstration:
+The minimal request runs the default RUL demonstration:
 
 ```json
 {"workflow": "predictive-maintenance"}
 ```
 
-After the FD001 data and versioned model are generated, request RUL inference
-explicitly:
+It uses four held-out FD001 engines and advances them through 40%, 60%, 80%, and
+100% lifecycle checkpoints. Each accepted run persists a unique label-free
+trajectory and metadata record before applying the trained model. A fifth run is
+blocked until the scenario is reset, and reset retains all prior inputs,
+workflow records, and predictions while clearing prior runs and results from
+the new session's active workflow and RUL views. Historical workflow and
+prediction records remain available through direct run endpoints. Completed
+workflow responses include a result summary with condition counts, finding
+severity, highest risk, and shortest RUL.
+
+The model version may be selected explicitly:
 
 ```json
 {
@@ -49,10 +62,11 @@ explicitly:
 }
 ```
 
-The RUL mode only reads the repository-managed validation trajectory and model
-directory. It does not accept arbitrary paths. A missing, corrupt, or
-incompatible model or feature contract records a failed workflow step before
-prediction persistence. Existing prediction files are not changed.
+The RUL mode only reads the repository-managed scenario, validation trajectory,
+and model directory. It does not accept arbitrary paths. A missing, corrupt, or
+incompatible prerequisite produces an unavailable or failed response before a
+new prediction file replaces any existing result. For local development and
+deterministic tests, send `"inference_mode": "baseline"` explicitly.
 
 ## Operational API Contract
 
@@ -68,6 +82,8 @@ contracts. These handlers provide the behavior that FastAPI routes should expose
 | Workflow summary | `data/workflow-status/` | Running, completed, failed, and total counts |
 | Predictions by run | `data/predictions/` | Prediction records for one workflow run |
 | Predictions by asset | `data/predictions/` | Prediction history for one asset |
+| Latest RUL predictions | `data/predictions/` | Latest RUL record for each compatible asset |
+| RUL predictions by asset | `data/predictions/` | RUL-only history or an explicit unavailable response |
 
 The response contract uses a status code and a JSON-compatible body. All
 responses include `status`, `request_state`, and `message`. Successful responses

@@ -2,11 +2,15 @@ const dashboardData = {
   profiles: [],
   predictions: [],
   assets: [],
-  workflows: []
+  workflows: [],
+  findings: [],
+  demo: null
 };
 
 let workflowFilter = "all";
 let pendingAssistantAction = null;
+let notificationSessionId = null;
+let acknowledgedNotificationIds = new Set();
 
 const viewTitles = {
   overview: "Fleet Overview",
@@ -48,6 +52,37 @@ function statusPill(status) {
   return `<span class="status-pill status-${escapeHtml(normalized)}">${escapeHtml(label)}</span>`;
 }
 
+function workflowOutcome(workflow) {
+  if (workflow.status !== "completed" || !workflow.result_summary) {
+    return {
+      status: workflow.status,
+      label: statusLabels[workflow.status] || workflow.status
+    };
+  }
+  return {
+    status: workflow.result_summary.outcome_status,
+    label: workflow.result_summary.outcome_label
+  };
+}
+
+function workflowStatusPill(workflow) {
+  const outcome = workflowOutcome(workflow);
+  return `<span class="status-pill status-${escapeHtml(outcome.status)}">${escapeHtml(outcome.label)}</span>`;
+}
+
+function workflowSummaryText(workflow) {
+  const summary = workflow.result_summary;
+  if (!summary) return "";
+  const conditions = ["critical", "warning", "watch", "healthy"]
+    .filter((status) => summary[status] > 0)
+    .map((status) => `${summary[status]} ${status}`)
+    .join(" · ");
+  const shortestRul = summary.shortest_rul_cycles === null
+    ? ""
+    : ` · shortest RUL ${Number(summary.shortest_rul_cycles).toFixed(1)} cycles`;
+  return `${conditions}${shortestRul}`;
+}
+
 function formatDateTime(value) {
   if (!value) return "Not available";
   const date = new Date(value);
@@ -79,9 +114,26 @@ function formatPercent(value) {
   return `${Math.round(normalized)}%`;
 }
 
+function formatRul(value) {
+  if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) {
+    return "Unavailable";
+  }
+  return `${Number(value).toFixed(1)} cycles`;
+}
+
 async function apiFetch(path) {
   const response = await fetch(path);
   const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.message || payload.detail || `Request failed (${response.status}).`);
+  }
+  return payload.data;
+}
+
+async function optionalApiFetch(path) {
+  const response = await fetch(path);
+  const payload = await response.json();
+  if (response.status === 404) return {};
   if (!response.ok) {
     throw new Error(payload.message || payload.detail || `Request failed (${response.status}).`);
   }
@@ -107,18 +159,32 @@ function profilePriority(status) {
 function normalizeAssets(profiles, predictions) {
   const predictionByAsset = new Map(predictions.map((prediction) => [prediction.asset_id, prediction]));
   const profileByAsset = new Map(profiles.map((profile) => [profile.asset_id, profile]));
-  const assetIds = new Set([...profileByAsset.keys(), ...predictionByAsset.keys()]);
+  const rulAssetIds = predictions
+    .filter((prediction) => prediction.prediction_type === "rul")
+    .map((prediction) => prediction.asset_id);
+  const assetIds = rulAssetIds.length
+    ? new Set(rulAssetIds)
+    : new Set([...profileByAsset.keys(), ...predictionByAsset.keys()]);
 
   return [...assetIds].sort().map((assetId) => {
     const profile = profileByAsset.get(assetId) || {};
     const prediction = predictionByAsset.get(assetId);
     const riskScore = Number(prediction?.risk_score ?? profile.failure_risk ?? 0);
+    const rulValue = prediction?.prediction_type === "rul"
+      && Number.isFinite(Number(prediction.remaining_useful_life_cycles))
+      ? Number(prediction.remaining_useful_life_cycles)
+      : null;
     const status = prediction?.asset_status || profileStatus(riskScore);
     return {
       ...profile,
       ...prediction,
       asset_id: assetId,
       risk_score: riskScore,
+      health_score: prediction?.health_score === "" || prediction?.health_score === undefined
+        ? null
+        : Number(prediction.health_score),
+      remaining_useful_life_cycles: rulValue,
+      rul_available: rulValue !== null,
       asset_status: status,
       maintenance_priority: prediction?.maintenance_priority || profilePriority(status),
       recommended_action: prediction?.recommended_action || "Run predictive maintenance to calculate the latest recommendation.",
@@ -135,28 +201,79 @@ function assetCounts(assets) {
   }, { healthy: 0, watch: 0, warning: 0, critical: 0 });
 }
 
-function operationalAlerts(data) {
-  const assetAlerts = data.assets
-    .filter((asset) => ["critical", "warning"].includes(asset.asset_status))
-    .map((asset) => ({
-      severity: asset.asset_status,
-      title: `${asset.asset_id} is ${asset.asset_status}`,
-      detail: asset.recommended_action,
-      time: asset.display_updated,
+function notificationStorageKey(sessionId) {
+  return `sentinelops.acknowledged-notifications.${sessionId}`;
+}
+
+function syncNotificationSession(sessionId) {
+  const currentSessionId = sessionId || "no-session";
+  if (notificationSessionId === currentSessionId) return;
+  notificationSessionId = currentSessionId;
+  try {
+    const storedIds = JSON.parse(
+      window.localStorage.getItem(notificationStorageKey(currentSessionId)) || "[]"
+    );
+    acknowledgedNotificationIds = new Set(
+      Array.isArray(storedIds) ? storedIds : []
+    );
+  } catch {
+    acknowledgedNotificationIds = new Set();
+  }
+}
+
+function acknowledgeNotification(notificationId) {
+  acknowledgedNotificationIds.add(notificationId);
+  persistAcknowledgedNotifications();
+}
+
+function acknowledgeAllNotifications(alerts) {
+  alerts.forEach((alert) => acknowledgedNotificationIds.add(alert.notificationId));
+  persistAcknowledgedNotifications();
+}
+
+function persistAcknowledgedNotifications() {
+  try {
+    window.localStorage.setItem(
+      notificationStorageKey(notificationSessionId || "no-session"),
+      JSON.stringify([...acknowledgedNotificationIds])
+    );
+  } catch {
+    // The in-memory acknowledgment still applies when browser storage is unavailable.
+  }
+}
+
+function allOperationalAlerts(data) {
+  const assetAlerts = data.findings
+    .filter((prediction) => ["critical", "warning"].includes(prediction.asset_status))
+    .map((prediction) => ({
+      notificationId: `asset:${prediction.run_id}:${prediction.asset_id}`,
+      severity: prediction.asset_status,
+      title: `${prediction.asset_id} is ${prediction.asset_status}`,
+      detail: prediction.recommended_action,
+      time: formatDateTime(prediction.scored_at),
       targetType: "asset",
-      targetId: asset.asset_id
+      targetId: prediction.asset_id,
+      runId: prediction.run_id
     }));
   const workflowAlerts = data.workflows
     .filter((workflow) => workflow.status === "failed")
     .map((workflow) => ({
+      notificationId: `workflow:${workflow.run_id}`,
       severity: "critical",
       title: "Workflow execution failed",
       detail: workflow.error || formatStepLabel(workflow.step),
       time: formatDateTime(workflow.updated_at),
       targetType: "workflow",
-      targetId: workflow.run_id
+      targetId: workflow.run_id,
+      runId: workflow.run_id
     }));
   return [...assetAlerts, ...workflowAlerts];
+}
+
+function operationalAlerts(data) {
+  return allOperationalAlerts(data).filter(
+    (alert) => !acknowledgedNotificationIds.has(alert.notificationId)
+  );
 }
 
 function renderHeader(data) {
@@ -169,12 +286,13 @@ function renderHeader(data) {
     ? `${alerts.length} active asset or workflow condition${alerts.length === 1 ? "" : "s"} require review.`
     : "No active asset or workflow conditions.";
   document.getElementById("header-last-workflow").textContent = latestWorkflow
-    ? `${statusLabels[latestWorkflow.status]} · ${formatTime(latestWorkflow.updated_at)}`
+    ? `${workflowOutcome(latestWorkflow).label} · ${formatTime(latestWorkflow.updated_at)}`
     : "No runs";
   document.getElementById("last-workflow-button").disabled = !latestWorkflow;
   document.getElementById("notification-count").textContent = String(alerts.length);
   document.getElementById("notification-count").hidden = alerts.length === 0;
   document.getElementById("notification-summary").textContent = `${alerts.length} open`;
+  document.getElementById("clear-notifications-button").disabled = alerts.length === 0;
   renderNotifications(alerts);
   document.getElementById("sidebar-status-label").textContent = "API connected";
   document.getElementById("sidebar-status-dot").dataset.state = "healthy";
@@ -182,8 +300,8 @@ function renderHeader(data) {
 
 function renderNotifications(alerts) {
   document.getElementById("notification-list").innerHTML = alerts.length
-    ? alerts.slice(0, 6).map((alert) => `
-      <button type="button" class="notification-item" data-notification-type="${alert.targetType}" data-notification-id="${escapeHtml(alert.targetId)}">
+    ? alerts.map((alert) => `
+      <button type="button" class="notification-item" data-notification-type="${alert.targetType}" data-notification-id="${escapeHtml(alert.notificationId)}">
         <span class="alert-icon ${alert.severity === "critical" ? "critical" : ""}"><i data-lucide="${alert.severity === "critical" ? "octagon-alert" : "triangle-alert"}"></i></span>
         <span><strong>${escapeHtml(alert.title)}</strong><small>${escapeHtml(alert.detail)}</small><time>${escapeHtml(alert.time)}</time></span>
         <i data-lucide="chevron-right" aria-hidden="true"></i>
@@ -241,8 +359,12 @@ function renderPredictions(data) {
   const criticalShare = Math.max(0, 100 - healthyShare - watchShare - warningShare);
   const reviewCount = counts.watch + counts.warning + counts.critical;
   const donut = document.getElementById("prediction-donut");
+  const rulCount = data.predictions.filter((prediction) => prediction.prediction_type === "rul").length;
+  const baselineCount = data.predictions.length - rulCount;
 
-  document.getElementById("prediction-count").textContent = data.predictions.length ? `${data.predictions.length} latest predictions` : "Baseline risk profiles";
+  document.getElementById("prediction-count").textContent = data.predictions.length
+    ? `${rulCount} RUL · ${baselineCount} risk-only`
+    : "Baseline risk profiles";
   document.getElementById("prediction-review-count").textContent = String(reviewCount);
   donut.style.background = data.assets.length
     ? `conic-gradient(var(--color-healthy) 0 ${healthyShare}%, var(--color-info) ${healthyShare}% ${healthyShare + watchShare}%, var(--color-warning) ${healthyShare + watchShare}% ${healthyShare + watchShare + warningShare}%, var(--color-critical) ${healthyShare + watchShare + warningShare}% 100%)`
@@ -263,34 +385,35 @@ function renderOverviewWorkflows(data) {
   const workflows = data.workflows.slice(0, 4);
   document.getElementById("overview-workflow-list").innerHTML = workflows.length
     ? workflows.map((workflow) => `
-      <button type="button" class="compact-row interactive-row" data-workflow-detail="${escapeHtml(workflow.run_id)}"><span class="status-dot" data-state="${workflow.status === "failed" ? "error" : "healthy"}"></span><span class="row-copy"><strong>${escapeHtml(formatStepLabel(workflow.step))}</strong><small>${escapeHtml(formatDateTime(workflow.updated_at))}</small></span>${statusPill(workflow.status)}<i class="row-chevron" data-lucide="chevron-right"></i></button>
+      <button type="button" class="compact-row interactive-row" data-workflow-detail="${escapeHtml(workflow.run_id)}"><span class="status-dot" data-state="${workflowOutcome(workflow).status === "critical" || workflow.status === "failed" ? "error" : workflowOutcome(workflow).status}"></span><span class="row-copy"><strong>${escapeHtml(formatStepLabel(workflow.step))}</strong><small>${escapeHtml(workflowSummaryText(workflow) || formatDateTime(workflow.updated_at))}</small></span>${workflowStatusPill(workflow)}<i class="row-chevron" data-lucide="chevron-right"></i></button>
     `).join("")
     : '<div class="empty-state"><strong>No workflow history</strong><span>Run predictive maintenance to create the first execution.</span></div>';
 }
 
 function renderAlerts(data) {
-  const alerts = operationalAlerts(data).slice(0, 5);
+  const alerts = operationalAlerts(data);
+  const visibleAlerts = alerts.slice(0, 5);
   document.getElementById("alert-panel-count").textContent = `${alerts.length} open`;
-  document.getElementById("recent-alert-list").innerHTML = alerts.length
-    ? alerts.map((alert) => `
-      <button type="button" class="alert-row interactive-row" data-notification-type="${alert.targetType}" data-notification-id="${escapeHtml(alert.targetId)}"><span class="alert-icon ${alert.severity === "critical" ? "critical" : ""}"><i data-lucide="${alert.severity === "critical" ? "octagon-alert" : "triangle-alert"}"></i></span><span class="row-copy"><strong>${escapeHtml(alert.title)}</strong><small>${escapeHtml(alert.detail)}</small></span><span class="cell-muted">${escapeHtml(alert.time)}</span><i class="row-chevron" data-lucide="chevron-right"></i></button>
+  document.getElementById("recent-alert-list").innerHTML = visibleAlerts.length
+    ? visibleAlerts.map((alert) => `
+      <button type="button" class="alert-row interactive-row" data-notification-type="${alert.targetType}" data-notification-id="${escapeHtml(alert.notificationId)}"><span class="alert-icon ${alert.severity === "critical" ? "critical" : ""}"><i data-lucide="${alert.severity === "critical" ? "octagon-alert" : "triangle-alert"}"></i></span><span class="row-copy"><strong>${escapeHtml(alert.title)}</strong><small>${escapeHtml(alert.detail)}</small></span><span class="cell-muted">${escapeHtml(alert.time)}</span><i class="row-chevron" data-lucide="chevron-right"></i></button>
     `).join("")
     : '<div class="empty-state"><i data-lucide="circle-check"></i><strong>No active alerts</strong><span>The fleet has no critical asset or workflow conditions.</span></div>';
 }
 
 function assetRow(asset, compact = false) {
-  const confidence = formatPercent(asset.model_confidence);
+  const rul = `<span class="rul-chip${asset.rul_available ? "" : " rul-unavailable"}">${escapeHtml(formatRul(asset.remaining_useful_life_cycles))}</span>`;
   if (compact) {
-    return `<tr class="interactive-table-row" data-asset-detail="${escapeHtml(asset.asset_id)}" tabindex="0" role="button" aria-label="View ${escapeHtml(asset.asset_id)} details"><td><div class="asset-identity"><strong>${escapeHtml(asset.asset_id)}</strong><span>${escapeHtml(asset.model_name || "Baseline profile")}</span></div></td><td>${statusPill(asset.asset_status)}</td><td><span class="risk-chip">${asset.risk_score.toFixed(2)}</span></td><td>${escapeHtml(asset.maintenance_priority)}</td><td class="recommendation-cell" title="${escapeHtml(asset.recommended_action)}">${escapeHtml(asset.recommended_action)}</td><td>${escapeHtml(asset.display_updated)}</td></tr>`;
+    return `<tr class="interactive-table-row" data-asset-detail="${escapeHtml(asset.asset_id)}" tabindex="0" role="button" aria-label="View ${escapeHtml(asset.asset_id)} details"><td><div class="asset-identity"><strong>${escapeHtml(asset.asset_id)}</strong><span>${escapeHtml(asset.model_name || "Baseline profile")}</span></div></td><td>${statusPill(asset.asset_status)}</td><td><span class="risk-chip">${asset.risk_score.toFixed(2)}</span></td><td>${rul}</td><td>${escapeHtml(asset.maintenance_priority)}</td><td class="recommendation-cell" title="${escapeHtml(asset.recommended_action)}">${escapeHtml(asset.recommended_action)}</td><td>${escapeHtml(asset.display_updated)}</td></tr>`;
   }
-  return `<tr class="interactive-table-row" data-asset-detail="${escapeHtml(asset.asset_id)}" tabindex="0" role="button" aria-label="View ${escapeHtml(asset.asset_id)} details"><td><div class="asset-identity"><strong>${escapeHtml(asset.asset_id)}</strong><span>${escapeHtml(asset.model_name || "Baseline profile")}</span></div></td><td>${statusPill(asset.asset_status)}</td><td><span class="risk-chip">${asset.risk_score.toFixed(2)}</span></td><td>${escapeHtml(asset.maintenance_priority)}</td><td>${escapeHtml(confidence)}</td><td class="recommendation-cell" title="${escapeHtml(asset.recommended_action)}">${escapeHtml(asset.recommended_action)}</td><td>${escapeHtml(asset.display_updated)}</td><td><span class="row-detail-indicator" aria-hidden="true"><i data-lucide="chevron-right"></i></span></td></tr>`;
+  return `<tr class="interactive-table-row" data-asset-detail="${escapeHtml(asset.asset_id)}" tabindex="0" role="button" aria-label="View ${escapeHtml(asset.asset_id)} details"><td><div class="asset-identity"><strong>${escapeHtml(asset.asset_id)}</strong><span>${escapeHtml(asset.model_name || "Baseline profile")}</span></div></td><td>${statusPill(asset.asset_status)}</td><td><span class="risk-chip">${asset.risk_score.toFixed(2)}</span></td><td>${rul}</td><td>${escapeHtml(asset.maintenance_priority)}</td><td class="recommendation-cell" title="${escapeHtml(asset.recommended_action)}">${escapeHtml(asset.recommended_action)}</td><td>${escapeHtml(asset.display_updated)}</td><td><span class="row-detail-indicator" aria-hidden="true"><i data-lucide="chevron-right"></i></span></td></tr>`;
 }
 
 function renderRiskAssets(data) {
   const rows = [...data.assets].sort((a, b) => b.risk_score - a.risk_score).slice(0, 5);
   document.getElementById("risk-asset-table-body").innerHTML = rows.length
     ? rows.map((asset) => assetRow(asset, true)).join("")
-    : '<tr><td colspan="6"><div class="empty-state">No asset data available.</div></td></tr>';
+    : '<tr><td colspan="7"><div class="empty-state">No asset data available.</div></td></tr>';
 }
 
 function filteredAssets(data) {
@@ -304,6 +427,12 @@ function filteredAssets(data) {
   });
 
   return rows.sort((a, b) => {
+    if (sortValue === "rul-asc") {
+      if (a.rul_available !== b.rul_available) return a.rul_available ? -1 : 1;
+      return a.rul_available
+        ? a.remaining_useful_life_cycles - b.remaining_useful_life_cycles
+        : a.asset_id.localeCompare(b.asset_id);
+    }
     if (sortValue === "risk-asc") return a.risk_score - b.risk_score;
     if (sortValue === "asset-asc") return a.asset_id.localeCompare(b.asset_id);
     if (sortValue === "updated-desc") return (b.scored_at || "").localeCompare(a.scored_at || "");
@@ -314,7 +443,11 @@ function filteredAssets(data) {
 function renderAssets(data) {
   const rows = filteredAssets(data);
   document.getElementById("asset-table-body").innerHTML = rows.map((asset) => assetRow(asset)).join("");
-  document.getElementById("asset-empty-state").hidden = rows.length > 0;
+  const emptyState = document.getElementById("asset-empty-state");
+  emptyState.hidden = rows.length > 0;
+  emptyState.innerHTML = data.assets.length
+    ? '<i data-lucide="search-x"></i><strong>No assets found</strong><span>Adjust the search or status filter.</span>'
+    : '<i data-lucide="activity"></i><strong>No current RUL results</strong><span>Run checkpoint 1 to evaluate the demonstration engines.</span>';
   refreshIcons();
 }
 
@@ -342,7 +475,7 @@ function renderWorkflows(data) {
   document.getElementById("workflow-run-count-default").hidden = workflowFilter !== "all";
   document.getElementById("workflow-list").innerHTML = workflows.length
     ? workflows.map((workflow) => `
-      <button type="button" class="workflow-item" data-workflow-detail="${escapeHtml(workflow.run_id)}" aria-label="View workflow run details"><span class="workflow-item-icon"><i data-lucide="git-branch"></i></span><span class="workflow-item-copy"><strong>Predictive maintenance</strong><small>${escapeHtml(formatStepLabel(workflow.step))} · ${escapeHtml(formatDateTime(workflow.updated_at))}${workflow.error ? ` · ${escapeHtml(workflow.error)}` : ""}</small></span>${statusPill(workflow.status)}<i class="row-chevron" data-lucide="chevron-right"></i></button>
+      <button type="button" class="workflow-item" data-workflow-detail="${escapeHtml(workflow.run_id)}" aria-label="View workflow run details"><span class="workflow-item-icon"><i data-lucide="git-branch"></i></span><span class="workflow-item-copy"><strong>Predictive maintenance</strong><small>${escapeHtml(workflowSummaryText(workflow) || formatStepLabel(workflow.step))} · ${escapeHtml(formatDateTime(workflow.updated_at))}${workflow.error ? ` · ${escapeHtml(workflow.error)}` : ""}</small></span>${workflowStatusPill(workflow)}<i class="row-chevron" data-lucide="chevron-right"></i></button>
     `).join("")
     : `<div class="empty-state"><i data-lucide="workflow"></i><strong>No ${workflowFilter === "all" ? "workflow" : workflowFilter} runs</strong><span>${workflowFilter === "all" ? "Start predictive maintenance to create execution history." : "Select the active filter again or clear it to view all executions."}</span></div>`;
   renderWorkflowStates(data);
@@ -350,14 +483,61 @@ function renderWorkflows(data) {
   document.getElementById("workflow-timeline-kicker").textContent = workflowFilter === "all" ? "Latest execution" : `Latest ${workflowFilter} execution`;
 }
 
+function renderRulDemo(data) {
+  const demo = data.demo;
+  const runButton = document.getElementById("run-workflow-button");
+  const resetButton = document.getElementById("reset-rul-demo-button");
+  if (!demo) {
+    runButton.disabled = true;
+    resetButton.disabled = true;
+    return;
+  }
+  const statusLabels = {
+    ready: "Ready",
+    in_progress: "In progress",
+    running: "Running",
+    complete: "Complete"
+  };
+  document.getElementById("rul-demo-status").textContent = statusLabels[demo.status] || demo.status;
+  const next = demo.next_checkpoint;
+  document.getElementById("rul-demo-description").textContent = demo.status === "complete"
+    ? `All ${demo.total_checkpoints} checkpoints are complete. Reset to replay the same model inputs and results.`
+    : `${demo.engine_ids.length} held-out engines · Next: checkpoint ${next.number} of ${demo.total_checkpoints}, ${next.label}.`;
+  document.getElementById("rul-demo-progress").innerHTML = demo.checkpoint_labels.map((label, index) => {
+    const number = index + 1;
+    const state = number <= demo.completed_checkpoints
+      ? "complete"
+      : number === demo.completed_checkpoints + 1 && demo.status !== "complete"
+        ? "next"
+        : "pending";
+    const stateLabel = state === "complete" ? "Completed" : state === "next" ? "Next run" : "Pending";
+    return `<div class="rul-demo-checkpoint ${state}"><strong>${number}. ${escapeHtml(label)}</strong><span>${stateLabel}</span></div>`;
+  }).join("");
+  runButton.disabled = demo.status === "running" || demo.status === "complete";
+  resetButton.disabled = demo.status === "running";
+  runButton.querySelector("span").textContent = demo.status === "complete"
+    ? "Demo complete"
+    : `Run checkpoint ${demo.completed_checkpoints + 1}`;
+}
+
 function renderPipelineTimeline(workflow, targetId = "pipeline-timeline") {
   const timeline = document.getElementById(targetId);
-  const steps = [
+  const baselineSteps = [
     ["queued", "Request queued"],
-    ["telemetry_and_feature_processing", "Telemetry and features"],
-    ["score_and_persist_predictions", "Score and persist predictions"],
+    ["telemetry_and_feature_processing", "Generate telemetry and features"],
+    ["score_and_persist_predictions", "Rule-based risk scoring"],
     ["completed", "Publish operational results"]
   ];
+  const rulSteps = [
+    ["queued", "Request queued"],
+    ["simulate_rul_demo_telemetry", "Replay engine telemetry"],
+    ["rul_inference_and_persistence", "Random Forest RUL inference"],
+    ["completed", "Publish operational results"]
+  ];
+  const steps = [
+    "telemetry_and_feature_processing",
+    "score_and_persist_predictions"
+  ].includes(workflow?.step) ? baselineSteps : rulSteps;
   if (!workflow) {
     timeline.innerHTML = '<div class="empty-state"><strong>No execution selected</strong><span>The latest run timeline will appear here.</span></div>';
     return;
@@ -374,16 +554,30 @@ function renderPipelineTimeline(workflow, targetId = "pipeline-timeline") {
   }).join("");
 }
 
-function openAssetDetails(assetId) {
-  const asset = dashboardData.assets.find((candidate) => candidate.asset_id === assetId);
+function openAssetDetails(assetId, runId = null) {
+  const historicalPrediction = runId
+    ? dashboardData.findings.find(
+      (prediction) => prediction.asset_id === assetId && prediction.run_id === runId
+    )
+    : null;
+  const asset = historicalPrediction
+    ? normalizeAssets([], [historicalPrediction])[0]
+    : dashboardData.assets.find((candidate) => candidate.asset_id === assetId);
   if (!asset) return;
+  const rulSummary = formatRul(asset.remaining_useful_life_cycles);
+  const explanation = asset.rul_available
+    ? `The versioned Random Forest model estimates ${rulSummary} for the latest compatible engine cycle. Risk and health are bounded operational indicators derived from that maintenance horizon. This FD001 benchmark estimate supports prioritization and is not a guaranteed failure date.`
+    : "RUL is unavailable because no compatible stored remaining-useful-life prediction exists for this asset. The displayed risk is a separate rule-based indicator; SentinelOps does not substitute it for an RUL estimate.";
+  const supportingDetails = asset.rul_available
+    ? `<section class="detail-section"><h3>Result traceability</h3><dl><div><dt>Workflow run</dt><dd class="run-identifier">${escapeHtml(asset.run_id)}</dd></div><div><dt>Feature contract</dt><dd>${escapeHtml(asset.feature_contract_version || "Not reported")}</dd></div></dl></section>`
+    : `<section class="detail-section"><h3>Feature summary</h3><dl><div><dt>Base temperature</dt><dd>${escapeHtml(asset.base_temperature_c ?? "Not available")} °C</dd></div><div><dt>Base vibration</dt><dd>${escapeHtml(asset.base_vibration_mm_s ?? "Not available")} mm/s</dd></div><div><dt>Base pressure</dt><dd>${escapeHtml(asset.base_pressure_kpa ?? "Not available")} kPa</dd></div><div><dt>Runtime</dt><dd>${escapeHtml(asset.runtime_hours ?? "Not available")} hours</dd></div></dl></section>`;
   document.getElementById("asset-dialog-title").textContent = asset.asset_id;
   document.getElementById("asset-dialog-content").innerHTML = `
-    <section class="detail-summary"><div class="detail-metric"><span>Health</span>${statusPill(asset.asset_status)}</div><div class="detail-metric"><span>Risk Score</span><strong>${asset.risk_score.toFixed(2)}</strong></div><div class="detail-metric"><span>Priority</span><strong>${escapeHtml(asset.maintenance_priority)}</strong></div><div class="detail-metric"><span>RUL</span><strong>Pending</strong></div></section>
+    <section class="detail-summary"><div class="detail-metric"><span>Condition</span>${statusPill(asset.asset_status)}</div><div class="detail-metric"><span>Risk Score</span><strong>${asset.risk_score.toFixed(2)}</strong></div><div class="detail-metric"><span>RUL</span><strong>${escapeHtml(rulSummary)}</strong></div><div class="detail-metric"><span>Priority</span><strong>${escapeHtml(asset.maintenance_priority)}</strong></div></section>
     <section class="maintenance-callout"><strong>Recommended maintenance</strong>${escapeHtml(asset.recommended_action)}</section>
-    <section class="detail-section"><h3>Latest prediction</h3><dl><div><dt>Model</dt><dd>${escapeHtml(asset.model_name || "Rule-based baseline")}</dd></div><div><dt>Model version</dt><dd>${escapeHtml(asset.model_version || "Baseline")}</dd></div><div><dt>Confidence</dt><dd>${escapeHtml(formatPercent(asset.model_confidence))}</dd></div><div><dt>Last updated</dt><dd>${escapeHtml(asset.display_updated)}</dd></div></dl></section>
-    <section class="detail-section"><h3>Feature summary</h3><dl><div><dt>Base temperature</dt><dd>${escapeHtml(asset.base_temperature_c ?? "Not available")} °C</dd></div><div><dt>Base vibration</dt><dd>${escapeHtml(asset.base_vibration_mm_s ?? "Not available")} mm/s</dd></div><div><dt>Base pressure</dt><dd>${escapeHtml(asset.base_pressure_kpa ?? "Not available")} kPa</dd></div><div><dt>Runtime</dt><dd>${escapeHtml(asset.runtime_hours ?? "Not available")} hours</dd></div></dl></section>
-    <section class="detail-section"><h3>Prediction explanation</h3><p class="cell-muted">The current score is based on the latest available SentinelOps model output and the asset feature profile. Remaining useful life will be added after the approved ML component is integrated.</p></section>
+    <section class="detail-section"><h3>Latest prediction</h3><dl><div><dt>Prediction type</dt><dd>${asset.rul_available ? "Remaining useful life" : "Risk-only baseline"}</dd></div><div><dt>Health score</dt><dd>${escapeHtml(formatPercent(asset.health_score))}</dd></div><div><dt>Model</dt><dd>${escapeHtml(asset.model_name || "Rule-based baseline")}</dd></div><div><dt>Model version</dt><dd>${escapeHtml(asset.model_version || "Baseline")}</dd></div><div><dt>Prediction timestamp</dt><dd>${escapeHtml(asset.display_updated)}</dd></div><div><dt>Dataset</dt><dd>${escapeHtml(asset.dataset_id || "Not applicable")}</dd></div></dl></section>
+    ${supportingDetails}
+    <section class="detail-section"><h3>Prediction explanation</h3><p class="prediction-explanation">${escapeHtml(explanation)}</p></section>
   `;
   document.getElementById("asset-detail-dialog").showModal();
   refreshIcons();
@@ -392,9 +586,11 @@ function openAssetDetails(assetId) {
 function openWorkflowDetails(runId) {
   const workflow = dashboardData.workflows.find((candidate) => candidate.run_id === runId);
   if (!workflow) return;
-  document.getElementById("workflow-dialog-title").textContent = `Predictive maintenance · ${statusLabels[workflow.status] || workflow.status}`;
+  const summary = workflow.result_summary;
+  document.getElementById("workflow-dialog-title").textContent = `Predictive maintenance · ${workflowOutcome(workflow).label}`;
   document.getElementById("workflow-dialog-content").innerHTML = `
-    <section class="detail-summary workflow-detail-summary"><div class="detail-metric"><span>Status</span>${statusPill(workflow.status)}</div><div class="detail-metric"><span>Current step</span><strong>${escapeHtml(formatStepLabel(workflow.step))}</strong></div><div class="detail-metric"><span>Updated</span><strong>${escapeHtml(formatDateTime(workflow.updated_at))}</strong></div></section>
+    <section class="detail-summary workflow-detail-summary"><div class="detail-metric"><span>Execution</span>${statusPill(workflow.status)}</div><div class="detail-metric"><span>Asset outcome</span>${workflowStatusPill(workflow)}</div><div class="detail-metric"><span>Updated</span><strong>${escapeHtml(formatDateTime(workflow.updated_at))}</strong></div></section>
+    ${summary ? `<section class="detail-section"><h3>Condition summary</h3><p class="prediction-explanation">${escapeHtml(workflowSummaryText(workflow))}</p><dl><div><dt>Assets evaluated</dt><dd>${summary.asset_count}</dd></div><div><dt>Highest risk</dt><dd>${Number(summary.highest_risk_score).toFixed(2)}</dd></div><div><dt>Shortest RUL</dt><dd>${escapeHtml(summary.shortest_rul_cycles === null ? "Not applicable" : `${Number(summary.shortest_rul_cycles).toFixed(1)} cycles`)}</dd></div></dl></section>` : ""}
     <section class="detail-section"><h3>Execution details</h3><dl><div><dt>Workflow</dt><dd>Predictive maintenance</dd></div><div><dt>Run identifier</dt><dd class="run-identifier">${escapeHtml(workflow.run_id)}</dd></div><div><dt>Execution state</dt><dd>${escapeHtml(statusLabels[workflow.status] || workflow.status)}</dd></div><div><dt>Last activity</dt><dd>${escapeHtml(formatDateTime(workflow.updated_at))}</dd></div></dl></section>
     ${workflow.error ? `<section class="execution-error"><strong>Failure details</strong><p>${escapeHtml(workflow.error)}</p></section>` : ""}
     <section class="detail-section"><h3>Pipeline progress</h3><div class="pipeline-timeline dialog-timeline" id="workflow-dialog-timeline"></div></section>
@@ -414,6 +610,7 @@ function renderAll(data) {
   renderRiskAssets(data);
   renderAssets(data);
   renderWorkflows(data);
+  renderRulDemo(data);
   refreshIcons();
 }
 
@@ -442,18 +639,35 @@ async function refreshDashboard({ announce = true } = {}) {
   refreshLabel.textContent = "Refreshing";
   setSystemState("loading", "Refreshing");
   try {
-    const [assetData, predictionData, workflowData] = await Promise.all([
+    const [assetData, rulPredictionData, workflowData, demoData] = await Promise.all([
       apiFetch("/api/assets"),
-      apiFetch("/api/predictions/latest"),
-      apiFetch("/api/workflows")
+      optionalApiFetch("/api/predictions/rul/latest"),
+      apiFetch("/api/workflows"),
+      apiFetch("/api/workflows/rul-demo/status")
     ]);
     dashboardData.profiles = assetData.assets || [];
-    dashboardData.predictions = predictionData.predictions || [];
-    dashboardData.assets = normalizeAssets(dashboardData.profiles, dashboardData.predictions);
+    const currentRulPredictions = rulPredictionData.predictions || [];
+    dashboardData.predictions = currentRulPredictions;
+    dashboardData.assets = normalizeAssets([], dashboardData.predictions);
     dashboardData.workflows = (workflowData.workflows || []).map((workflow) => ({
       ...workflow,
       label: formatStepLabel(workflow.step)
     }));
+    const findingRuns = dashboardData.workflows.filter(
+      (workflow) => workflow.status === "completed"
+        && workflow.result_summary?.finding_count
+    );
+    const findingResults = await Promise.all(
+      findingRuns.map((workflow) =>
+        optionalApiFetch(`/api/predictions/runs/${encodeURIComponent(workflow.run_id)}`)
+      )
+    );
+    dashboardData.findings = findingResults
+      .flatMap((result) => result.predictions || [])
+      .filter((prediction) => ["critical", "warning"].includes(prediction.asset_status))
+      .sort((left, right) => (right.scored_at || "").localeCompare(left.scored_at || ""));
+    dashboardData.demo = demoData.scenario;
+    syncNotificationSession(dashboardData.demo?.session_id);
     renderAll(dashboardData);
     document.getElementById("last-refresh-value").textContent = formatDateTime(new Date());
     if (announce) {
@@ -484,25 +698,81 @@ async function runWorkflow() {
     const response = await fetch("/api/workflows", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workflow: "predictive-maintenance" })
+      body: JSON.stringify({
+        workflow: "predictive-maintenance",
+        inference_mode: "rul",
+        model_version: "1.0.0"
+      })
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.detail || "Workflow could not be started.");
-    actionStatus.textContent = "Workflow accepted. Execution history has been updated.";
-    actionStatus.dataset.state = "success";
-    showToast("Predictive maintenance workflow accepted.", "success");
+    actionStatus.textContent = "RUL workflow accepted. Processing simulated engine telemetry...";
+    actionStatus.dataset.state = "loading";
+    const workflow = await waitForWorkflowCompletion(payload.data.workflow.run_id);
+    if (workflow.status === "failed") {
+      throw new Error(workflow.error || "The RUL workflow failed.");
+    }
+    const summary = workflowSummaryText(workflow);
+    actionStatus.textContent = `RUL checkpoint completed: ${summary || "no asset summary was returned"}.`;
+    const outcomeStatus = workflow.result_summary?.outcome_status;
+    actionStatus.dataset.state = workflow.result_summary?.finding_count
+      ? outcomeStatus
+      : "success";
+    showToast(
+      summary || "RUL checkpoint completed.",
+      outcomeStatus === "critical" ? "error" : outcomeStatus === "healthy" ? "success" : "info"
+    );
     await refreshDashboard({ announce: false });
   } catch (error) {
     actionStatus.textContent = error.message;
     actionStatus.dataset.state = "error";
     showToast(error.message, "error");
   } finally {
-    button.disabled = false;
+    button.disabled = ["running", "complete"].includes(dashboardData.demo?.status);
+  }
+}
+
+async function waitForWorkflowCompletion(runId) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const data = await apiFetch(`/api/workflows/${encodeURIComponent(runId)}`);
+    if (["completed", "failed"].includes(data.workflow.status)) return data.workflow;
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  throw new Error("The workflow is still running. Refresh to check its status.");
+}
+
+async function resetRulDemo() {
+  const button = document.getElementById("reset-rul-demo-button");
+  const actionStatus = document.getElementById("workflow-action-status");
+  button.disabled = true;
+  actionStatus.textContent = "Resetting the RUL lifecycle scenario...";
+  actionStatus.dataset.state = "loading";
+  try {
+    const response = await fetch("/api/workflows/rul-demo/reset", { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || "The RUL demo could not be reset.");
+    dashboardData.demo = payload.data.scenario;
+    await refreshDashboard({ announce: false });
+    actionStatus.textContent =
+      "RUL demo reset. Prior run evidence remains available by direct run URL.";
+    actionStatus.dataset.state = "success";
+    showToast("RUL demo ready at checkpoint 1.", "success");
+  } catch (error) {
+    actionStatus.textContent = error.message;
+    actionStatus.dataset.state = "error";
+    showToast(error.message, "error");
+  } finally {
+    button.disabled = dashboardData.demo?.status === "running";
   }
 }
 
 function assistantResultItems(response) {
   if (!response.items?.length) return "";
+  if (["compare_rul", "explain_asset_rul"].includes(response.intent)) {
+    return `<div class="assistant-result-list">${response.items.map((item) => `
+      <button type="button" data-asset-detail="${escapeHtml(item.asset_id)}"><span><strong>${escapeHtml(item.asset_id)}</strong><small>${escapeHtml(item.maintenance_priority || "Priority unavailable")} · ${escapeHtml(item.recommended_action || "Recommendation unavailable")}</small></span><span class="rul-chip">${escapeHtml(formatRul(item.remaining_useful_life_cycles))}</span><i data-lucide="chevron-right"></i></button>
+    `).join("")}</div>`;
+  }
   if (["highest_risk_assets", "explain_asset_prediction"].includes(response.intent)) {
     return `<div class="assistant-result-list">${response.items.map((item) => `
       <button type="button" data-asset-detail="${escapeHtml(item.asset_id)}"><span><strong>${escapeHtml(item.asset_id)}</strong><small>${escapeHtml(item.recommended_action || "Prediction result")}</small></span><span class="risk-chip">${Number(item.risk_score || 0).toFixed(2)}</span><i data-lucide="chevron-right"></i></button>
@@ -546,7 +816,7 @@ function assistantWorkflowLink(response) {
     <a class="assistant-workflow-link" href="?view=assistant" data-workflow-link="${runId}">
       <span><i data-lucide="${completed ? "circle-check" : "workflow"}"></i></span>
       <span><strong>${completed ? "View completed workflow" : "View workflow run"}</strong><small>${runId}</small></span>
-      ${statusPill(workflow.status)}
+      ${workflowStatusPill(workflow)}
       <i data-lucide="arrow-right"></i>
     </a>`;
 }
@@ -618,8 +888,9 @@ async function decideAssistantAction(decision, approvalId) {
     if (!executionResponse.ok) throw new Error(executionPayload.detail || "The approved action could not be executed.");
     const acceptedWorkflow = executionPayload.data.workflow;
     const runId = acceptedWorkflow.run_id;
+    const terminalWorkflow = await waitForWorkflowCompletion(runId);
     await refreshDashboard({ announce: false });
-    const workflow = dashboardData.workflows.find((candidate) => candidate.run_id === runId) || acceptedWorkflow;
+    const workflow = dashboardData.workflows.find((candidate) => candidate.run_id === runId) || terminalWorkflow;
     const completed = workflow.status === "completed";
     status.textContent = completed
       ? `Approved. Workflow completed as ${runId}.`
@@ -631,11 +902,15 @@ async function decideAssistantAction(decision, approvalId) {
     appendAssistantMessage(
       "assistant",
       completed
-        ? "The approved predictive-maintenance workflow completed successfully."
+        ? `The approved workflow execution completed. ${workflowSummaryText(workflow) || "Open the result for details."}`
         : "The approved predictive-maintenance workflow started successfully.",
       { workflow }
     );
-    showToast(completed ? "Approved workflow completed." : "Approved workflow started.", "success");
+    const assistantOutcome = workflow.result_summary?.outcome_status;
+    showToast(
+      completed ? workflowSummaryText(workflow) || "Approved workflow completed." : "Approved workflow started.",
+      assistantOutcome === "critical" ? "error" : assistantOutcome && assistantOutcome !== "healthy" ? "info" : "success"
+    );
   } catch (error) {
     status.textContent = error.message;
     status.dataset.state = "error";
@@ -716,8 +991,19 @@ async function initDashboard() {
   document.getElementById("asset-status-filter").addEventListener("change", () => renderAssets(dashboardData));
   document.getElementById("asset-sort").addEventListener("change", () => renderAssets(dashboardData));
   document.getElementById("run-workflow-button").addEventListener("click", runWorkflow);
+  document.getElementById("reset-rul-demo-button").addEventListener("click", resetRulDemo);
   document.querySelector(".refresh-button").addEventListener("click", () => refreshDashboard());
   document.getElementById("notification-button").addEventListener("click", () => toggleHeaderPopover("notification-popover", "notification-button"));
+  document.getElementById("clear-notifications-button").addEventListener("click", () => {
+    const alerts = operationalAlerts(dashboardData);
+    if (!alerts.length) return;
+    acknowledgeAllNotifications(alerts);
+    renderHeader(dashboardData);
+    renderSummary(dashboardData);
+    renderAlerts(dashboardData);
+    refreshIcons();
+    showToast(`${alerts.length} notifications cleared.`, "success");
+  });
   document.getElementById("system-summary-button").addEventListener("click", () => toggleHeaderPopover("notification-popover", "notification-button"));
   document.getElementById("last-workflow-button").addEventListener("click", () => {
     if (!dashboardData.workflows[0]) return;
@@ -769,10 +1055,20 @@ async function initDashboard() {
     const notificationControl = event.target.closest("[data-notification-type]");
     if (notificationControl) {
       closeHeaderPopovers();
-      if (notificationControl.dataset.notificationType === "asset") {
-        openAssetDetails(notificationControl.dataset.notificationId);
-      } else {
-        openWorkflowDetails(notificationControl.dataset.notificationId);
+      const alert = allOperationalAlerts(dashboardData).find(
+        (candidate) => candidate.notificationId === notificationControl.dataset.notificationId
+      );
+      if (alert) {
+        acknowledgeNotification(alert.notificationId);
+        if (alert.targetType === "asset") {
+          openAssetDetails(alert.targetId, alert.runId);
+        } else {
+          openWorkflowDetails(alert.targetId);
+        }
+        renderHeader(dashboardData);
+        renderSummary(dashboardData);
+        renderAlerts(dashboardData);
+        refreshIcons();
       }
     }
     const accountControl = event.target.closest("[data-account-action]");

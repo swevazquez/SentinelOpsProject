@@ -31,6 +31,7 @@ data/models/*
 data/workflow-status/*
 data/audit/*
 data/approvals/*
+data/demo-state/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/predictions/.gitkeep
@@ -39,6 +40,7 @@ data/approvals/*
 !data/workflow-status/.gitkeep
 !data/audit/.gitkeep
 !data/approvals/.gitkeep
+!data/demo-state/.gitkeep
 data/samples/*.generated.*
 
 # Generated reports

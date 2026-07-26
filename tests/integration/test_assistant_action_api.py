@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from services.api.app import create_app
 from tests.fake_openai import FakeAssistantClient
+from tests.rul_test_support import prepare_rul_runtime
 
 
 class AssistantActionApiTests(unittest.TestCase):
@@ -23,6 +24,7 @@ class AssistantActionApiTests(unittest.TestCase):
             "PUMP-1,60,1.5,220,500,0.1\n",
             encoding="utf-8",
         )
+        prepare_rul_runtime(self.project_root)
         self.client = TestClient(
             create_app(
                 self.project_root,
@@ -102,6 +104,15 @@ class AssistantActionApiTests(unittest.TestCase):
         self.assertEqual(
             status_response.json()["data"]["workflow"]["approval_id"],
             action["approval_id"],
+        )
+        self.assertEqual(workflow["inference_mode"], "rul")
+        self.assertEqual(workflow["demo_checkpoint"]["number"], 1)
+        predictions = self.client.get(
+            f"/api/predictions/runs/{workflow['run_id']}"
+        ).json()["data"]["predictions"]
+        self.assertEqual(
+            {prediction["prediction_type"] for prediction in predictions},
+            {"rul"},
         )
 
         replay = self._execute(action)
