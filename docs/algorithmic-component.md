@@ -1,4 +1,4 @@
-# SentinelOps Significant Algorithmic Component Proposal
+# SentinelOps Significant Algorithmic Component
 
 **Course:** SWENG 894 - Software Engineering Capstone Experience | **Project:** SentinelOps | **Student:** Eli Vazquez | **Date:** 2026-07-11 | **Repository:** <https://github.com/swevazquez/SentinelOpsProject>
 
@@ -8,13 +8,13 @@
 
 SentinelOps is a predictive-maintenance platform for reliability engineers, maintenance managers, and operations analysts. It addresses the operational problem of identifying degradation early enough to plan maintenance before an asset failure disrupts operations. The MVP generates telemetry, engineers features, scores asset risk, stores results, exposes operational APIs, and presents asset health and workflow status in a dashboard.
 
-The proposed significant algorithmic component is a remaining useful life (RUL) model. Rather than only classifying assets with a rule-based risk score, SentinelOps will estimate the number of operating cycles an asset is expected to continue before failure. This learned maintenance horizon adds a data-driven planning capability that can be evaluated with model metrics, traced to its inputs, and displayed through the existing API and dashboard.
+The significant algorithmic component is a remaining useful life (RUL) model. Rather than only classifying assets with a rule-based risk score, SentinelOps estimates the number of operating cycles an asset is expected to continue before failure. This learned maintenance horizon adds a data-driven planning capability that can be evaluated with model metrics, traced to its inputs, and displayed through the existing API and dashboard.
 
 ## 2. Algorithmic Solution Specification
 
 The solution uses NASA's public C-MAPSS FD001 turbofan degradation dataset, which provides run-to-failure engine histories suitable for a feasible solo-capstone implementation. The target is the number of cycles remaining after each observed engine trajectory. NASA dataset reference: <https://data.nasa.gov/dataset/cmapss-jet-engine-simulated-data>.
 
-The model is a seeded Random Forest regressor. It captures nonlinear sensor relationships, tolerates noisy features, and provides inspectable feature importance without requiring a complex deep-learning platform.
+The implemented training component uses a seeded Random Forest regressor. It captures nonlinear sensor relationships, tolerates noisy features, and provides inspectable feature importance without requiring a complex deep-learning platform.
 
 ![Proposed training and runtime flow.](images/algorithmic-component-flow.svg)
 
@@ -26,11 +26,29 @@ The diagram separates offline model development from runtime scoring: historical
 |---|---|
 | 1 | Parse engine, cycle, operating-setting, and sensor fields; reject malformed records. |
 | 2 | Label each row with `RUL = final cycle - current cycle` and cap early-life labels. |
-| 3 | Remove constant sensors and create rolling-window statistics and trends. Fit preprocessing only on training engines to prevent leakage. |
+| 3 | Remove constant or non-informative sensors using training-engine variance and create causal rolling-window statistics and trends. Validation engines never participate in fitted feature selection. |
 | 4 | Split by engine identifier, never by row, so an engine cannot appear in both training and validation. |
-| 5 | Train the seeded Random Forest and evaluate engine-level predictions with MAE and RMSE against a median-RUL baseline and the current risk baseline. |
+| 5 | Train the seeded Random Forest and evaluate predictions overall and by engine with MAE and RMSE against a median-training-RUL baseline. |
 | 6 | Persist the model, preprocessing metadata, selected features, dataset identifier, seed, metrics, and semantic model version. |
 | 7 | Apply the same feature contract at runtime, predict RUL, derive bounded risk and maintenance bands, and store workflow/model traceability before API exposure. |
+
+### Verified Model Evaluation
+
+The default implementation uses 80 trees, maximum depth 14, rolling window 5,
+and seed 42. The approved FD001 engine split produced 16,342 training rows from
+80 engines and 4,289 validation rows from 20 engines.
+
+| Evaluation | MAE | RMSE |
+|---|---:|---:|
+| Random Forest, all validation rows | 12.13 | 17.47 |
+| Random Forest, macro average across validation engines | 12.46 | 16.46 |
+| Median-training-RUL baseline, all validation rows | 35.27 | 43.73 |
+| Median-training-RUL baseline, macro average across validation engines | 35.84 | 44.33 |
+
+The comparison demonstrates that the learned model materially improves on the
+naive baseline for the approved split. Per-engine metrics, feature importance,
+input checksums, selected sensors, library version, and the model checksum are
+retained in the generated artifact metadata.
 
 ## 3. Rationale and Implementation Strategy
 
@@ -40,11 +58,11 @@ The diagram separates offline model development from runtime scoring: historical
 | Keep the work maintainable. | Put training/evaluation in `services/ml`, feature preparation in Spark, coordination in Airflow, and results behind FastAPI and the dashboard. | Existing boundaries remain modular and understandable for a solo capstone. |
 | Make results defensible. | Retain dataset, model, preprocessing, feature, seed, and metric metadata. | Reviewers can reproduce the input, evaluate performance, and trace each result. |
 
-### Planned Implementation Sequence
+### Implementation Sequence
 
-1. **Dataset and contract:** acquire FD001, validate it, and document the preprocessing contract.
-2. **Features and training:** construct engine-level RUL features, train/evaluate the model, and store metadata.
-3. **Runtime integration:** connect inference to scoring, persistence, APIs, dashboard views, and end-to-end tests.
+1. **Dataset and contract:** implemented by SCRUM-30 through verified acquisition, labeling, and engine-isolated partitions.
+2. **Features and training:** implemented by SCRUM-31 through training-only sensor selection, causal temporal features, seeded Random Forest evaluation, baseline comparison, and versioned artifact metadata.
+3. **Runtime integration:** assigned to subsequent Sprint 4 stories for workflow scoring, Spark execution, persistence, APIs, and dashboard presentation.
 
 ### Feasibility and Limitations
 
@@ -52,12 +70,12 @@ FD001 is a controlled benchmark rather than a complete representation of Sentine
 
 ### Acceptance Criteria
 
-- A fixed seed produces repeatable outputs for identical training data.
-- Training and validation are split by engine identifier.
-- MAE and RMSE are documented against a naive baseline.
-- Dataset, model input, and output metadata are retained for traceability.
-- Missing model artifacts or required features fail clearly without breaking the current product flow.
+- A fixed seed produces repeatable predictions, metrics, and feature importance for identical training data.
+- Training and validation are split by engine identifier before fitted feature selection.
+- MAE and RMSE are recorded overall and by engine against a median-RUL baseline.
+- Dataset, model input, selected features, feature importance, library version, seed, metrics, and model checksum are retained for traceability.
+- Missing or incompatible training fields and partition overlap fail before a valid model artifact is created.
 
 ## 4. Proposal Summary
 
-This component expands SentinelOps from a rule-based MVP into a system that learns a maintenance horizon from degradation data. A Random Forest RUL model is significant enough to satisfy the capstone algorithmic requirement, feasible within the remaining schedule, and compatible with the current architecture and UI. Implementation stories will be refined after instructor feedback.
+This component expands SentinelOps from a rule-based MVP into a system that learns a maintenance horizon from degradation data. The training and evaluation stage is implemented as a reproducible, versioned Random Forest pipeline. Runtime use remains deliberately separated so later stories can integrate the approved artifact without changing the existing deterministic fallback.

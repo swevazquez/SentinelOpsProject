@@ -60,6 +60,7 @@ foundation plus the first Sprint 3 interaction slices:
 20. Restrict AI-assisted writes to the predefined predictive-maintenance action.
 21. Record sanitized, correlated audit evidence for every agent operation attempt.
 22. Require exact, time-limited, single-use approval before an assistant action executes.
+23. Train and evaluate a seeded Random Forest RUL model with engine-isolated FD001 data, temporal features, baseline metrics, and a versioned artifact.
 
 The Sprint 3 interaction slice now supports informational queries through
 read-only tools and one approval-gated predictive-maintenance action. Unknown,
@@ -108,10 +109,22 @@ data/processed/features_local-run.csv
 data/workflow-status/workflow_local-run.json
 ```
 
+Prepare FD001 and train the Random Forest RUL model:
+
+```bash
+uv run python -m services.ml.cmapss acquire
+uv run python -m services.ml.cmapss prepare
+uv run python -m services.ml.rul_training
+```
+
+The generated versioned model and its evaluation metadata are stored under
+`data/models/rul-random-forest/`. NASA source data, processed partitions, and
+model artifacts are local runtime evidence and are not committed.
+
 Run the complete local validation suite:
 
 ```bash
-./scripts/check-ci.sh
+uv run ./scripts/check-ci.sh
 ```
 
 Run the focused Sprint 3 tests:
@@ -123,7 +136,8 @@ uv run pytest tests/integration/test_manual_workflow_api.py \
   tests/unit/test_dashboard_ui.py \
   tests/unit/test_agent_tools.py \
   tests/unit/test_agent_assistant.py \
-  tests/unit/test_cmapss.py
+  tests/unit/test_cmapss.py \
+  tests/unit/test_rul_training.py
 ```
 
 Start the integrated API and dashboard:

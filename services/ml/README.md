@@ -34,6 +34,53 @@ engineering are intentionally handled by the subsequent model-training story.
 The committed fixture at `tests/fixtures/cmapss/train_FD001_sample.txt` exercises
 the same parser and labeling pipeline without requiring network access in CI.
 
+## Random Forest RUL Training and Evaluation
+
+`SCRUM-31` implements the offline model-development stage. It reads the
+engine-isolated partitions produced by the FD001 contract, selects informative
+sensors using only the training engines, and creates causal rolling means,
+rolling standard deviations, and sensor trends. Validation-engine values never
+participate in fitted sensor selection.
+
+The training command fits a seeded, 80-tree scikit-learn Random Forest
+regressor with a maximum depth of 14 and
+reports validation MAE and RMSE overall, by engine, and as an engine-level macro
+average. The same metrics are reported for a median-training-RUL baseline:
+
+```bash
+uv run python -m services.ml.rul_training
+```
+
+The default versioned artifact is written to:
+
+```text
+data/models/rul-random-forest/1.0.0/
+├── metadata.json
+└── model.joblib
+```
+
+Generated model files are ignored by Git. `metadata.json` records the semantic
+model version, dataset and contract identity, input hashes, split engine IDs,
+seed, estimator configuration, selected and dropped sensors, complete temporal
+feature list, feature importance, scikit-learn, NumPy, and joblib versions,
+model checksum, and Random Forest and baseline metrics. Artifact versions are
+immutable: choose a new semantic version instead of overwriting an existing
+directory.
+
+The verified default FD001 run used 80 training engines and 20 validation
+engines. Its validation results were:
+
+| Evaluation | MAE | RMSE |
+| --- | ---: | ---: |
+| Random Forest, all validation rows | 12.13 | 17.47 |
+| Random Forest, macro average across engines | 12.46 | 16.46 |
+| Median-RUL baseline, all validation rows | 35.27 | 43.73 |
+| Median-RUL baseline, macro average across engines | 35.84 | 44.33 |
+
+The current story trains and evaluates the model only. Workflow inference,
+operational persistence, and dashboard presentation are delivered by subsequent
+Sprint 4 stories.
+
 ## Predictive Scoring
 
 `SCRUM-6` provides a deterministic, explainable baseline scorer for the

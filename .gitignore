@@ -27,6 +27,7 @@ data/raw/*
 data/processed/*
 data/predictions/*
 data/performance/*
+data/models/*
 data/workflow-status/*
 data/audit/*
 data/approvals/*
@@ -34,6 +35,7 @@ data/approvals/*
 !data/processed/.gitkeep
 !data/predictions/.gitkeep
 !data/performance/.gitkeep
+!data/models/.gitkeep
 !data/workflow-status/.gitkeep
 !data/audit/.gitkeep
 !data/approvals/.gitkeep
