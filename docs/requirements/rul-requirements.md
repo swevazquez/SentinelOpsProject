@@ -76,8 +76,8 @@ configured demonstration engine, and persist the results atomically.
 - Completing all four checkpoints blocks another run until reset, while reset
   starts a new session without deleting prior inputs, workflow records, or
   predictions.
-- Reset removes prior-session predictions from the active operational view while
-  preserving direct historical run retrieval.
+- Reset removes prior-session workflows and predictions from active operational
+  views while preserving direct historical run retrieval.
 
 ### FR-RUL-04: Retrieve compatible RUL results
 

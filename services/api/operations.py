@@ -13,9 +13,9 @@ from services.ml.prediction_store import CsvPredictionRepository
 from services.simulator.telemetry import load_asset_profiles
 from services.workflows.status import (
     WorkflowStatus,
+    WorkflowStatusSummary,
     get_workflow_status,
     list_workflow_statuses,
-    summarize_workflow_statuses,
 )
 
 
@@ -176,9 +176,24 @@ def workflow_status_response(project_root: Path, run_id: str) -> ApiResponse:
     return ok({"workflow": workflow}, "workflow status retrieved")
 
 
+def _active_workflow_statuses(
+    project_root: Path,
+    statuses: list[WorkflowStatus],
+) -> list[WorkflowStatus]:
+    if not (project_root / SCENARIO_PATH).is_file():
+        return statuses
+    active_run_ids = current_rul_demo_run_ids(project_root)
+    return [
+        status for status in statuses if status.run_id in active_run_ids
+    ]
+
+
 def workflow_list_response(project_root: Path) -> ApiResponse:
     try:
-        statuses = list_workflow_statuses(project_root)
+        statuses = _active_workflow_statuses(
+            project_root,
+            list_workflow_statuses(project_root),
+        )
         workflows = [
             _workflow_payload(project_root, status)
             for status in statuses
@@ -193,9 +208,18 @@ def workflow_list_response(project_root: Path) -> ApiResponse:
 
 def workflow_summary_response(project_root: Path) -> ApiResponse:
     try:
-        summary = summarize_workflow_statuses(project_root)
+        statuses = _active_workflow_statuses(
+            project_root,
+            list_workflow_statuses(project_root),
+        )
     except ValueError as exc:
         return validation_error(str(exc))
+    summary = WorkflowStatusSummary(
+        total=len(statuses),
+        running=sum(status.status == "running" for status in statuses),
+        completed=sum(status.status == "completed" for status in statuses),
+        failed=sum(status.status == "failed" for status in statuses),
+    )
     return ok({"summary": asdict(summary)}, "workflow summary retrieved")
 
 

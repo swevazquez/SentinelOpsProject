@@ -114,7 +114,7 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('apiFetch("/api/workflows/rul-demo/status")', self.js)
         self.assertIn('fetch("/api/workflows/rul-demo/reset"', self.js)
         self.assertIn("demo.checkpoint_labels.map", self.js)
-        self.assertIn("history remains available", self.js)
+        self.assertIn("evidence remains available by direct run URL", self.js)
         self.assertIn("dashboardData.assets = normalizeAssets([],", self.js)
         self.assertIn("No current RUL results", self.js)
         self.assertIn("Run checkpoint 1", self.js)

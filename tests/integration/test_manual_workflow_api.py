@@ -187,14 +187,17 @@ class ManualWorkflowApiTests(unittest.TestCase):
         replay_reset = self.client.post("/api/workflows/rul-demo/reset")
         after_reset_latest = self.client.get("/api/predictions/rul/latest")
         after_reset_generic_latest = self.client.get("/api/predictions/latest")
+        after_reset_workflows = self.client.get("/api/workflows")
         historical_run = self.client.get(
             f"/api/predictions/runs/{run_id}"
         )
+        historical_workflow = self.client.get(f"/api/workflows/{run_id}")
         replay = self.client.post(
             "/api/workflows",
             json={"workflow": "predictive-maintenance"},
         )
         replay_run_id = replay.json()["data"]["workflow"]["run_id"]
+        replay_workflows = self.client.get("/api/workflows")
         replay_predictions = self.client.get(
             f"/api/predictions/runs/{replay_run_id}"
         ).json()["data"]["predictions"]
@@ -225,7 +228,19 @@ class ManualWorkflowApiTests(unittest.TestCase):
             after_reset_generic_latest.json()["data"]["predictions"],
             [],
         )
+        self.assertEqual(
+            after_reset_workflows.json()["data"]["workflows"],
+            [],
+        )
         self.assertEqual(historical_run.status_code, 200)
+        self.assertEqual(historical_workflow.status_code, 200)
+        self.assertEqual(
+            [
+                workflow["run_id"]
+                for workflow in replay_workflows.json()["data"]["workflows"]
+            ],
+            [replay_run_id],
+        )
         self.assertEqual(first_checkpoint_signature, replay_signature)
         self.assertEqual(
             len(list((self.project_root / "data" / "raw" / "rul-demo").glob("*.csv"))),

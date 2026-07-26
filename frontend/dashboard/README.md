@@ -33,7 +33,8 @@ waits for the selected checkpoint to complete before refreshing the maintenance
 view and presents a short condition summary. Workflow execution completion is
 shown separately from the asset outcome, so critical or warning findings are not
 represented by a green completion badge. Reset begins a visually clean session
-but retains prior workflow, input, and prediction evidence in history.
+with no active executions or assets, but retains prior workflow, input, and
+prediction evidence for direct historical retrieval.
 
 ## Design System
 

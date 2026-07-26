@@ -676,7 +676,8 @@ async function resetRulDemo() {
     if (!response.ok) throw new Error(payload.detail || "The RUL demo could not be reset.");
     dashboardData.demo = payload.data.scenario;
     await refreshDashboard({ announce: false });
-    actionStatus.textContent = "RUL demo reset. Prior run history remains available.";
+    actionStatus.textContent =
+      "RUL demo reset. Prior run evidence remains available by direct run URL.";
     actionStatus.dataset.state = "success";
     showToast("RUL demo ready at checkpoint 1.", "success");
   } catch (error) {
