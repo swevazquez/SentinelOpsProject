@@ -114,6 +114,8 @@ result.
   runs in the active demonstration session.
 - Opening a notification shows the result from the run that produced the
   finding and marks only that notification as read.
+- The notification inbox provides a clear-all action that marks every current
+  session notification as read.
 
 ### FR-RUL-06: Explain RUL through grounded assistant tools
 

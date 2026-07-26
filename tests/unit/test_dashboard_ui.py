@@ -138,6 +138,12 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('data-notification-id="${escapeHtml(alert.notificationId)}"', self.js)
         self.assertIn("function allOperationalAlerts(data)", self.js)
         self.assertIn("function acknowledgeNotification(notificationId)", self.js)
+        self.assertIn("function acknowledgeAllNotifications(alerts)", self.js)
+        self.assertIn('id="clear-notifications-button"', self.html)
+        self.assertIn(
+            'document.getElementById("clear-notifications-button").disabled',
+            self.js,
+        )
         self.assertIn("dashboardData.findings = findingResults", self.js)
         self.assertNotIn("alerts.slice(0, 6)", self.js)
         self.assertIn('id="user-popover"', self.html)

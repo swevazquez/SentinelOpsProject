@@ -39,7 +39,9 @@ prediction evidence for direct historical retrieval.
 The operational inbox accumulates warning and critical findings from every run
 in the active demo session. Opening a notification displays that run's asset
 result and marks only that notification as read. Read state is retained for the
-current session across page refreshes, and a demo reset starts a new empty inbox.
+current session across page refreshes. The inbox also provides a `Clear all`
+action that marks all current notifications as read. A demo reset starts a new
+empty inbox.
 
 ## Design System
 

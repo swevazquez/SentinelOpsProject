@@ -223,6 +223,15 @@ function syncNotificationSession(sessionId) {
 
 function acknowledgeNotification(notificationId) {
   acknowledgedNotificationIds.add(notificationId);
+  persistAcknowledgedNotifications();
+}
+
+function acknowledgeAllNotifications(alerts) {
+  alerts.forEach((alert) => acknowledgedNotificationIds.add(alert.notificationId));
+  persistAcknowledgedNotifications();
+}
+
+function persistAcknowledgedNotifications() {
   try {
     window.localStorage.setItem(
       notificationStorageKey(notificationSessionId || "no-session"),
@@ -283,6 +292,7 @@ function renderHeader(data) {
   document.getElementById("notification-count").textContent = String(alerts.length);
   document.getElementById("notification-count").hidden = alerts.length === 0;
   document.getElementById("notification-summary").textContent = `${alerts.length} open`;
+  document.getElementById("clear-notifications-button").disabled = alerts.length === 0;
   renderNotifications(alerts);
   document.getElementById("sidebar-status-label").textContent = "API connected";
   document.getElementById("sidebar-status-dot").dataset.state = "healthy";
@@ -984,6 +994,16 @@ async function initDashboard() {
   document.getElementById("reset-rul-demo-button").addEventListener("click", resetRulDemo);
   document.querySelector(".refresh-button").addEventListener("click", () => refreshDashboard());
   document.getElementById("notification-button").addEventListener("click", () => toggleHeaderPopover("notification-popover", "notification-button"));
+  document.getElementById("clear-notifications-button").addEventListener("click", () => {
+    const alerts = operationalAlerts(dashboardData);
+    if (!alerts.length) return;
+    acknowledgeAllNotifications(alerts);
+    renderHeader(dashboardData);
+    renderSummary(dashboardData);
+    renderAlerts(dashboardData);
+    refreshIcons();
+    showToast(`${alerts.length} notifications cleared.`, "success");
+  });
   document.getElementById("system-summary-button").addEventListener("click", () => toggleHeaderPopover("notification-popover", "notification-button"));
   document.getElementById("last-workflow-button").addEventListener("click", () => {
     if (!dashboardData.workflows[0]) return;
