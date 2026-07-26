@@ -109,10 +109,13 @@ semantic model version and checksum, dataset identifier, serialized
 feature-contract version, RUL, risk, health, status, priority, and recommended
 action.
 
-The rule-based workflow remains the default. RUL inference is selected through
-`POST /api/workflows` with `inference_mode` set to `rul`. A missing, corrupt, or
-incompatible artifact produces an observable failed workflow status before the
-atomic prediction repository writes a new file.
+RUL inference is the default for `POST /api/workflows`, the dashboard, and
+approved assistant actions. The repeatable scenario scores four held-out
+engines at four lifecycle checkpoints and stores the run-specific, label-free
+input used for each inference. The rule-based scorer remains available through
+explicit `inference_mode: "baseline"` requests for local development and
+testing. Missing, corrupt, or incompatible artifacts do not replace existing
+prediction files.
 
 ## Predictive Scoring
 

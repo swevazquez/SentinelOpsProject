@@ -7,9 +7,8 @@ import unittest
 from fastapi.testclient import TestClient
 
 from services.api.app import create_app
-from services.ml.rul_training import TrainingConfig, train_rul_model
 from tests.fake_openai import FakeAssistantClient
-from tests.unit.test_rul_training import write_metadata, write_partition
+from tests.rul_test_support import prepare_rul_runtime
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -21,30 +20,7 @@ class RulExperienceAcceptanceTests(unittest.TestCase):
     ) -> None:
         with TemporaryDirectory() as temp_dir:
             project_root = Path(temp_dir)
-            processed_dir = (
-                project_root / "data" / "processed" / "cmapss-fd001"
-            )
-            processed_dir.mkdir(parents=True)
-            training_ids = (1, 2, 3, 4)
-            validation_ids = (5, 6)
-            training_path = processed_dir / "training.csv"
-            validation_path = processed_dir / "validation.csv"
-            metadata_path = processed_dir / "metadata.json"
-            write_partition(training_path, training_ids)
-            write_partition(validation_path, validation_ids)
-            write_metadata(metadata_path, training_ids, validation_ids)
-            train_rul_model(
-                training_path,
-                validation_path,
-                metadata_path,
-                project_root / "data" / "models" / "rul-random-forest",
-                config=TrainingConfig(
-                    model_version="1.0.0",
-                    rolling_window=3,
-                    n_estimators=8,
-                    max_depth=5,
-                ),
-            )
+            prepare_rul_runtime(project_root)
             assistant_client = FakeAssistantClient(
                 tool_name="get_rul_prediction_by_asset",
                 arguments={"asset_id": "FD001-ENGINE-005"},
@@ -64,8 +40,6 @@ class RulExperienceAcceptanceTests(unittest.TestCase):
                 "/api/workflows",
                 json={
                     "workflow": "predictive-maintenance",
-                    "inference_mode": "rul",
-                    "model_version": "1.0.0",
                 },
             )
             run_id = workflow_response.json()["data"]["workflow"]["run_id"]

@@ -153,19 +153,26 @@ Open `http://127.0.0.1:8000` to review the dashboard. The Workflows view can
 start the supported `predictive-maintenance` workflow and refresh live workflow,
 asset, and prediction data.
 
-The deterministic workflow remains the default. After preparing FD001 and
-training the model, a reviewer can run the explicit RUL path through the API:
+After preparing FD001 and training model version `1.0.0`, the dashboard,
+assistant action, and API run RUL inference by default:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/workflows \
   -H 'Content-Type: application/json' \
-  -d '{"workflow":"predictive-maintenance","inference_mode":"rul","model_version":"1.0.0"}'
+  -d '{"workflow":"predictive-maintenance"}'
 ```
 
-Use the returned run ID with `GET /api/predictions/runs/{run_id}`, or retrieve
-the current RUL view with `GET /api/predictions/rul/latest`. The dashboard and
-assistant expose the same stored results and clearly distinguish the RUL horizon
-from the bounded risk indicator.
+The repeatable demonstration advances four held-out FD001 engines through 40%,
+60%, 80%, and 100% of their recorded lifecycles. Every run stores a new
+label-free trajectory, its source metadata, workflow status, and RUL results.
+After checkpoint four, reset the scenario from the Workflows view or
+`POST /api/workflows/rul-demo/reset`; prior evidence is retained.
+
+Use the returned run ID with `GET /api/predictions/runs/{run_id}`, retrieve the
+scenario with `GET /api/workflows/rul-demo/status`, or retrieve the current RUL
+view with `GET /api/predictions/rul/latest`. The deterministic rule-based path
+remains available for development and local testing by explicitly sending
+`"inference_mode":"baseline"`.
 
 Validate Sprint 2 demo performance:
 

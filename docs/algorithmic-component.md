@@ -82,7 +82,11 @@ FD001 is a controlled benchmark rather than a complete representation of Sentine
 - Runtime inference produces one nonnegative, capped latest-cycle RUL result per engine with workflow, model, dataset, feature-contract, input, and timestamp traceability.
 - Risk and health are bounded to `[0, 1]`, and their thresholds map deterministically to documented maintenance status, priority, and recommendations.
 - Missing, corrupt, or incompatible runtime artifacts record a clear failed workflow step without replacing existing prediction results.
-- The rule-based predictive workflow remains the default unless RUL inference is explicitly selected.
+- RUL inference is the operational default; the rule-based scorer remains an
+  explicit local development and testing mode.
+- The repeatable demonstration replays four held-out engines at four lifecycle
+  checkpoints, excludes labels from inference inputs, and retains each
+  run-specific trajectory and prediction as reviewable evidence.
 - Dashboard and assistant views expose stored RUL separately from risk and include
   model, health, maintenance guidance, and timestamp context.
 - Missing compatible RUL is reported as unavailable; no placeholder or inferred
@@ -94,6 +98,8 @@ This component expands SentinelOps from a rule-based MVP into a system that
 learns a maintenance horizon from degradation data. The training and evaluation
 stage is implemented as a reproducible, versioned Random Forest pipeline. The
 runtime validates and applies that artifact through the existing predictive
-workflow while retaining the deterministic scorer as the default. The dashboard
-and assistant now expose stored RUL with model and maintenance context without
-changing the model contract. A later story can add Spark execution.
+workflow. RUL is the operational default, while the deterministic scorer remains
+available explicitly for development and testing. The dashboard and assistant
+expose stored RUL with model and maintenance context. The repeatable lifecycle
+scenario makes model behavior observable across successive degradation
+checkpoints without changing the trained model contract.

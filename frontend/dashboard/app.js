@@ -2,7 +2,8 @@ const dashboardData = {
   profiles: [],
   predictions: [],
   assets: [],
-  workflows: []
+  workflows: [],
+  demo: null
 };
 
 let workflowFilter = "all";
@@ -124,7 +125,12 @@ function profilePriority(status) {
 function normalizeAssets(profiles, predictions) {
   const predictionByAsset = new Map(predictions.map((prediction) => [prediction.asset_id, prediction]));
   const profileByAsset = new Map(profiles.map((profile) => [profile.asset_id, profile]));
-  const assetIds = new Set([...profileByAsset.keys(), ...predictionByAsset.keys()]);
+  const rulAssetIds = predictions
+    .filter((prediction) => prediction.prediction_type === "rul")
+    .map((prediction) => prediction.asset_id);
+  const assetIds = rulAssetIds.length
+    ? new Set(rulAssetIds)
+    : new Set([...profileByAsset.keys(), ...predictionByAsset.keys()]);
 
   return [...assetIds].sort().map((assetId) => {
     const profile = profileByAsset.get(assetId) || {};
@@ -386,14 +392,61 @@ function renderWorkflows(data) {
   document.getElementById("workflow-timeline-kicker").textContent = workflowFilter === "all" ? "Latest execution" : `Latest ${workflowFilter} execution`;
 }
 
+function renderRulDemo(data) {
+  const demo = data.demo;
+  const runButton = document.getElementById("run-workflow-button");
+  const resetButton = document.getElementById("reset-rul-demo-button");
+  if (!demo) {
+    runButton.disabled = true;
+    resetButton.disabled = true;
+    return;
+  }
+  const statusLabels = {
+    ready: "Ready",
+    in_progress: "In progress",
+    running: "Running",
+    complete: "Complete"
+  };
+  document.getElementById("rul-demo-status").textContent = statusLabels[demo.status] || demo.status;
+  const next = demo.next_checkpoint;
+  document.getElementById("rul-demo-description").textContent = demo.status === "complete"
+    ? `All ${demo.total_checkpoints} checkpoints are complete. Reset to replay the same model inputs and results.`
+    : `${demo.engine_ids.length} held-out engines · Next: checkpoint ${next.number} of ${demo.total_checkpoints}, ${next.label}.`;
+  document.getElementById("rul-demo-progress").innerHTML = demo.checkpoint_labels.map((label, index) => {
+    const number = index + 1;
+    const state = number <= demo.completed_checkpoints
+      ? "complete"
+      : number === demo.completed_checkpoints + 1 && demo.status !== "complete"
+        ? "next"
+        : "pending";
+    const stateLabel = state === "complete" ? "Completed" : state === "next" ? "Next run" : "Pending";
+    return `<div class="rul-demo-checkpoint ${state}"><strong>${number}. ${escapeHtml(label)}</strong><span>${stateLabel}</span></div>`;
+  }).join("");
+  runButton.disabled = demo.status === "running" || demo.status === "complete";
+  resetButton.disabled = demo.status === "running";
+  runButton.querySelector("span").textContent = demo.status === "complete"
+    ? "Demo complete"
+    : `Run checkpoint ${demo.completed_checkpoints + 1}`;
+}
+
 function renderPipelineTimeline(workflow, targetId = "pipeline-timeline") {
   const timeline = document.getElementById(targetId);
-  const steps = [
+  const baselineSteps = [
     ["queued", "Request queued"],
-    ["telemetry_and_feature_processing", "Telemetry and features"],
-    ["score_and_persist_predictions", "Score and persist predictions"],
+    ["telemetry_and_feature_processing", "Generate telemetry and features"],
+    ["score_and_persist_predictions", "Rule-based risk scoring"],
     ["completed", "Publish operational results"]
   ];
+  const rulSteps = [
+    ["queued", "Request queued"],
+    ["simulate_rul_demo_telemetry", "Replay engine telemetry"],
+    ["rul_inference_and_persistence", "Random Forest RUL inference"],
+    ["completed", "Publish operational results"]
+  ];
+  const steps = [
+    "telemetry_and_feature_processing",
+    "score_and_persist_predictions"
+  ].includes(workflow?.step) ? baselineSteps : rulSteps;
   if (!workflow) {
     timeline.innerHTML = '<div class="empty-state"><strong>No execution selected</strong><span>The latest run timeline will appear here.</span></div>';
     return;
@@ -457,6 +510,7 @@ function renderAll(data) {
   renderRiskAssets(data);
   renderAssets(data);
   renderWorkflows(data);
+  renderRulDemo(data);
   refreshIcons();
 }
 
@@ -485,18 +539,22 @@ async function refreshDashboard({ announce = true } = {}) {
   refreshLabel.textContent = "Refreshing";
   setSystemState("loading", "Refreshing");
   try {
-    const [assetData, predictionData, rulPredictionData, workflowData] = await Promise.all([
+    const [assetData, predictionData, rulPredictionData, workflowData, demoData] = await Promise.all([
       apiFetch("/api/assets"),
       apiFetch("/api/predictions/latest"),
       optionalApiFetch("/api/predictions/rul/latest"),
-      apiFetch("/api/workflows")
+      apiFetch("/api/workflows"),
+      apiFetch("/api/workflows/rul-demo/status")
     ]);
     dashboardData.profiles = assetData.assets || [];
+    const currentRulPredictions = rulPredictionData.predictions || [];
     dashboardData.predictions = [
       ...new Map(
         [
-          ...(predictionData.predictions || []),
-          ...(rulPredictionData.predictions || [])
+          ...(predictionData.predictions || []).filter(
+            (prediction) => prediction.prediction_type !== "rul"
+          ),
+          ...currentRulPredictions
         ].map((prediction) => [prediction.asset_id, prediction])
       ).values()
     ];
@@ -505,6 +563,7 @@ async function refreshDashboard({ announce = true } = {}) {
       ...workflow,
       label: formatStepLabel(workflow.step)
     }));
+    dashboardData.demo = demoData.scenario;
     renderAll(dashboardData);
     document.getElementById("last-refresh-value").textContent = formatDateTime(new Date());
     if (announce) {
@@ -535,20 +594,63 @@ async function runWorkflow() {
     const response = await fetch("/api/workflows", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ workflow: "predictive-maintenance" })
+      body: JSON.stringify({
+        workflow: "predictive-maintenance",
+        inference_mode: "rul",
+        model_version: "1.0.0"
+      })
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.detail || "Workflow could not be started.");
-    actionStatus.textContent = "Workflow accepted. Execution history has been updated.";
+    actionStatus.textContent = "RUL workflow accepted. Processing simulated engine telemetry...";
+    actionStatus.dataset.state = "loading";
+    const workflow = await waitForWorkflowCompletion(payload.data.workflow.run_id);
+    if (workflow.status === "failed") {
+      throw new Error(workflow.error || "The RUL workflow failed.");
+    }
+    actionStatus.textContent = "RUL checkpoint completed. Results and history were updated.";
     actionStatus.dataset.state = "success";
-    showToast("Predictive maintenance workflow accepted.", "success");
+    showToast("RUL checkpoint completed.", "success");
     await refreshDashboard({ announce: false });
   } catch (error) {
     actionStatus.textContent = error.message;
     actionStatus.dataset.state = "error";
     showToast(error.message, "error");
   } finally {
-    button.disabled = false;
+    button.disabled = ["running", "complete"].includes(dashboardData.demo?.status);
+  }
+}
+
+async function waitForWorkflowCompletion(runId) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const data = await apiFetch(`/api/workflows/${encodeURIComponent(runId)}`);
+    if (["completed", "failed"].includes(data.workflow.status)) return data.workflow;
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  throw new Error("The workflow is still running. Refresh to check its status.");
+}
+
+async function resetRulDemo() {
+  const button = document.getElementById("reset-rul-demo-button");
+  const actionStatus = document.getElementById("workflow-action-status");
+  button.disabled = true;
+  actionStatus.textContent = "Resetting the RUL lifecycle scenario...";
+  actionStatus.dataset.state = "loading";
+  try {
+    const response = await fetch("/api/workflows/rul-demo/reset", { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || "The RUL demo could not be reset.");
+    dashboardData.demo = payload.data.scenario;
+    renderRulDemo(dashboardData);
+    actionStatus.textContent = "RUL demo reset. Prior run history remains available.";
+    actionStatus.dataset.state = "success";
+    showToast("RUL demo ready at checkpoint 1.", "success");
+  } catch (error) {
+    actionStatus.textContent = error.message;
+    actionStatus.dataset.state = "error";
+    showToast(error.message, "error");
+  } finally {
+    button.disabled = dashboardData.demo?.status === "running";
   }
 }
 
@@ -674,8 +776,9 @@ async function decideAssistantAction(decision, approvalId) {
     if (!executionResponse.ok) throw new Error(executionPayload.detail || "The approved action could not be executed.");
     const acceptedWorkflow = executionPayload.data.workflow;
     const runId = acceptedWorkflow.run_id;
+    const terminalWorkflow = await waitForWorkflowCompletion(runId);
     await refreshDashboard({ announce: false });
-    const workflow = dashboardData.workflows.find((candidate) => candidate.run_id === runId) || acceptedWorkflow;
+    const workflow = dashboardData.workflows.find((candidate) => candidate.run_id === runId) || terminalWorkflow;
     const completed = workflow.status === "completed";
     status.textContent = completed
       ? `Approved. Workflow completed as ${runId}.`
@@ -772,6 +875,7 @@ async function initDashboard() {
   document.getElementById("asset-status-filter").addEventListener("change", () => renderAssets(dashboardData));
   document.getElementById("asset-sort").addEventListener("change", () => renderAssets(dashboardData));
   document.getElementById("run-workflow-button").addEventListener("click", runWorkflow);
+  document.getElementById("reset-rul-demo-button").addEventListener("click", resetRulDemo);
   document.querySelector(".refresh-button").addEventListener("click", () => refreshDashboard());
   document.getElementById("notification-button").addEventListener("click", () => toggleHeaderPopover("notification-popover", "notification-button"));
   document.getElementById("system-summary-button").addEventListener("click", () => toggleHeaderPopover("notification-popover", "notification-button"));

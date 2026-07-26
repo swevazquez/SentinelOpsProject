@@ -5,6 +5,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
+from services.api.rul_demo import (
+    complete_rul_demo_run,
+    release_rul_demo_run,
+    reserve_rul_demo_batch,
+)
 from services.ml.prediction_store import CsvPredictionRepository
 from services.ml.rul_inference import score_rul_trajectory_file
 from services.ml.rul_training import DEFAULT_MODEL_VERSION, SEMANTIC_VERSION_PATTERN
@@ -28,12 +33,14 @@ def run_predictive_workflow(
     start_time: datetime = DEFAULT_START_TIME,
     hours: int = 24,
     seed: int = 42,
-    inference_mode: Literal["baseline", "rul"] = "baseline",
+    inference_mode: Literal["baseline", "rul"] = "rul",
     model_version: str = DEFAULT_MODEL_VERSION,
+    rul_trajectory_path: Path | None = None,
 ) -> PredictiveWorkflowResult:
     if not SEMANTIC_VERSION_PATTERN.fullmatch(model_version):
         raise ValueError("model_version must use semantic MAJOR.MINOR.PATCH format")
     current_step = "load_predictive_inputs"
+    demo_run_reserved = inference_mode == "rul" and rul_trajectory_path is not None
     try:
         if inference_mode == "baseline":
             current_step = "telemetry_and_feature_processing"
@@ -55,6 +62,11 @@ def run_predictive_workflow(
             )
             predictions = score_feature_file(workflow_result.feature_path)
         elif inference_mode == "rul":
+            if rul_trajectory_path is None:
+                current_step = "simulate_rul_demo_telemetry"
+                batch = reserve_rul_demo_batch(project_root, run_id)
+                rul_trajectory_path = batch.trajectory_path
+                demo_run_reserved = True
             current_step = "rul_inference_and_persistence"
             record_workflow_status(
                 project_root=project_root,
@@ -63,11 +75,7 @@ def run_predictive_workflow(
                 step=current_step,
             )
             inference_result = score_rul_trajectory_file(
-                project_root
-                / "data"
-                / "processed"
-                / "cmapss-fd001"
-                / "validation.csv",
+                rul_trajectory_path,
                 project_root
                 / "data"
                 / "models"
@@ -84,7 +92,11 @@ def run_predictive_workflow(
         storage_result = CsvPredictionRepository(
             project_root / "data" / "predictions"
         ).save(predictions)
+        if demo_run_reserved:
+            complete_rul_demo_run(project_root, run_id)
     except Exception as exc:
+        if demo_run_reserved:
+            release_rul_demo_run(project_root, run_id)
         record_workflow_status(
             project_root=project_root,
             run_id=run_id,

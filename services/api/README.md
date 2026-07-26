@@ -21,6 +21,8 @@ workflow API from the same origin.
 | `POST` | `/api/workflows` | Start the approved `predictive-maintenance` workflow. |
 | `GET` | `/api/workflows` | List workflow execution states. |
 | `GET` | `/api/workflows/{run_id}` | Retrieve one workflow execution state. |
+| `GET` | `/api/workflows/rul-demo/status` | Retrieve the repeatable RUL scenario checkpoint and engine set. |
+| `POST` | `/api/workflows/rul-demo/reset` | Start a new scenario session without deleting prior run evidence. |
 | `POST` | `/api/assistant/query` | Submit a supported operational query or prepare an approved action. |
 | `POST` | `/api/assistant/approvals/{approval_id}` | Approve or reject one prepared action. |
 | `POST` | `/api/assistant/actions/execute` | Execute the exact approved action once. |
@@ -34,14 +36,19 @@ Manual requests run in a FastAPI background task and return `202 Accepted` with
 a generated run ID. Unsupported workflow names and unexpected request fields
 are rejected before execution.
 
-The existing request remains the default rule-based demonstration:
+The minimal request runs the default RUL demonstration:
 
 ```json
 {"workflow": "predictive-maintenance"}
 ```
 
-After the FD001 data and versioned model are generated, request RUL inference
-explicitly:
+It uses four held-out FD001 engines and advances them through 40%, 60%, 80%, and
+100% lifecycle checkpoints. Each accepted run persists a unique label-free
+trajectory and metadata record before applying the trained model. A fifth run is
+blocked until the scenario is reset, and reset retains all prior inputs,
+workflow records, and predictions.
+
+The model version may be selected explicitly:
 
 ```json
 {
@@ -51,10 +58,11 @@ explicitly:
 }
 ```
 
-The RUL mode only reads the repository-managed validation trajectory and model
-directory. It does not accept arbitrary paths. A missing, corrupt, or
-incompatible model or feature contract records a failed workflow step before
-prediction persistence. Existing prediction files are not changed.
+The RUL mode only reads the repository-managed scenario, validation trajectory,
+and model directory. It does not accept arbitrary paths. A missing, corrupt, or
+incompatible prerequisite produces an unavailable or failed response before a
+new prediction file replaces any existing result. For local development and
+deterministic tests, send `"inference_mode": "baseline"` explicitly.
 
 ## Operational API Contract
 

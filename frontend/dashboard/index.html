@@ -138,7 +138,12 @@
           </section>
 
           <section id="workflows-view" class="view-panel" data-view="workflows" hidden>
-            <header class="page-heading"><div><span class="eyebrow">Pipeline operations</span><h1>Workflow Execution</h1><p>Start predictive processing and inspect the latest execution history.</p></div><button type="button" class="button button-primary" id="run-workflow-button"><i data-lucide="play"></i><span>Run workflow</span></button></header>
+            <header class="page-heading"><div><span class="eyebrow">Pipeline operations</span><h1>Workflow Execution</h1><p>Advance the repeatable engine lifecycle scenario and inspect each Random Forest RUL result.</p></div><button type="button" class="button button-primary" id="run-workflow-button" disabled><i data-lucide="play"></i><span>Run next RUL checkpoint</span></button></header>
+            <article class="panel rul-demo-panel" aria-labelledby="rul-demo-title">
+              <div class="rul-demo-summary"><div><span class="panel-kicker">Repeatable demonstration</span><h2 id="rul-demo-title">Four-Engine RUL Lifecycle</h2><p id="rul-demo-description">Loading the deterministic demo scenario.</p></div><div class="rul-demo-actions"><span class="badge" id="rul-demo-status">Loading</span><button type="button" class="button button-secondary" id="reset-rul-demo-button" disabled><i data-lucide="rotate-ccw"></i><span>Reset demo</span></button></div></div>
+              <div class="rul-demo-progress" id="rul-demo-progress" aria-label="RUL demo checkpoint progress"></div>
+              <p class="rul-demo-history-note"><i data-lucide="history"></i>Resetting starts a new session and retains all prior workflow and prediction evidence.</p>
+            </article>
             <div id="workflow-action-status" class="workflow-feedback" role="status" aria-live="polite"></div>
             <section class="workflow-kpis" id="workflow-state-row" aria-label="Workflow state counts"></section>
             <section class="workflow-layout">

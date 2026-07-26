@@ -58,9 +58,9 @@ against a median-training-RUL baseline.
 
 **User story:** SCRUM-32
 
-**Requirement:** An explicit RUL workflow shall validate a requested model
+**Requirement:** The default predictive workflow shall validate a requested model
 artifact, reuse its serialized feature contract, score the latest cycle for each
-validation engine, and persist the results atomically.
+configured demonstration engine, and persist the results atomically.
 
 **Acceptance criteria:**
 
@@ -69,8 +69,13 @@ validation engine, and persist the results atomically.
   traceability.
 - Missing, corrupt, or incompatible inputs fail the workflow without replacing
   existing prediction results.
-- The deterministic rule-based workflow remains the default unless RUL mode is
-  explicitly requested.
+- RUL is the default workflow mode; the deterministic rule-based mode remains
+  available only through an explicit development or test request.
+- Each demonstration run stores the exact label-free trajectory used for
+  inference and advances one of four configured lifecycle checkpoints.
+- Completing all four checkpoints blocks another run until reset, while reset
+  starts a new session without deleting prior inputs, workflow records, or
+  predictions.
 
 ### FR-RUL-04: Retrieve compatible RUL results
 

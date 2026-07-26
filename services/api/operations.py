@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from services.api.rul_demo import SCENARIO_PATH, configured_rul_demo_asset_ids
 from services.ml.prediction_store import CsvPredictionRepository
 from services.simulator.telemetry import load_asset_profiles
 from services.workflows.status import (
@@ -167,9 +168,21 @@ def latest_predictions_response(project_root: Path) -> ApiResponse:
 
 def latest_rul_predictions_response(project_root: Path) -> ApiResponse:
     try:
-        predictions = CsvPredictionRepository(
+        latest_predictions = CsvPredictionRepository(
             project_root / "data" / "predictions"
         ).get_latest_by_type("rul")
+        if not latest_predictions:
+            return not_found("compatible RUL predictions are unavailable")
+        demo_asset_ids = (
+            configured_rul_demo_asset_ids(project_root)
+            if (project_root / SCENARIO_PATH).is_file()
+            else {prediction["asset_id"] for prediction in latest_predictions}
+        )
+        predictions = [
+            prediction
+            for prediction in latest_predictions
+            if prediction["asset_id"] in demo_asset_ids
+        ]
     except ValueError as exc:
         return validation_error(str(exc))
 

@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "scenario_id": "fd001-four-engine-lifecycle",
+  "dataset_id": "NASA-CMAPSS-FD001",
+  "model_version": "1.0.0",
+  "engine_ids": [
+    2,
+    38,
+    56,
+    92
+  ],
+  "checkpoint_fractions": [
+    0.4,
+    0.6,
+    0.8,
+    1.0
+  ],
+  "checkpoint_labels": [
+    "Early operation",
+    "Developing degradation",
+    "Maintenance approaching",
+    "Near end of useful life"
+  ]
+}

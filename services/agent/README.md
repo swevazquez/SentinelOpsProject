@@ -81,4 +81,7 @@ Execution succeeds only when the approval is current, approved, unconsumed, and
 matches the prepared action fingerprint. Denied, expired, modified, and replayed
 requests are rejected before workflow status or prediction data changes. A
 successful execution consumes the approval once and preserves its identifier on
-the workflow status record for traceability.
+the workflow status record for traceability. The approved action runs the same
+default RUL lifecycle checkpoint used by the dashboard and returns a workflow
+link in the conversation. The user remains in the Assistant view when the
+workflow result is opened and closed.

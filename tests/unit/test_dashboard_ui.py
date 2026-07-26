@@ -102,6 +102,17 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('id="workflow-detail-dialog"', self.html)
         self.assertIn("function openWorkflowDetails(runId)", self.js)
         self.assertIn("Run identifier", self.js)
+        self.assertIn('inference_mode: "rul"', self.js)
+        self.assertIn("function waitForWorkflowCompletion(runId)", self.js)
+
+    def test_workflow_view_exposes_repeatable_rul_demo_controls(self):
+        self.assertIn('id="rul-demo-status"', self.html)
+        self.assertIn('id="rul-demo-progress"', self.html)
+        self.assertIn('id="reset-rul-demo-button"', self.html)
+        self.assertIn('apiFetch("/api/workflows/rul-demo/status")', self.js)
+        self.assertIn('fetch("/api/workflows/rul-demo/reset"', self.js)
+        self.assertIn("demo.checkpoint_labels.map", self.js)
+        self.assertIn("history remains available", self.js)
 
     def test_workflow_history_supports_status_filters(self):
         self.assertIn('data-workflow-filter="${state}"', self.js)
@@ -153,6 +164,7 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('data-assistant-decision="denied"', self.js)
         self.assertIn('fetch(`/api/assistant/approvals/${encodeURIComponent', self.js)
         self.assertIn('fetch("/api/assistant/actions/execute"', self.js)
+        self.assertIn("await waitForWorkflowCompletion(runId)", self.js)
         self.assertIn("action.fingerprint", self.js)
         self.assertIn("function decideAssistantAction(decision, approvalId)", self.js)
         self.assertIn(".assistant-action-card", self.css)
