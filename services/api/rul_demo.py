@@ -447,3 +447,28 @@ def configured_rul_demo_asset_ids(project_root: Path) -> set[str]:
         f"FD001-ENGINE-{engine_id:03d}"
         for engine_id in scenario.engine_ids
     }
+
+
+def current_rul_demo_run_ids(project_root: Path) -> set[str]:
+    state = _load_state(project_root)
+    if state.session_id is None:
+        return set()
+
+    run_ids: set[str] = set()
+    metadata_dir = project_root / RUNTIME_INPUT_DIR
+    for path in sorted(metadata_dir.glob("trajectory_*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as error:
+            raise ValueError(f"RUL demo input metadata is not valid: {path}") from error
+        if payload.get("session_id") != state.session_id:
+            continue
+        run_id = payload.get("run_id")
+        if (
+            not isinstance(run_id, str)
+            or not run_id
+            or any(character in run_id for character in ("/", "\\", ".."))
+        ):
+            raise ValueError(f"RUL demo input metadata has an invalid run_id: {path}")
+        run_ids.add(run_id)
+    return run_ids

@@ -87,7 +87,7 @@ class DashboardUiTests(unittest.TestCase):
 
     def test_dashboard_loads_operational_data_from_api(self):
         self.assertIn('apiFetch("/api/assets")', self.js)
-        self.assertIn('apiFetch("/api/predictions/latest")', self.js)
+        self.assertIn('optionalApiFetch("/api/predictions/rul/latest")', self.js)
         self.assertIn('apiFetch("/api/workflows")', self.js)
         self.assertNotIn('asset_id: "PUMP-104"', self.js)
         self.assertNotIn('run_id: "sprint1-0942"', self.js)
@@ -104,6 +104,8 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("Run identifier", self.js)
         self.assertIn('inference_mode: "rul"', self.js)
         self.assertIn("function waitForWorkflowCompletion(runId)", self.js)
+        self.assertIn("function workflowSummaryText(workflow)", self.js)
+        self.assertIn("RUL checkpoint completed:", self.js)
 
     def test_workflow_view_exposes_repeatable_rul_demo_controls(self):
         self.assertIn('id="rul-demo-status"', self.html)
@@ -113,6 +115,17 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('fetch("/api/workflows/rul-demo/reset"', self.js)
         self.assertIn("demo.checkpoint_labels.map", self.js)
         self.assertIn("history remains available", self.js)
+        self.assertIn("dashboardData.assets = normalizeAssets([],", self.js)
+        self.assertIn("No current RUL results", self.js)
+        self.assertIn("Run checkpoint 1", self.js)
+
+    def test_workflow_completion_distinguishes_execution_from_findings(self):
+        self.assertIn("function workflowOutcome(workflow)", self.js)
+        self.assertIn("function workflowStatusPill(workflow)", self.js)
+        self.assertIn("workflow.result_summary.outcome_status", self.js)
+        self.assertIn("<span>Execution</span>", self.js)
+        self.assertIn("<span>Asset outcome</span>", self.js)
+        self.assertIn("Condition summary", self.js)
 
     def test_workflow_history_supports_status_filters(self):
         self.assertIn('data-workflow-filter="${state}"', self.js)

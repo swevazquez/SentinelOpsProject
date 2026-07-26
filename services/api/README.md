@@ -46,7 +46,9 @@ It uses four held-out FD001 engines and advances them through 40%, 60%, 80%, and
 100% lifecycle checkpoints. Each accepted run persists a unique label-free
 trajectory and metadata record before applying the trained model. A fifth run is
 blocked until the scenario is reset, and reset retains all prior inputs,
-workflow records, and predictions.
+workflow records, and predictions while clearing them from the new session's
+active RUL view. Completed workflow responses include a result summary with
+condition counts, finding severity, highest risk, and shortest RUL.
 
 The model version may be selected explicitly:
 

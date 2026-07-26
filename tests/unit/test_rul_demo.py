@@ -10,6 +10,7 @@ from services.api.rul_demo import (
     RulDemoBusyError,
     RulDemoCompleteError,
     complete_rul_demo_run,
+    current_rul_demo_run_ids,
     release_rul_demo_run,
     reserve_rul_demo_batch,
     reset_rul_demo,
@@ -90,6 +91,7 @@ class RulDemoTests(unittest.TestCase):
 
             first = reserve_rul_demo_batch(root, "failed-run")
             first_hash = file_sha256(first.trajectory_path)
+            self.assertEqual(current_rul_demo_run_ids(root), {"failed-run"})
             with self.assertRaisesRegex(RulDemoBusyError, "failed-run"):
                 reserve_rul_demo_batch(root, "overlapping-run")
             with self.assertRaisesRegex(RulDemoBusyError, "failed-run"):
@@ -99,6 +101,9 @@ class RulDemoTests(unittest.TestCase):
 
             self.assertEqual(retry.checkpoint_index, 0)
             self.assertEqual(file_sha256(retry.trajectory_path), first_hash)
+            complete_rul_demo_run(root, "retry-run")
+            reset_rul_demo(root)
+            self.assertEqual(current_rul_demo_run_ids(root), set())
 
 
 if __name__ == "__main__":

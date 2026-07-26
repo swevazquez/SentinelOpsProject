@@ -134,6 +134,9 @@ class ApiOperationTests(unittest.TestCase):
     def test_workflow_status_response_returns_completed_run(self):
         with TemporaryDirectory() as temp_dir:
             project_root = Path(temp_dir)
+            CsvPredictionRepository(
+                project_root / "data" / "predictions"
+            ).save([rul_prediction_row(run_id="completed-run")])
             record_workflow_status(
                 project_root=project_root,
                 run_id="completed-run",
@@ -147,6 +150,12 @@ class ApiOperationTests(unittest.TestCase):
             response.body["data"]["workflow"]["status"],
             "completed",
         )
+        summary = response.body["data"]["workflow"]["result_summary"]
+        self.assertEqual(summary["outcome_status"], "critical")
+        self.assertEqual(summary["outcome_label"], "Critical findings")
+        self.assertEqual(summary["critical"], 1)
+        self.assertEqual(summary["finding_count"], 1)
+        self.assertEqual(summary["shortest_rul_cycles"], 12.5)
 
     def test_workflow_status_response_returns_not_found_for_missing_run(self):
         with TemporaryDirectory() as temp_dir:

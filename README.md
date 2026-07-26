@@ -166,7 +166,10 @@ The repeatable demonstration advances four held-out FD001 engines through 40%,
 60%, 80%, and 100% of their recorded lifecycles. Every run stores a new
 label-free trajectory, its source metadata, workflow status, and RUL results.
 After checkpoint four, reset the scenario from the Workflows view or
-`POST /api/workflows/rul-demo/reset`; prior evidence is retained.
+`POST /api/workflows/rul-demo/reset`. Reset clears the active Asset Health view
+but retains prior inputs, predictions, and workflow records as historical
+evidence. Completed runs distinguish successful pipeline execution from asset
+findings and summarize the condition counts and shortest RUL.
 
 Use the returned run ID with `GET /api/predictions/runs/{run_id}`, retrieve the
 scenario with `GET /api/workflows/rul-demo/status`, or retrieve the current RUL

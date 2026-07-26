@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from services.ml.rul_training import TrainingConfig, train_rul_model
@@ -20,6 +21,29 @@ def prepare_rul_runtime(
     write_partition(training_path, training_ids)
     write_partition(validation_path, validation_ids)
     write_metadata(metadata_path, training_ids, validation_ids)
+    scenario_path = project_root / "data" / "samples" / "rul_demo_scenario.json"
+    scenario_path.parent.mkdir(parents=True, exist_ok=True)
+    scenario_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "scenario_id": "test-held-out-engine-lifecycle",
+                "dataset_id": "NASA-CMAPSS-FD001",
+                "model_version": "1.0.0",
+                "engine_ids": list(validation_ids[:4]),
+                "checkpoint_fractions": [0.4, 0.6, 0.8, 1.0],
+                "checkpoint_labels": [
+                    "Early operation",
+                    "Developing degradation",
+                    "Maintenance approaching",
+                    "Near end of useful life",
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     train_rul_model(
         training_path,
         validation_path,

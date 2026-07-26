@@ -210,6 +210,11 @@ select:focus-visible {
   box-shadow: 0 0 0 4px rgb(240 106 106 / 10%);
 }
 
+.status-dot[data-state="watch"] {
+  background: var(--color-info);
+  box-shadow: 0 0 0 4px var(--color-info-soft);
+}
+
 .sidebar-footer p {
   margin: 0 var(--space-2);
 }
@@ -1277,6 +1282,24 @@ tbody tr:last-child td {
   background: var(--color-critical-soft);
   border-color: #6b2d35;
   color: var(--color-critical);
+}
+
+.workflow-feedback[data-state="critical"] {
+  background: var(--color-critical-soft);
+  border-color: #6b2d35;
+  color: var(--color-critical);
+}
+
+.workflow-feedback[data-state="warning"] {
+  background: var(--color-warning-soft);
+  border-color: #62531e;
+  color: var(--color-warning);
+}
+
+.workflow-feedback[data-state="watch"] {
+  background: var(--color-info-soft);
+  border-color: #28557f;
+  color: var(--color-info);
 }
 
 .workflow-kpis {

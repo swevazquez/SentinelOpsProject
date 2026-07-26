@@ -76,6 +76,8 @@ configured demonstration engine, and persist the results atomically.
 - Completing all four checkpoints blocks another run until reset, while reset
   starts a new session without deleting prior inputs, workflow records, or
   predictions.
+- Reset removes prior-session predictions from the active operational view while
+  preserving direct historical run retrieval.
 
 ### FR-RUL-04: Retrieve compatible RUL results
 
@@ -106,6 +108,8 @@ result.
   version, prediction time, and dataset.
 - Assets without a stored RUL display `Unavailable`; their risk score is not
   presented as an RUL estimate.
+- Each completed workflow shows a concise condition summary, and its execution
+  completion is visually distinct from critical, warning, or watch findings.
 
 ### FR-RUL-06: Explain RUL through grounded assistant tools
 

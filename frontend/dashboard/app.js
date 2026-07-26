@@ -49,6 +49,37 @@ function statusPill(status) {
   return `<span class="status-pill status-${escapeHtml(normalized)}">${escapeHtml(label)}</span>`;
 }
 
+function workflowOutcome(workflow) {
+  if (workflow.status !== "completed" || !workflow.result_summary) {
+    return {
+      status: workflow.status,
+      label: statusLabels[workflow.status] || workflow.status
+    };
+  }
+  return {
+    status: workflow.result_summary.outcome_status,
+    label: workflow.result_summary.outcome_label
+  };
+}
+
+function workflowStatusPill(workflow) {
+  const outcome = workflowOutcome(workflow);
+  return `<span class="status-pill status-${escapeHtml(outcome.status)}">${escapeHtml(outcome.label)}</span>`;
+}
+
+function workflowSummaryText(workflow) {
+  const summary = workflow.result_summary;
+  if (!summary) return "";
+  const conditions = ["critical", "warning", "watch", "healthy"]
+    .filter((status) => summary[status] > 0)
+    .map((status) => `${summary[status]} ${status}`)
+    .join(" · ");
+  const shortestRul = summary.shortest_rul_cycles === null
+    ? ""
+    : ` · shortest RUL ${Number(summary.shortest_rul_cycles).toFixed(1)} cycles`;
+  return `${conditions}${shortestRul}`;
+}
+
 function formatDateTime(value) {
   if (!value) return "Not available";
   const date = new Date(value);
@@ -201,7 +232,7 @@ function renderHeader(data) {
     ? `${alerts.length} active asset or workflow condition${alerts.length === 1 ? "" : "s"} require review.`
     : "No active asset or workflow conditions.";
   document.getElementById("header-last-workflow").textContent = latestWorkflow
-    ? `${statusLabels[latestWorkflow.status]} · ${formatTime(latestWorkflow.updated_at)}`
+    ? `${workflowOutcome(latestWorkflow).label} · ${formatTime(latestWorkflow.updated_at)}`
     : "No runs";
   document.getElementById("last-workflow-button").disabled = !latestWorkflow;
   document.getElementById("notification-count").textContent = String(alerts.length);
@@ -299,7 +330,7 @@ function renderOverviewWorkflows(data) {
   const workflows = data.workflows.slice(0, 4);
   document.getElementById("overview-workflow-list").innerHTML = workflows.length
     ? workflows.map((workflow) => `
-      <button type="button" class="compact-row interactive-row" data-workflow-detail="${escapeHtml(workflow.run_id)}"><span class="status-dot" data-state="${workflow.status === "failed" ? "error" : "healthy"}"></span><span class="row-copy"><strong>${escapeHtml(formatStepLabel(workflow.step))}</strong><small>${escapeHtml(formatDateTime(workflow.updated_at))}</small></span>${statusPill(workflow.status)}<i class="row-chevron" data-lucide="chevron-right"></i></button>
+      <button type="button" class="compact-row interactive-row" data-workflow-detail="${escapeHtml(workflow.run_id)}"><span class="status-dot" data-state="${workflowOutcome(workflow).status === "critical" || workflow.status === "failed" ? "error" : workflowOutcome(workflow).status}"></span><span class="row-copy"><strong>${escapeHtml(formatStepLabel(workflow.step))}</strong><small>${escapeHtml(workflowSummaryText(workflow) || formatDateTime(workflow.updated_at))}</small></span>${workflowStatusPill(workflow)}<i class="row-chevron" data-lucide="chevron-right"></i></button>
     `).join("")
     : '<div class="empty-state"><strong>No workflow history</strong><span>Run predictive maintenance to create the first execution.</span></div>';
 }
@@ -356,7 +387,11 @@ function filteredAssets(data) {
 function renderAssets(data) {
   const rows = filteredAssets(data);
   document.getElementById("asset-table-body").innerHTML = rows.map((asset) => assetRow(asset)).join("");
-  document.getElementById("asset-empty-state").hidden = rows.length > 0;
+  const emptyState = document.getElementById("asset-empty-state");
+  emptyState.hidden = rows.length > 0;
+  emptyState.innerHTML = data.assets.length
+    ? '<i data-lucide="search-x"></i><strong>No assets found</strong><span>Adjust the search or status filter.</span>'
+    : '<i data-lucide="activity"></i><strong>No current RUL results</strong><span>Run checkpoint 1 to evaluate the demonstration engines.</span>';
   refreshIcons();
 }
 
@@ -384,7 +419,7 @@ function renderWorkflows(data) {
   document.getElementById("workflow-run-count-default").hidden = workflowFilter !== "all";
   document.getElementById("workflow-list").innerHTML = workflows.length
     ? workflows.map((workflow) => `
-      <button type="button" class="workflow-item" data-workflow-detail="${escapeHtml(workflow.run_id)}" aria-label="View workflow run details"><span class="workflow-item-icon"><i data-lucide="git-branch"></i></span><span class="workflow-item-copy"><strong>Predictive maintenance</strong><small>${escapeHtml(formatStepLabel(workflow.step))} · ${escapeHtml(formatDateTime(workflow.updated_at))}${workflow.error ? ` · ${escapeHtml(workflow.error)}` : ""}</small></span>${statusPill(workflow.status)}<i class="row-chevron" data-lucide="chevron-right"></i></button>
+      <button type="button" class="workflow-item" data-workflow-detail="${escapeHtml(workflow.run_id)}" aria-label="View workflow run details"><span class="workflow-item-icon"><i data-lucide="git-branch"></i></span><span class="workflow-item-copy"><strong>Predictive maintenance</strong><small>${escapeHtml(workflowSummaryText(workflow) || formatStepLabel(workflow.step))} · ${escapeHtml(formatDateTime(workflow.updated_at))}${workflow.error ? ` · ${escapeHtml(workflow.error)}` : ""}</small></span>${workflowStatusPill(workflow)}<i class="row-chevron" data-lucide="chevron-right"></i></button>
     `).join("")
     : `<div class="empty-state"><i data-lucide="workflow"></i><strong>No ${workflowFilter === "all" ? "workflow" : workflowFilter} runs</strong><span>${workflowFilter === "all" ? "Start predictive maintenance to create execution history." : "Select the active filter again or clear it to view all executions."}</span></div>`;
   renderWorkflowStates(data);
@@ -488,9 +523,11 @@ function openAssetDetails(assetId) {
 function openWorkflowDetails(runId) {
   const workflow = dashboardData.workflows.find((candidate) => candidate.run_id === runId);
   if (!workflow) return;
-  document.getElementById("workflow-dialog-title").textContent = `Predictive maintenance · ${statusLabels[workflow.status] || workflow.status}`;
+  const summary = workflow.result_summary;
+  document.getElementById("workflow-dialog-title").textContent = `Predictive maintenance · ${workflowOutcome(workflow).label}`;
   document.getElementById("workflow-dialog-content").innerHTML = `
-    <section class="detail-summary workflow-detail-summary"><div class="detail-metric"><span>Status</span>${statusPill(workflow.status)}</div><div class="detail-metric"><span>Current step</span><strong>${escapeHtml(formatStepLabel(workflow.step))}</strong></div><div class="detail-metric"><span>Updated</span><strong>${escapeHtml(formatDateTime(workflow.updated_at))}</strong></div></section>
+    <section class="detail-summary workflow-detail-summary"><div class="detail-metric"><span>Execution</span>${statusPill(workflow.status)}</div><div class="detail-metric"><span>Asset outcome</span>${workflowStatusPill(workflow)}</div><div class="detail-metric"><span>Updated</span><strong>${escapeHtml(formatDateTime(workflow.updated_at))}</strong></div></section>
+    ${summary ? `<section class="detail-section"><h3>Condition summary</h3><p class="prediction-explanation">${escapeHtml(workflowSummaryText(workflow))}</p><dl><div><dt>Assets evaluated</dt><dd>${summary.asset_count}</dd></div><div><dt>Highest risk</dt><dd>${Number(summary.highest_risk_score).toFixed(2)}</dd></div><div><dt>Shortest RUL</dt><dd>${escapeHtml(summary.shortest_rul_cycles === null ? "Not applicable" : `${Number(summary.shortest_rul_cycles).toFixed(1)} cycles`)}</dd></div></dl></section>` : ""}
     <section class="detail-section"><h3>Execution details</h3><dl><div><dt>Workflow</dt><dd>Predictive maintenance</dd></div><div><dt>Run identifier</dt><dd class="run-identifier">${escapeHtml(workflow.run_id)}</dd></div><div><dt>Execution state</dt><dd>${escapeHtml(statusLabels[workflow.status] || workflow.status)}</dd></div><div><dt>Last activity</dt><dd>${escapeHtml(formatDateTime(workflow.updated_at))}</dd></div></dl></section>
     ${workflow.error ? `<section class="execution-error"><strong>Failure details</strong><p>${escapeHtml(workflow.error)}</p></section>` : ""}
     <section class="detail-section"><h3>Pipeline progress</h3><div class="pipeline-timeline dialog-timeline" id="workflow-dialog-timeline"></div></section>
@@ -539,26 +576,16 @@ async function refreshDashboard({ announce = true } = {}) {
   refreshLabel.textContent = "Refreshing";
   setSystemState("loading", "Refreshing");
   try {
-    const [assetData, predictionData, rulPredictionData, workflowData, demoData] = await Promise.all([
+    const [assetData, rulPredictionData, workflowData, demoData] = await Promise.all([
       apiFetch("/api/assets"),
-      apiFetch("/api/predictions/latest"),
       optionalApiFetch("/api/predictions/rul/latest"),
       apiFetch("/api/workflows"),
       apiFetch("/api/workflows/rul-demo/status")
     ]);
     dashboardData.profiles = assetData.assets || [];
     const currentRulPredictions = rulPredictionData.predictions || [];
-    dashboardData.predictions = [
-      ...new Map(
-        [
-          ...(predictionData.predictions || []).filter(
-            (prediction) => prediction.prediction_type !== "rul"
-          ),
-          ...currentRulPredictions
-        ].map((prediction) => [prediction.asset_id, prediction])
-      ).values()
-    ];
-    dashboardData.assets = normalizeAssets(dashboardData.profiles, dashboardData.predictions);
+    dashboardData.predictions = currentRulPredictions;
+    dashboardData.assets = normalizeAssets([], dashboardData.predictions);
     dashboardData.workflows = (workflowData.workflows || []).map((workflow) => ({
       ...workflow,
       label: formatStepLabel(workflow.step)
@@ -608,9 +635,16 @@ async function runWorkflow() {
     if (workflow.status === "failed") {
       throw new Error(workflow.error || "The RUL workflow failed.");
     }
-    actionStatus.textContent = "RUL checkpoint completed. Results and history were updated.";
-    actionStatus.dataset.state = "success";
-    showToast("RUL checkpoint completed.", "success");
+    const summary = workflowSummaryText(workflow);
+    actionStatus.textContent = `RUL checkpoint completed: ${summary || "no asset summary was returned"}.`;
+    const outcomeStatus = workflow.result_summary?.outcome_status;
+    actionStatus.dataset.state = workflow.result_summary?.finding_count
+      ? outcomeStatus
+      : "success";
+    showToast(
+      summary || "RUL checkpoint completed.",
+      outcomeStatus === "critical" ? "error" : outcomeStatus === "healthy" ? "success" : "info"
+    );
     await refreshDashboard({ announce: false });
   } catch (error) {
     actionStatus.textContent = error.message;
@@ -641,7 +675,7 @@ async function resetRulDemo() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.detail || "The RUL demo could not be reset.");
     dashboardData.demo = payload.data.scenario;
-    renderRulDemo(dashboardData);
+    await refreshDashboard({ announce: false });
     actionStatus.textContent = "RUL demo reset. Prior run history remains available.";
     actionStatus.dataset.state = "success";
     showToast("RUL demo ready at checkpoint 1.", "success");
@@ -704,7 +738,7 @@ function assistantWorkflowLink(response) {
     <a class="assistant-workflow-link" href="?view=assistant" data-workflow-link="${runId}">
       <span><i data-lucide="${completed ? "circle-check" : "workflow"}"></i></span>
       <span><strong>${completed ? "View completed workflow" : "View workflow run"}</strong><small>${runId}</small></span>
-      ${statusPill(workflow.status)}
+      ${workflowStatusPill(workflow)}
       <i data-lucide="arrow-right"></i>
     </a>`;
 }
@@ -790,11 +824,15 @@ async function decideAssistantAction(decision, approvalId) {
     appendAssistantMessage(
       "assistant",
       completed
-        ? "The approved predictive-maintenance workflow completed successfully."
+        ? `The approved workflow execution completed. ${workflowSummaryText(workflow) || "Open the result for details."}`
         : "The approved predictive-maintenance workflow started successfully.",
       { workflow }
     );
-    showToast(completed ? "Approved workflow completed." : "Approved workflow started.", "success");
+    const assistantOutcome = workflow.result_summary?.outcome_status;
+    showToast(
+      completed ? workflowSummaryText(workflow) || "Approved workflow completed." : "Approved workflow started.",
+      assistantOutcome === "critical" ? "error" : assistantOutcome && assistantOutcome !== "healthy" ? "info" : "success"
+    );
   } catch (error) {
     status.textContent = error.message;
     status.dataset.state = "error";

@@ -185,6 +185,11 @@ class ManualWorkflowApiTests(unittest.TestCase):
             json={"workflow": "predictive-maintenance"},
         )
         replay_reset = self.client.post("/api/workflows/rul-demo/reset")
+        after_reset_latest = self.client.get("/api/predictions/rul/latest")
+        after_reset_generic_latest = self.client.get("/api/predictions/latest")
+        historical_run = self.client.get(
+            f"/api/predictions/runs/{run_id}"
+        )
         replay = self.client.post(
             "/api/workflows",
             json={"workflow": "predictive-maintenance"},
@@ -215,6 +220,12 @@ class ManualWorkflowApiTests(unittest.TestCase):
         self.assertEqual(blocked.status_code, 409)
         self.assertIn("reset", blocked.json()["detail"])
         self.assertEqual(replay_reset.status_code, 200)
+        self.assertEqual(after_reset_latest.status_code, 404)
+        self.assertEqual(
+            after_reset_generic_latest.json()["data"]["predictions"],
+            [],
+        )
+        self.assertEqual(historical_run.status_code, 200)
         self.assertEqual(first_checkpoint_signature, replay_signature)
         self.assertEqual(
             len(list((self.project_root / "data" / "raw" / "rul-demo").glob("*.csv"))),

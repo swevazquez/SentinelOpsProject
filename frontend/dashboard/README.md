@@ -30,8 +30,10 @@ The dashboard reads the configured RUL scenario, latest predictions, and
 workflow execution states from the FastAPI service. The default workflow replays
 four held-out FD001 engines at 40%, 60%, 80%, and 100% of their lifecycles. It
 waits for the selected checkpoint to complete before refreshing the maintenance
-view. Reset begins a new session but retains prior workflow and prediction
-evidence.
+view and presents a short condition summary. Workflow execution completion is
+shown separately from the asset outcome, so critical or warning findings are not
+represented by a green completion badge. Reset begins a visually clean session
+but retains prior workflow, input, and prediction evidence in history.
 
 ## Design System
 
