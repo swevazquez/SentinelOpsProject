@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from services.agent.assistant import SYSTEM_INSTRUCTIONS, answer_operational_query
 from services.ml.prediction_store import CsvPredictionRepository
 from services.ml.scoring import score_feature_rows
+from tests.unit.test_api_operations import rul_prediction_row
 from services.workflows.status import record_workflow_status
 from tests.fake_openai import FakeAssistantClient
 
@@ -60,6 +61,9 @@ class AgentAssistantTests(unittest.TestCase):
         )
         CsvPredictionRepository(self.project_root / "data" / "predictions").save(
             predictions
+        )
+        CsvPredictionRepository(self.project_root / "data" / "predictions").save(
+            [rul_prediction_row()]
         )
 
     def tearDown(self) -> None:
@@ -118,6 +122,82 @@ class AgentAssistantTests(unittest.TestCase):
         self.assertIn("PUMP-1", response["answer"])
         self.assertIn("Recommended action", response["answer"])
         self.assertEqual(response["tool_calls"][0]["name"], "get_predictions_by_asset")
+
+    def test_rul_query_returns_grounded_read_only_evidence(self) -> None:
+        client = FakeAssistantClient(
+            tool_name="get_rul_prediction_by_asset",
+            arguments={"asset_id": "FD001-ENGINE-005"},
+            answer=(
+                "FD001-ENGINE-005 has 12.5 remaining cycles and requires "
+                "immediate maintenance."
+            ),
+        )
+
+        response = answer_operational_query(
+            self.project_root,
+            "What is the RUL for FD001-ENGINE-005?",
+            client=client,
+            model="test-model",
+        )
+
+        self.assertEqual(response["intent"], "explain_asset_rul")
+        self.assertEqual(
+            response["items"][0]["remaining_useful_life_cycles"],
+            "12.50",
+        )
+        self.assertEqual(response["items"][0]["health_score"], "0.1000")
+        self.assertEqual(response["items"][0]["model_version"], "1.0.0")
+        self.assertEqual(
+            response["tool_calls"],
+            [
+                {
+                    "name": "get_rul_prediction_by_asset",
+                    "read_only": True,
+                    "status_code": 200,
+                }
+            ],
+        )
+        self.assertNotIn("model_artifact_sha256", response["items"][0])
+        self.assertIn(
+            "remaining_useful_life_cycles",
+            str(client.requests[1]["input"]),
+        )
+
+    def test_missing_rul_is_reported_without_using_model_placeholder(self) -> None:
+        client = FakeAssistantClient(
+            tool_name="get_rul_prediction_by_asset",
+            arguments={"asset_id": "PUMP-1"},
+            answer="PUMP-1 has 42 remaining cycles.",
+        )
+
+        response = answer_operational_query(
+            self.project_root,
+            "What is the RUL for PUMP-1?",
+            client=client,
+        )
+
+        self.assertEqual(response["intent"], "rul_unavailable")
+        self.assertEqual(response["items"], [])
+        self.assertIn("RUL is unavailable", response["answer"])
+        self.assertNotIn("42", response["answer"])
+        self.assertEqual(response["tool_calls"][0]["status_code"], 404)
+
+    def test_rul_answer_requires_completed_prediction_lookup(self) -> None:
+        client = FakeAssistantClient(
+            tool_name=None,
+            answer="The engine has 19 remaining cycles.",
+        )
+
+        response = answer_operational_query(
+            self.project_root,
+            "What is the remaining useful life for FD001-ENGINE-005?",
+            client=client,
+        )
+
+        self.assertEqual(response["intent"], "rul_unavailable")
+        self.assertEqual(response["items"], [])
+        self.assertIn("no approved prediction lookup", response["answer"])
+        self.assertNotIn("19", response["answer"])
 
     def test_workflow_failure_query_returns_failed_runs_only(self) -> None:
         client = FakeAssistantClient(

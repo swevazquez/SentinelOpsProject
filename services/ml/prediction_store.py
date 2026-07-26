@@ -43,6 +43,8 @@ class PredictionRepository(Protocol):
 
     def get_latest(self) -> list[dict[str, str]]: ...
 
+    def get_latest_by_type(self, prediction_type: str) -> list[dict[str, str]]: ...
+
 
 def _validate_identifier(value: str, name: str) -> None:
     if not value or any(character in value for character in ("/", "\\", "..")):
@@ -180,9 +182,23 @@ class CsvPredictionRepository:
         return sorted(predictions, key=lambda row: row["scored_at"], reverse=True)
 
     def get_latest(self) -> list[dict[str, str]]:
+        return self._get_latest()
+
+    def get_latest_by_type(self, prediction_type: str) -> list[dict[str, str]]:
+        if prediction_type not in ("risk_baseline", "rul"):
+            raise ValueError("prediction_type is invalid")
+        return self._get_latest(prediction_type=prediction_type)
+
+    def _get_latest(
+        self,
+        *,
+        prediction_type: str | None = None,
+    ) -> list[dict[str, str]]:
         latest_by_asset: dict[str, dict[str, str]] = {}
         for path in sorted(self.storage_dir.glob("predictions_*.csv")):
             for row in self._read(path):
+                if prediction_type is not None and row["prediction_type"] != prediction_type:
+                    continue
                 current = latest_by_asset.get(row["asset_id"])
                 if current is None or row["scored_at"] > current["scored_at"]:
                     latest_by_asset[row["asset_id"]] = row

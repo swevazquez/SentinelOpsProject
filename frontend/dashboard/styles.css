@@ -1034,6 +1034,7 @@ tbody tr:last-child td {
 .badge,
 .status-pill,
 .risk-chip,
+.rul-chip,
 .workflow-state-chip {
   align-items: center;
   border: 1px solid transparent;
@@ -1084,6 +1085,19 @@ tbody tr:last-child td {
   border-color: var(--color-border-strong);
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
+}
+
+.rul-chip {
+  background: var(--color-info-soft);
+  border-color: #28557f;
+  color: var(--color-info);
+  font-variant-numeric: tabular-nums;
+}
+
+.rul-chip.rul-unavailable {
+  background: var(--color-bg-panel-elevated);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-muted);
 }
 
 .row-action {
@@ -1862,6 +1876,12 @@ button.workflow-state-card[aria-pressed="true"] {
   color: var(--color-warning);
   display: block;
   margin-bottom: var(--space-1);
+}
+
+.prediction-explanation {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .toast-region {

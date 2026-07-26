@@ -79,9 +79,26 @@ function formatPercent(value) {
   return `${Math.round(normalized)}%`;
 }
 
+function formatRul(value) {
+  if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) {
+    return "Unavailable";
+  }
+  return `${Number(value).toFixed(1)} cycles`;
+}
+
 async function apiFetch(path) {
   const response = await fetch(path);
   const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.message || payload.detail || `Request failed (${response.status}).`);
+  }
+  return payload.data;
+}
+
+async function optionalApiFetch(path) {
+  const response = await fetch(path);
+  const payload = await response.json();
+  if (response.status === 404) return {};
   if (!response.ok) {
     throw new Error(payload.message || payload.detail || `Request failed (${response.status}).`);
   }
@@ -113,12 +130,21 @@ function normalizeAssets(profiles, predictions) {
     const profile = profileByAsset.get(assetId) || {};
     const prediction = predictionByAsset.get(assetId);
     const riskScore = Number(prediction?.risk_score ?? profile.failure_risk ?? 0);
+    const rulValue = prediction?.prediction_type === "rul"
+      && Number.isFinite(Number(prediction.remaining_useful_life_cycles))
+      ? Number(prediction.remaining_useful_life_cycles)
+      : null;
     const status = prediction?.asset_status || profileStatus(riskScore);
     return {
       ...profile,
       ...prediction,
       asset_id: assetId,
       risk_score: riskScore,
+      health_score: prediction?.health_score === "" || prediction?.health_score === undefined
+        ? null
+        : Number(prediction.health_score),
+      remaining_useful_life_cycles: rulValue,
+      rul_available: rulValue !== null,
       asset_status: status,
       maintenance_priority: prediction?.maintenance_priority || profilePriority(status),
       recommended_action: prediction?.recommended_action || "Run predictive maintenance to calculate the latest recommendation.",
@@ -241,8 +267,12 @@ function renderPredictions(data) {
   const criticalShare = Math.max(0, 100 - healthyShare - watchShare - warningShare);
   const reviewCount = counts.watch + counts.warning + counts.critical;
   const donut = document.getElementById("prediction-donut");
+  const rulCount = data.predictions.filter((prediction) => prediction.prediction_type === "rul").length;
+  const baselineCount = data.predictions.length - rulCount;
 
-  document.getElementById("prediction-count").textContent = data.predictions.length ? `${data.predictions.length} latest predictions` : "Baseline risk profiles";
+  document.getElementById("prediction-count").textContent = data.predictions.length
+    ? `${rulCount} RUL · ${baselineCount} risk-only`
+    : "Baseline risk profiles";
   document.getElementById("prediction-review-count").textContent = String(reviewCount);
   donut.style.background = data.assets.length
     ? `conic-gradient(var(--color-healthy) 0 ${healthyShare}%, var(--color-info) ${healthyShare}% ${healthyShare + watchShare}%, var(--color-warning) ${healthyShare + watchShare}% ${healthyShare + watchShare + warningShare}%, var(--color-critical) ${healthyShare + watchShare + warningShare}% 100%)`
@@ -279,18 +309,18 @@ function renderAlerts(data) {
 }
 
 function assetRow(asset, compact = false) {
-  const confidence = formatPercent(asset.model_confidence);
+  const rul = `<span class="rul-chip${asset.rul_available ? "" : " rul-unavailable"}">${escapeHtml(formatRul(asset.remaining_useful_life_cycles))}</span>`;
   if (compact) {
-    return `<tr class="interactive-table-row" data-asset-detail="${escapeHtml(asset.asset_id)}" tabindex="0" role="button" aria-label="View ${escapeHtml(asset.asset_id)} details"><td><div class="asset-identity"><strong>${escapeHtml(asset.asset_id)}</strong><span>${escapeHtml(asset.model_name || "Baseline profile")}</span></div></td><td>${statusPill(asset.asset_status)}</td><td><span class="risk-chip">${asset.risk_score.toFixed(2)}</span></td><td>${escapeHtml(asset.maintenance_priority)}</td><td class="recommendation-cell" title="${escapeHtml(asset.recommended_action)}">${escapeHtml(asset.recommended_action)}</td><td>${escapeHtml(asset.display_updated)}</td></tr>`;
+    return `<tr class="interactive-table-row" data-asset-detail="${escapeHtml(asset.asset_id)}" tabindex="0" role="button" aria-label="View ${escapeHtml(asset.asset_id)} details"><td><div class="asset-identity"><strong>${escapeHtml(asset.asset_id)}</strong><span>${escapeHtml(asset.model_name || "Baseline profile")}</span></div></td><td>${statusPill(asset.asset_status)}</td><td><span class="risk-chip">${asset.risk_score.toFixed(2)}</span></td><td>${rul}</td><td>${escapeHtml(asset.maintenance_priority)}</td><td class="recommendation-cell" title="${escapeHtml(asset.recommended_action)}">${escapeHtml(asset.recommended_action)}</td><td>${escapeHtml(asset.display_updated)}</td></tr>`;
   }
-  return `<tr class="interactive-table-row" data-asset-detail="${escapeHtml(asset.asset_id)}" tabindex="0" role="button" aria-label="View ${escapeHtml(asset.asset_id)} details"><td><div class="asset-identity"><strong>${escapeHtml(asset.asset_id)}</strong><span>${escapeHtml(asset.model_name || "Baseline profile")}</span></div></td><td>${statusPill(asset.asset_status)}</td><td><span class="risk-chip">${asset.risk_score.toFixed(2)}</span></td><td>${escapeHtml(asset.maintenance_priority)}</td><td>${escapeHtml(confidence)}</td><td class="recommendation-cell" title="${escapeHtml(asset.recommended_action)}">${escapeHtml(asset.recommended_action)}</td><td>${escapeHtml(asset.display_updated)}</td><td><span class="row-detail-indicator" aria-hidden="true"><i data-lucide="chevron-right"></i></span></td></tr>`;
+  return `<tr class="interactive-table-row" data-asset-detail="${escapeHtml(asset.asset_id)}" tabindex="0" role="button" aria-label="View ${escapeHtml(asset.asset_id)} details"><td><div class="asset-identity"><strong>${escapeHtml(asset.asset_id)}</strong><span>${escapeHtml(asset.model_name || "Baseline profile")}</span></div></td><td>${statusPill(asset.asset_status)}</td><td><span class="risk-chip">${asset.risk_score.toFixed(2)}</span></td><td>${rul}</td><td>${escapeHtml(asset.maintenance_priority)}</td><td class="recommendation-cell" title="${escapeHtml(asset.recommended_action)}">${escapeHtml(asset.recommended_action)}</td><td>${escapeHtml(asset.display_updated)}</td><td><span class="row-detail-indicator" aria-hidden="true"><i data-lucide="chevron-right"></i></span></td></tr>`;
 }
 
 function renderRiskAssets(data) {
   const rows = [...data.assets].sort((a, b) => b.risk_score - a.risk_score).slice(0, 5);
   document.getElementById("risk-asset-table-body").innerHTML = rows.length
     ? rows.map((asset) => assetRow(asset, true)).join("")
-    : '<tr><td colspan="6"><div class="empty-state">No asset data available.</div></td></tr>';
+    : '<tr><td colspan="7"><div class="empty-state">No asset data available.</div></td></tr>';
 }
 
 function filteredAssets(data) {
@@ -304,6 +334,12 @@ function filteredAssets(data) {
   });
 
   return rows.sort((a, b) => {
+    if (sortValue === "rul-asc") {
+      if (a.rul_available !== b.rul_available) return a.rul_available ? -1 : 1;
+      return a.rul_available
+        ? a.remaining_useful_life_cycles - b.remaining_useful_life_cycles
+        : a.asset_id.localeCompare(b.asset_id);
+    }
     if (sortValue === "risk-asc") return a.risk_score - b.risk_score;
     if (sortValue === "asset-asc") return a.asset_id.localeCompare(b.asset_id);
     if (sortValue === "updated-desc") return (b.scored_at || "").localeCompare(a.scored_at || "");
@@ -377,13 +413,20 @@ function renderPipelineTimeline(workflow, targetId = "pipeline-timeline") {
 function openAssetDetails(assetId) {
   const asset = dashboardData.assets.find((candidate) => candidate.asset_id === assetId);
   if (!asset) return;
+  const rulSummary = formatRul(asset.remaining_useful_life_cycles);
+  const explanation = asset.rul_available
+    ? `The versioned Random Forest model estimates ${rulSummary} for the latest compatible engine cycle. Risk and health are bounded operational indicators derived from that maintenance horizon. This FD001 benchmark estimate supports prioritization and is not a guaranteed failure date.`
+    : "RUL is unavailable because no compatible stored remaining-useful-life prediction exists for this asset. The displayed risk is a separate rule-based indicator; SentinelOps does not substitute it for an RUL estimate.";
+  const supportingDetails = asset.rul_available
+    ? `<section class="detail-section"><h3>Result traceability</h3><dl><div><dt>Workflow run</dt><dd class="run-identifier">${escapeHtml(asset.run_id)}</dd></div><div><dt>Feature contract</dt><dd>${escapeHtml(asset.feature_contract_version || "Not reported")}</dd></div></dl></section>`
+    : `<section class="detail-section"><h3>Feature summary</h3><dl><div><dt>Base temperature</dt><dd>${escapeHtml(asset.base_temperature_c ?? "Not available")} °C</dd></div><div><dt>Base vibration</dt><dd>${escapeHtml(asset.base_vibration_mm_s ?? "Not available")} mm/s</dd></div><div><dt>Base pressure</dt><dd>${escapeHtml(asset.base_pressure_kpa ?? "Not available")} kPa</dd></div><div><dt>Runtime</dt><dd>${escapeHtml(asset.runtime_hours ?? "Not available")} hours</dd></div></dl></section>`;
   document.getElementById("asset-dialog-title").textContent = asset.asset_id;
   document.getElementById("asset-dialog-content").innerHTML = `
-    <section class="detail-summary"><div class="detail-metric"><span>Health</span>${statusPill(asset.asset_status)}</div><div class="detail-metric"><span>Risk Score</span><strong>${asset.risk_score.toFixed(2)}</strong></div><div class="detail-metric"><span>Priority</span><strong>${escapeHtml(asset.maintenance_priority)}</strong></div><div class="detail-metric"><span>RUL</span><strong>Pending</strong></div></section>
+    <section class="detail-summary"><div class="detail-metric"><span>Condition</span>${statusPill(asset.asset_status)}</div><div class="detail-metric"><span>Risk Score</span><strong>${asset.risk_score.toFixed(2)}</strong></div><div class="detail-metric"><span>RUL</span><strong>${escapeHtml(rulSummary)}</strong></div><div class="detail-metric"><span>Priority</span><strong>${escapeHtml(asset.maintenance_priority)}</strong></div></section>
     <section class="maintenance-callout"><strong>Recommended maintenance</strong>${escapeHtml(asset.recommended_action)}</section>
-    <section class="detail-section"><h3>Latest prediction</h3><dl><div><dt>Model</dt><dd>${escapeHtml(asset.model_name || "Rule-based baseline")}</dd></div><div><dt>Model version</dt><dd>${escapeHtml(asset.model_version || "Baseline")}</dd></div><div><dt>Confidence</dt><dd>${escapeHtml(formatPercent(asset.model_confidence))}</dd></div><div><dt>Last updated</dt><dd>${escapeHtml(asset.display_updated)}</dd></div></dl></section>
-    <section class="detail-section"><h3>Feature summary</h3><dl><div><dt>Base temperature</dt><dd>${escapeHtml(asset.base_temperature_c ?? "Not available")} °C</dd></div><div><dt>Base vibration</dt><dd>${escapeHtml(asset.base_vibration_mm_s ?? "Not available")} mm/s</dd></div><div><dt>Base pressure</dt><dd>${escapeHtml(asset.base_pressure_kpa ?? "Not available")} kPa</dd></div><div><dt>Runtime</dt><dd>${escapeHtml(asset.runtime_hours ?? "Not available")} hours</dd></div></dl></section>
-    <section class="detail-section"><h3>Prediction explanation</h3><p class="cell-muted">The current score is based on the latest available SentinelOps model output and the asset feature profile. Remaining useful life will be added after the approved ML component is integrated.</p></section>
+    <section class="detail-section"><h3>Latest prediction</h3><dl><div><dt>Prediction type</dt><dd>${asset.rul_available ? "Remaining useful life" : "Risk-only baseline"}</dd></div><div><dt>Health score</dt><dd>${escapeHtml(formatPercent(asset.health_score))}</dd></div><div><dt>Model</dt><dd>${escapeHtml(asset.model_name || "Rule-based baseline")}</dd></div><div><dt>Model version</dt><dd>${escapeHtml(asset.model_version || "Baseline")}</dd></div><div><dt>Prediction timestamp</dt><dd>${escapeHtml(asset.display_updated)}</dd></div><div><dt>Dataset</dt><dd>${escapeHtml(asset.dataset_id || "Not applicable")}</dd></div></dl></section>
+    ${supportingDetails}
+    <section class="detail-section"><h3>Prediction explanation</h3><p class="prediction-explanation">${escapeHtml(explanation)}</p></section>
   `;
   document.getElementById("asset-detail-dialog").showModal();
   refreshIcons();
@@ -442,13 +485,21 @@ async function refreshDashboard({ announce = true } = {}) {
   refreshLabel.textContent = "Refreshing";
   setSystemState("loading", "Refreshing");
   try {
-    const [assetData, predictionData, workflowData] = await Promise.all([
+    const [assetData, predictionData, rulPredictionData, workflowData] = await Promise.all([
       apiFetch("/api/assets"),
       apiFetch("/api/predictions/latest"),
+      optionalApiFetch("/api/predictions/rul/latest"),
       apiFetch("/api/workflows")
     ]);
     dashboardData.profiles = assetData.assets || [];
-    dashboardData.predictions = predictionData.predictions || [];
+    dashboardData.predictions = [
+      ...new Map(
+        [
+          ...(predictionData.predictions || []),
+          ...(rulPredictionData.predictions || [])
+        ].map((prediction) => [prediction.asset_id, prediction])
+      ).values()
+    ];
     dashboardData.assets = normalizeAssets(dashboardData.profiles, dashboardData.predictions);
     dashboardData.workflows = (workflowData.workflows || []).map((workflow) => ({
       ...workflow,
@@ -503,6 +554,11 @@ async function runWorkflow() {
 
 function assistantResultItems(response) {
   if (!response.items?.length) return "";
+  if (["compare_rul", "explain_asset_rul"].includes(response.intent)) {
+    return `<div class="assistant-result-list">${response.items.map((item) => `
+      <button type="button" data-asset-detail="${escapeHtml(item.asset_id)}"><span><strong>${escapeHtml(item.asset_id)}</strong><small>${escapeHtml(item.maintenance_priority || "Priority unavailable")} · ${escapeHtml(item.recommended_action || "Recommendation unavailable")}</small></span><span class="rul-chip">${escapeHtml(formatRul(item.remaining_useful_life_cycles))}</span><i data-lucide="chevron-right"></i></button>
+    `).join("")}</div>`;
+  }
   if (["highest_risk_assets", "explain_asset_prediction"].includes(response.intent)) {
     return `<div class="assistant-result-list">${response.items.map((item) => `
       <button type="button" data-asset-detail="${escapeHtml(item.asset_id)}"><span><strong>${escapeHtml(item.asset_id)}</strong><small>${escapeHtml(item.recommended_action || "Prediction result")}</small></span><span class="risk-chip">${Number(item.risk_score || 0).toFixed(2)}</span><i data-lucide="chevron-right"></i></button>

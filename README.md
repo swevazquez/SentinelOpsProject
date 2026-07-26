@@ -62,6 +62,8 @@ foundation plus the first Sprint 3 interaction slices:
 22. Require exact, time-limited, single-use approval before an assistant action executes.
 23. Train and evaluate a seeded Random Forest RUL model with engine-isolated FD001 data, temporal features, baseline metrics, and a versioned artifact.
 24. Run versioned RUL inference through the predictive workflow with safe artifact validation, bounded maintenance indicators, persisted traceability, and API retrieval.
+25. Compare and explain stored RUL results through dedicated APIs, the dashboard,
+    and grounded read-only assistant tools with explicit unavailable states.
 
 The Sprint 3 interaction slice now supports informational queries through
 read-only tools and one approval-gated predictive-maintenance action. Unknown,
@@ -151,9 +153,8 @@ Open `http://127.0.0.1:8000` to review the dashboard. The Workflows view can
 start the supported `predictive-maintenance` workflow and refresh live workflow,
 asset, and prediction data.
 
-The dashboard and assistant continue to use the deterministic baseline flow.
-After preparing FD001 and training the model, a reviewer can run the explicit
-RUL path through the API:
+The deterministic workflow remains the default. After preparing FD001 and
+training the model, a reviewer can run the explicit RUL path through the API:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/workflows \
@@ -161,11 +162,10 @@ curl -X POST http://127.0.0.1:8000/api/workflows \
   -d '{"workflow":"predictive-maintenance","inference_mode":"rul","model_version":"1.0.0"}'
 ```
 
-Use the returned run ID with
-`GET /api/predictions/runs/{run_id}`. The response contains one latest-cycle
-prediction per validation engine, including RUL, bounded risk and health,
-maintenance guidance, model version and checksum, dataset and feature-contract
-versions, workflow run ID, input fingerprint, and prediction timestamp.
+Use the returned run ID with `GET /api/predictions/runs/{run_id}`, or retrieve
+the current RUL view with `GET /api/predictions/rul/latest`. The dashboard and
+assistant expose the same stored results and clearly distinguish the RUL horizon
+from the bounded risk indicator.
 
 Validate Sprint 2 demo performance:
 

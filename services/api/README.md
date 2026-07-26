@@ -25,6 +25,8 @@ workflow API from the same origin.
 | `POST` | `/api/assistant/approvals/{approval_id}` | Approve or reject one prepared action. |
 | `POST` | `/api/assistant/actions/execute` | Execute the exact approved action once. |
 | `GET` | `/api/predictions/latest` | Retrieve the latest prediction for each asset. |
+| `GET` | `/api/predictions/rul/latest` | Retrieve only the latest compatible RUL predictions. |
+| `GET` | `/api/predictions/rul/assets/{asset_id}` | Retrieve only stored RUL history for one asset. |
 | `GET` | `/api/predictions/runs/{run_id}` | Retrieve predictions for one workflow run. |
 | `GET` | `/api/predictions/assets/{asset_id}` | Retrieve prediction history for one asset. |
 
@@ -68,6 +70,8 @@ contracts. These handlers provide the behavior that FastAPI routes should expose
 | Workflow summary | `data/workflow-status/` | Running, completed, failed, and total counts |
 | Predictions by run | `data/predictions/` | Prediction records for one workflow run |
 | Predictions by asset | `data/predictions/` | Prediction history for one asset |
+| Latest RUL predictions | `data/predictions/` | Latest RUL record for each compatible asset |
+| RUL predictions by asset | `data/predictions/` | RUL-only history or an explicit unavailable response |
 
 The response contract uses a status code and a JSON-compatible body. All
 responses include `status`, `request_state`, and `message`. Successful responses

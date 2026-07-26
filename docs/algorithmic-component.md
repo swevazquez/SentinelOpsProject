@@ -62,7 +62,11 @@ retained in the generated artifact metadata.
 
 1. **Dataset and contract:** implemented by SCRUM-30 through verified acquisition, labeling, and engine-isolated partitions.
 2. **Features and training:** implemented by SCRUM-31 through training-only sensor selection, causal temporal features, seeded Random Forest evaluation, baseline comparison, and versioned artifact metadata.
-3. **Runtime integration:** implemented by SCRUM-32 through strict artifact loading, reuse of the serialized temporal feature contract, latest-cycle RUL inference, bounded maintenance mapping, atomic persistence, workflow failure reporting, and API retrieval. Spark execution and dashboard presentation remain in later Sprint 4 stories.
+3. **Runtime integration:** implemented by SCRUM-32 through strict artifact loading, reuse of the serialized temporal feature contract, latest-cycle RUL inference, bounded maintenance mapping, atomic persistence, workflow failure reporting, and API retrieval.
+4. **Operational presentation:** implemented by SCRUM-33 through RUL-only API
+   lookups, shortest-horizon dashboard comparison, detailed result explanation,
+   grounded read-only assistant tools, and explicit unavailable states. Spark
+   execution remains a later Sprint 4 story.
 
 ### Feasibility and Limitations
 
@@ -79,7 +83,17 @@ FD001 is a controlled benchmark rather than a complete representation of Sentine
 - Risk and health are bounded to `[0, 1]`, and their thresholds map deterministically to documented maintenance status, priority, and recommendations.
 - Missing, corrupt, or incompatible runtime artifacts record a clear failed workflow step without replacing existing prediction results.
 - The rule-based predictive workflow remains the default unless RUL inference is explicitly selected.
+- Dashboard and assistant views expose stored RUL separately from risk and include
+  model, health, maintenance guidance, and timestamp context.
+- Missing compatible RUL is reported as unavailable; no placeholder or inferred
+  estimate is presented.
 
 ## 4. Proposal Summary
 
-This component expands SentinelOps from a rule-based MVP into a system that learns a maintenance horizon from degradation data. The training and evaluation stage is implemented as a reproducible, versioned Random Forest pipeline. The runtime now validates and applies that artifact through the existing predictive workflow while retaining the deterministic scorer as the default fallback. Later stories can add Spark execution and dashboard explanation without changing the model contract.
+This component expands SentinelOps from a rule-based MVP into a system that
+learns a maintenance horizon from degradation data. The training and evaluation
+stage is implemented as a reproducible, versioned Random Forest pipeline. The
+runtime validates and applies that artifact through the existing predictive
+workflow while retaining the deterministic scorer as the default. The dashboard
+and assistant now expose stored RUL with model and maintenance context without
+changing the model contract. A later story can add Spark execution.

@@ -20,6 +20,8 @@ SYSTEM_INSTRUCTIONS = """You are the SentinelOps operational assistant for an in
 Answer questions only about SentinelOps assets, predictions, and workflow execution state.
 Use the approved read-only tools to retrieve current facts before making operational claims.
 Never invent asset data, prediction values, workflow state, identifiers, or maintenance recommendations.
+For remaining-useful-life questions, use an approved RUL prediction tool and report cycles, health, priority, recommendation, model version, and prediction time from stored data.
+If a compatible RUL prediction is unavailable, say that clearly and do not substitute a risk score or placeholder estimate.
 You may prepare the approved start_workflow action when the user explicitly asks to run predictive maintenance.
 Preparing an action never executes it. Explain the impact and require explicit approval before execution.
 The application presents approval controls in the conversation. Do not ask the user to reply with approval or include an approval identifier in the answer.
@@ -45,12 +47,17 @@ def _prediction_item(prediction: dict[str, Any]) -> dict[str, Any]:
         key: prediction[key]
         for key in (
             "asset_id",
+            "prediction_type",
+            "remaining_useful_life_cycles",
             "risk_score",
+            "health_score",
             "asset_status",
             "maintenance_priority",
             "recommended_action",
             "model_name",
             "model_version",
+            "dataset_id",
+            "feature_contract_version",
             "scored_at",
         )
         if key in prediction
@@ -95,12 +102,45 @@ def _result_items(
     message: str,
 ) -> tuple[str, list[dict[str, Any]]]:
     data = safe_body.get("data", {})
+    rul_query = _is_rul_query(message)
+    if tool_name in {
+        "get_latest_rul_predictions",
+        "get_rul_prediction_by_asset",
+    }:
+        predictions = sorted(
+            data.get("predictions", []),
+            key=lambda prediction: float(
+                prediction.get("remaining_useful_life_cycles", "inf")
+            ),
+        )
+        if not predictions:
+            return "rul_unavailable", []
+        return (
+            "compare_rul" if tool_name == "get_latest_rul_predictions" else "explain_asset_rul",
+            predictions[:5] if tool_name == "get_latest_rul_predictions" else predictions[:1],
+        )
     if tool_name == "get_latest_predictions":
         predictions = sorted(
             data.get("predictions", []),
             key=lambda prediction: float(prediction.get("risk_score", 0)),
             reverse=True,
         )
+        if rul_query:
+            rul_predictions = [
+                prediction
+                for prediction in predictions
+                if prediction.get("prediction_type") == "rul"
+            ]
+            rul_predictions.sort(
+                key=lambda prediction: float(
+                    prediction["remaining_useful_life_cycles"]
+                )
+            )
+            return (
+                ("compare_rul", rul_predictions[:5])
+                if rul_predictions
+                else ("rul_unavailable", [])
+            )
         return "highest_risk_assets", predictions[:5]
     if tool_name == "get_predictions_by_asset":
         predictions = sorted(
@@ -108,6 +148,17 @@ def _result_items(
             key=lambda prediction: prediction.get("scored_at", ""),
             reverse=True,
         )
+        if rul_query:
+            rul_predictions = [
+                prediction
+                for prediction in predictions
+                if prediction.get("prediction_type") == "rul"
+            ]
+            return (
+                ("explain_asset_rul", rul_predictions[:1])
+                if rul_predictions
+                else ("rul_unavailable", [])
+            )
         return "explain_asset_prediction", predictions[:1]
     if tool_name == "list_assets":
         return "list_assets", data.get("assets", [])[:5]
@@ -127,6 +178,11 @@ def _result_items(
     return "operational_query", []
 
 
+def _is_rul_query(message: str) -> bool:
+    normalized = message.lower()
+    return "rul" in normalized or "remaining useful life" in normalized
+
+
 def _function_calls(response: Any) -> list[Any]:
     return [item for item in response.output if item.type == "function_call"]
 
@@ -144,6 +200,7 @@ def answer_operational_query(
         raise ValueError("message must not be empty")
 
     model_name = model or os.getenv("OPENAI_MODEL", DEFAULT_MODEL)
+    rul_query = _is_rul_query(query)
     correlation_id = str(uuid4())
     model_client = client or OpenAIResponsesClient()
     approvals = approval_store or ApprovalStore(project_root)
@@ -297,6 +354,28 @@ def answer_operational_query(
         answer = (
             "I prepared the predictive-maintenance workflow action. "
             "Review the protected operation below before it runs."
+        )
+    if rul_query and intent == "rul_unavailable":
+        answer = (
+            "RUL is unavailable. No compatible stored remaining-useful-life "
+            "prediction was found, so SentinelOps will not present an estimate."
+        )
+    elif rul_query and not any(
+        evidence["name"]
+        in {
+            "get_latest_rul_predictions",
+            "get_rul_prediction_by_asset",
+            "get_latest_predictions",
+            "get_predictions_by_asset",
+            "get_predictions_by_run",
+        }
+        for evidence in tool_evidence
+    ):
+        intent = "rul_unavailable"
+        items = []
+        answer = (
+            "RUL is unavailable because no approved prediction lookup "
+            "completed. SentinelOps will not present an unverified estimate."
         )
     return {
         "answer": answer,

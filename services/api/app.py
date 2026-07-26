@@ -19,9 +19,11 @@ from services.agent.approvals import ApprovalError, ApprovalStore
 from services.agent.audit import default_audit_logger
 from services.api.operations import (
     latest_predictions_response,
+    latest_rul_predictions_response,
     list_assets_response,
     predictions_by_asset_response,
     predictions_by_run_response,
+    rul_prediction_by_asset_response,
     workflow_list_response,
     workflow_status_response,
 )
@@ -94,6 +96,14 @@ def create_app(
     @app.get("/api/predictions/latest")
     def latest_predictions() -> JSONResponse:
         return operation_response(latest_predictions_response(root))
+
+    @app.get("/api/predictions/rul/latest")
+    def latest_rul_predictions() -> JSONResponse:
+        return operation_response(latest_rul_predictions_response(root))
+
+    @app.get("/api/predictions/rul/assets/{asset_id}")
+    def rul_prediction_by_asset(asset_id: str) -> JSONResponse:
+        return operation_response(rul_prediction_by_asset_response(root, asset_id))
 
     @app.get("/api/predictions/runs/{run_id}")
     def predictions_by_run(run_id: str) -> JSONResponse:

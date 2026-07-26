@@ -163,3 +163,39 @@ def latest_predictions_response(project_root: Path) -> ApiResponse:
         return validation_error(str(exc))
 
     return ok({"predictions": predictions}, "latest predictions retrieved")
+
+
+def latest_rul_predictions_response(project_root: Path) -> ApiResponse:
+    try:
+        predictions = CsvPredictionRepository(
+            project_root / "data" / "predictions"
+        ).get_latest_by_type("rul")
+    except ValueError as exc:
+        return validation_error(str(exc))
+
+    if not predictions:
+        return not_found("compatible RUL predictions are unavailable")
+    return ok({"predictions": predictions}, "latest RUL predictions retrieved")
+
+
+def rul_prediction_by_asset_response(
+    project_root: Path,
+    asset_id: str,
+) -> ApiResponse:
+    try:
+        predictions = [
+            prediction
+            for prediction in CsvPredictionRepository(
+                project_root / "data" / "predictions"
+            ).get_by_asset(asset_id)
+            if prediction.get("prediction_type") == "rul"
+        ]
+    except ValueError as exc:
+        return validation_error(str(exc))
+
+    if not predictions:
+        return not_found(f"RUL prediction unavailable for asset: {asset_id}")
+    return ok(
+        {"predictions": predictions},
+        "RUL prediction history retrieved",
+    )

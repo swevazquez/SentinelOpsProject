@@ -201,6 +201,46 @@ flowchart LR
 
 The predictive maintenance workflow begins when a pipeline is triggered by a schedule, a manual request, or an approved agent action. The telemetry simulator generates representative asset telemetry, which is stored as raw data. Spark-based ETL jobs clean and normalize the telemetry before feature engineering jobs produce analytical features for scoring. The predictive model uses those features to generate maintenance indicators such as risk score, asset status, or maintenance priority. Prediction results and related metadata are stored in PostgreSQL so they can be retrieved by the dashboard and queried through the agent interface. This workflow supports the core SentinelOps objective of turning telemetry into operational maintenance insight through a repeatable and observable process.
 
+## Implemented RUL Result Flow
+
+SCRUM-33 extends the implemented local MVP without changing its responsibility
+boundaries. The versioned Random Forest and its serialized feature contract
+remain in the ML service. The predictive workflow persists an atomic CSV result
+set through the prediction repository. FastAPI provides RUL-only retrieval, and
+the dashboard and assistant consume those application-level operations rather
+than reading files directly.
+
+```mermaid
+flowchart LR
+    DATA["FD001 validation trajectory"]
+    MODEL["Versioned Random Forest<br/>and feature contract"]
+    WORKFLOW["Predictive workflow<br/>RUL inference"]
+    STORE["Prediction repository<br/>atomic CSV result set"]
+    API["FastAPI<br/>RUL-only operations"]
+    DASH["Dashboard<br/>compare and explain"]
+    TOOLS["Assistant<br/>approved read-only tools"]
+
+    DATA --> WORKFLOW
+    MODEL --> WORKFLOW
+    WORKFLOW --> STORE
+    STORE --> API
+    API --> DASH
+    API --> TOOLS
+```
+
+The dashboard sorts compatible results by their RUL maintenance horizon while
+displaying risk as a separate indicator. Asset details allocate responsibility
+for model context, health, priority, recommendation, and prediction time to a
+single reusable detail dialog. The assistant may retrieve the same stored
+results through two closed-schema read-only tools. When no compatible RUL is
+stored, both interfaces show an unavailable state instead of deriving RUL from
+the baseline risk score.
+
+PostgreSQL, Airflow coordination, and Spark runtime processing shown in the
+broader target architecture remain separate Sprint 4 integration work. This
+keeps the current representation accurate while preserving the planned data and
+orchestration boundaries.
+
 ## Component Responsibilities
 
 The concise table below summarizes the planned system. The implemented ownership

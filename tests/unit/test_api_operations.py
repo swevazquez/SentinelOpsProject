@@ -5,9 +5,11 @@ import unittest
 from services.api.operations import (
     health_response,
     latest_predictions_response,
+    latest_rul_predictions_response,
     list_assets_response,
     predictions_by_asset_response,
     predictions_by_run_response,
+    rul_prediction_by_asset_response,
     workflow_list_response,
     workflow_status_response,
     workflow_summary_response,
@@ -49,6 +51,34 @@ def prediction_row(
         "asset_status": "warning",
         "maintenance_priority": "high",
         "recommended_action": "Schedule maintenance within 24 hours.",
+    }
+
+
+def rul_prediction_row(
+    *,
+    asset_id: str = "FD001-ENGINE-005",
+    run_id: str = "rul-run",
+    scored_at: str = "2026-07-26T14:00:00Z",
+    rul: str = "12.50",
+) -> dict[str, str]:
+    return {
+        "run_id": run_id,
+        "asset_id": asset_id,
+        "prediction_type": "rul",
+        "model_name": "sentinelops-rul-random-forest",
+        "model_version": "1.0.0",
+        "scored_at": scored_at,
+        "source_feature_path": "data/processed/cmapss-fd001/validation.csv",
+        "source_feature_sha256": "b" * 64,
+        "model_artifact_sha256": "c" * 64,
+        "dataset_id": "NASA-CMAPSS-FD001",
+        "feature_contract_version": "1.0.0",
+        "remaining_useful_life_cycles": rul,
+        "risk_score": "0.9000",
+        "health_score": "0.1000",
+        "asset_status": "critical",
+        "maintenance_priority": "immediate",
+        "recommended_action": "Inspect asset and schedule immediate maintenance.",
     }
 
 
@@ -226,6 +256,52 @@ class ApiOperationTests(unittest.TestCase):
         self.assertEqual(
             response.body["data"]["predictions"][0]["run_id"],
             "run-2",
+        )
+
+    def test_rul_responses_only_return_compatible_predictions(self):
+        with TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir)
+            repository = CsvPredictionRepository(
+                project_root / "data" / "predictions"
+            )
+            repository.save([prediction_row()])
+            repository.save([rul_prediction_row()])
+            repository.save(
+                [
+                    prediction_row(
+                        asset_id="FD001-ENGINE-005",
+                        run_id="newer-baseline-run",
+                        scored_at="2026-07-26T15:00:00Z",
+                    )
+                ]
+            )
+
+            latest_response = latest_rul_predictions_response(project_root)
+            asset_response = rul_prediction_by_asset_response(
+                project_root,
+                "FD001-ENGINE-005",
+            )
+            baseline_asset_response = rul_prediction_by_asset_response(
+                project_root,
+                "TEST-1",
+            )
+
+        self.assertEqual(latest_response.status_code, 200)
+        self.assertEqual(asset_response.status_code, 200)
+        self.assertEqual(baseline_asset_response.status_code, 404)
+        self.assertEqual(
+            latest_response.body["data"]["predictions"][0]["prediction_type"],
+            "rul",
+        )
+        self.assertEqual(
+            latest_response.body["data"]["predictions"][0]["run_id"],
+            "rul-run",
+        )
+        self.assertEqual(
+            asset_response.body["data"]["predictions"][0][
+                "remaining_useful_life_cycles"
+            ],
+            "12.50",
         )
 
     def test_prediction_responses_return_not_found_when_data_is_missing(self):

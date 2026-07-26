@@ -10,9 +10,11 @@ from services.agent.audit import AgentAuditLogger, default_audit_logger
 from services.api.operations import (
     ApiResponse,
     latest_predictions_response,
+    latest_rul_predictions_response,
     list_assets_response,
     predictions_by_asset_response,
     predictions_by_run_response,
+    rul_prediction_by_asset_response,
     workflow_list_response,
     workflow_status_response,
 )
@@ -83,6 +85,15 @@ APPROVED_TOOLS = (
         handler=_no_arguments(latest_predictions_response),
     ),
     ToolDefinition(
+        name="get_latest_rul_predictions",
+        description=(
+            "Retrieve the latest compatible remaining-useful-life prediction "
+            "for each RUL-scored asset."
+        ),
+        input_schema=_object_schema({}),
+        handler=_no_arguments(latest_rul_predictions_response),
+    ),
+    ToolDefinition(
         name="get_workflow",
         description="Retrieve one workflow execution by run identifier.",
         input_schema=_object_schema({"run_id": {"type": "string"}}),
@@ -99,6 +110,15 @@ APPROVED_TOOLS = (
         description="Retrieve prediction history for one asset.",
         input_schema=_object_schema({"asset_id": {"type": "string"}}),
         handler=_required_argument("asset_id", predictions_by_asset_response),
+    ),
+    ToolDefinition(
+        name="get_rul_prediction_by_asset",
+        description=(
+            "Retrieve compatible remaining-useful-life prediction history "
+            "for one asset."
+        ),
+        input_schema=_object_schema({"asset_id": {"type": "string"}}),
+        handler=_required_argument("asset_id", rul_prediction_by_asset_response),
     ),
 )
 

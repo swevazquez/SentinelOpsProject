@@ -9,7 +9,9 @@ select from the approved SentinelOps tools. The model can answer questions about
 
 - list monitored assets,
 - rank the highest-risk assets,
+- compare assets by shortest stored RUL,
 - explain the latest prediction for a specified asset,
+- explain the stored RUL result for a specified asset,
 - summarize workflow execution status,
 - and summarize workflow failures.
 
@@ -34,9 +36,13 @@ lookups. Each tool has a closed input schema and delegates to the existing API
 operation boundary. Unknown tools and unexpected arguments are rejected before
 execution.
 
-The registry intentionally contains no workflow-trigger or other write-capable
-tool. Operational actions remain unavailable until `SCRUM-14` adds an explicit
-approval gate.
+The RUL lookup tools return only compatible stored RUL predictions. If no result
+exists, the assistant reports that RUL is unavailable and does not substitute a
+rule-based risk score or generated estimate.
+
+The read-only registry intentionally contains no workflow-trigger or other
+write-capable tool. Operational actions use the separate approval gate described
+below.
 
 ## Restricted Operational Actions
 

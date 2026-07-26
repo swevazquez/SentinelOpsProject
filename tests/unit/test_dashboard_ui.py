@@ -126,7 +126,10 @@ class DashboardUiTests(unittest.TestCase):
     def test_assistant_submits_supported_operational_queries(self):
         self.assertIn('id="assistant-form"', self.html)
         self.assertIn('id="assistant-input"', self.html)
-        self.assertIn('data-assistant-prompt="Show highest risk assets"', self.html)
+        self.assertIn(
+            'data-assistant-prompt="Show assets with the shortest RUL"',
+            self.html,
+        )
         self.assertIn('fetch("/api/assistant/query"', self.js)
         self.assertIn("payload.data.response.answer", self.js)
         self.assertIn('id="assistant-model-name"', self.html)
@@ -188,6 +191,24 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn('id="asset-detail-dialog"', self.html)
         self.assertIn("function openAssetDetails(assetId)", self.js)
         self.assertIn("model_confidence", self.js)
+
+    def test_dashboard_exposes_rul_without_confusing_it_with_risk(self):
+        self.assertIn("<th>Risk Score</th><th>RUL</th>", self.html)
+        self.assertIn('value="rul-asc">RUL: shortest horizon', self.html)
+        self.assertIn("function formatRul(value)", self.js)
+        self.assertIn('optionalApiFetch("/api/predictions/rul/latest")', self.js)
+        self.assertIn("prediction?.prediction_type === \"rul\"", self.js)
+        self.assertIn("remaining_useful_life_cycles", self.js)
+        self.assertIn("asset.rul_available", self.js)
+        self.assertIn("RUL is unavailable because no compatible stored", self.js)
+        self.assertIn("not a guaranteed failure date", self.js)
+        self.assertIn('class="rul-chip', self.js)
+        self.assertIn(".rul-chip.rul-unavailable", self.css)
+        self.assertIn(
+            'data-assistant-prompt="What is the RUL for FD001-ENGINE-002?"',
+            self.html,
+        )
+        self.assertIn('"compare_rul", "explain_asset_rul"', self.js)
 
     def test_dashboard_styles_support_responsive_wireframe_layout(self):
         self.assertIn("kpi-grid", self.css)

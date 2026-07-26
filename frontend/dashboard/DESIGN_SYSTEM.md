@@ -33,6 +33,9 @@ Always pair status color with a text label or icon. Never rely on color alone.
 - Primary buttons are reserved for the main action in a view. Secondary and icon
   buttons use neutral surfaces; destructive actions use the critical treatment.
 - Badges and risk chips use compact labels with the semantic status palette.
+- Show RUL as a cycle-based maintenance horizon and risk as a separate bounded
+  indicator. Never derive or imply RUL from a baseline risk score.
+- Use an explicit `Unavailable` label when no compatible stored RUL exists.
 - Tables use sticky headers, restrained row separators, aligned numeric columns,
   and a visible hover state. Put row-specific actions in the final column.
 - Loading, empty, error, confirmation, and toast states must state what happened
