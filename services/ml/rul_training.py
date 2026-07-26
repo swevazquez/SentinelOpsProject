@@ -68,6 +68,13 @@ class FeatureMatrix:
 
 
 @dataclass(frozen=True)
+class TemporalFeatureValues:
+    values: list[list[float]]
+    engine_ids: list[int]
+    cycles: list[int]
+
+
+@dataclass(frozen=True)
 class TrainingResult:
     artifact_dir: Path
     model_path: Path
@@ -281,16 +288,16 @@ def _trend(values: list[float]) -> float:
     )
 
 
-def build_temporal_features(
+def build_temporal_feature_values(
     rows: list[NumericRow],
     contract: TemporalFeatureContract,
-) -> FeatureMatrix:
+) -> TemporalFeatureValues:
     if not rows:
-        raise ValueError("temporal feature generation requires labeled rows")
+        raise ValueError("temporal feature generation requires trajectory rows")
 
     values: list[list[float]] = []
-    targets: list[float] = []
     engine_ids: list[int] = []
+    cycles: list[int] = []
     rows_by_engine: dict[int, list[NumericRow]] = {}
     for row in rows:
         rows_by_engine.setdefault(int(row["engine_id"]), []).append(row)
@@ -322,10 +329,49 @@ def build_temporal_features(
                     "non-finite temporal features"
                 )
             values.append(feature_row)
-            targets.append(float(row["rul"]))
             engine_ids.append(engine_id)
+            cycles.append(int(row["cycle"]))
 
-    return FeatureMatrix(values=values, targets=targets, engine_ids=engine_ids)
+    return TemporalFeatureValues(
+        values=values,
+        engine_ids=engine_ids,
+        cycles=cycles,
+    )
+
+
+def build_temporal_features(
+    rows: list[NumericRow],
+    contract: TemporalFeatureContract,
+) -> FeatureMatrix:
+    missing_targets = [
+        (int(row["engine_id"]), int(row["cycle"]))
+        for row in rows
+        if "rul" not in row
+    ]
+    if missing_targets:
+        engine_id, cycle = missing_targets[0]
+        raise ValueError(
+            f"engine {engine_id} cycle {cycle} is missing the RUL training target"
+        )
+
+    feature_values = build_temporal_feature_values(rows, contract)
+    targets_by_key = {
+        (int(row["engine_id"]), int(row["cycle"])): float(row["rul"])
+        for row in rows
+    }
+    targets = [
+        targets_by_key[(engine_id, cycle)]
+        for engine_id, cycle in zip(
+            feature_values.engine_ids,
+            feature_values.cycles,
+            strict=True,
+        )
+    ]
+    return FeatureMatrix(
+        values=feature_values.values,
+        targets=targets,
+        engine_ids=feature_values.engine_ids,
+    )
 
 
 def _error_metrics(actual: list[float], predicted: list[float]) -> dict[str, float]:

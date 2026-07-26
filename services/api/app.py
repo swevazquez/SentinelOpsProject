@@ -20,10 +20,13 @@ from services.agent.audit import default_audit_logger
 from services.api.operations import (
     latest_predictions_response,
     list_assets_response,
+    predictions_by_asset_response,
+    predictions_by_run_response,
     workflow_list_response,
     workflow_status_response,
 )
 from services.api.workflow_execution import run_predictive_workflow
+from services.ml.rul_training import DEFAULT_MODEL_VERSION, SEMANTIC_VERSION_PATTERN
 from services.workflows.status import record_workflow_status
 
 
@@ -34,6 +37,8 @@ class WorkflowRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     workflow: str
+    inference_mode: Literal["baseline", "rul"] = "baseline"
+    model_version: str | None = None
 
 
 class AssistantQueryRequest(BaseModel):
@@ -89,6 +94,14 @@ def create_app(
     @app.get("/api/predictions/latest")
     def latest_predictions() -> JSONResponse:
         return operation_response(latest_predictions_response(root))
+
+    @app.get("/api/predictions/runs/{run_id}")
+    def predictions_by_run(run_id: str) -> JSONResponse:
+        return operation_response(predictions_by_run_response(root, run_id))
+
+    @app.get("/api/predictions/assets/{asset_id}")
+    def predictions_by_asset(asset_id: str) -> JSONResponse:
+        return operation_response(predictions_by_asset_response(root, asset_id))
 
     @app.get("/api/workflows")
     def list_workflows() -> JSONResponse:
@@ -234,6 +247,17 @@ def create_app(
                 status_code=400,
                 detail=f"unsupported workflow: {request.workflow}",
             )
+        if request.inference_mode == "baseline" and request.model_version is not None:
+            raise HTTPException(
+                status_code=400,
+                detail="model_version is only supported for RUL inference",
+            )
+        model_version = request.model_version or DEFAULT_MODEL_VERSION
+        if not SEMANTIC_VERSION_PATTERN.fullmatch(model_version):
+            raise HTTPException(
+                status_code=400,
+                detail="model_version must use semantic MAJOR.MINOR.PATCH format",
+            )
         run_id = _run_id()
         record_workflow_status(
             project_root=root,
@@ -245,6 +269,8 @@ def create_app(
             run_predictive_workflow,
             project_root=root,
             run_id=run_id,
+            inference_mode=request.inference_mode,
+            model_version=model_version,
         )
         return {
             "status": "accepted",
@@ -255,6 +281,10 @@ def create_app(
                     "run_id": run_id,
                     "status": "running",
                     "step": "queued",
+                    "inference_mode": request.inference_mode,
+                    "model_version": (
+                        model_version if request.inference_mode == "rul" else None
+                    ),
                 }
             },
         }

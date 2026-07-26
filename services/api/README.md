@@ -25,10 +25,34 @@ workflow API from the same origin.
 | `POST` | `/api/assistant/approvals/{approval_id}` | Approve or reject one prepared action. |
 | `POST` | `/api/assistant/actions/execute` | Execute the exact approved action once. |
 | `GET` | `/api/predictions/latest` | Retrieve the latest prediction for each asset. |
+| `GET` | `/api/predictions/runs/{run_id}` | Retrieve predictions for one workflow run. |
+| `GET` | `/api/predictions/assets/{asset_id}` | Retrieve prediction history for one asset. |
 
 Manual requests run in a FastAPI background task and return `202 Accepted` with
 a generated run ID. Unsupported workflow names and unexpected request fields
 are rejected before execution.
+
+The existing request remains the default rule-based demonstration:
+
+```json
+{"workflow": "predictive-maintenance"}
+```
+
+After the FD001 data and versioned model are generated, request RUL inference
+explicitly:
+
+```json
+{
+  "workflow": "predictive-maintenance",
+  "inference_mode": "rul",
+  "model_version": "1.0.0"
+}
+```
+
+The RUL mode only reads the repository-managed validation trajectory and model
+directory. It does not accept arbitrary paths. A missing, corrupt, or
+incompatible model or feature contract records a failed workflow step before
+prediction persistence. Existing prediction files are not changed.
 
 ## Operational API Contract
 
@@ -56,11 +80,10 @@ also include `data`.
 | Invalid request or malformed source data | 400 | `{"status": "error", "request_state": "error", "message": "..."}` |
 | Unavailable source | 503 | `{"status": "unavailable", "request_state": "unavailable", "message": "..."}` |
 
-## Planned Workflow Visibility Contract
+## Workflow Visibility Contract
 
-`SCRUM-5` adds read-side workflow status helpers that the API service can wrap in
-Sprint 2. The API should expose the same status concepts rather than reading raw
-JSON files directly:
+Workflow status and prediction routes expose the same status concepts used by
+the stored operational records rather than requiring clients to read raw files:
 
 - lookup one workflow run by run ID,
 - list recent workflow runs in newest-first order,

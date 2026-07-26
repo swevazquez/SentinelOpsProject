@@ -21,7 +21,7 @@ REQUIRED_FEATURE_FIELDS = [
     "failure_observed",
 ]
 
-PREDICTION_FIELDS = [
+LEGACY_PREDICTION_FIELDS = [
     "run_id",
     "asset_id",
     "model_name",
@@ -30,6 +30,26 @@ PREDICTION_FIELDS = [
     "source_feature_path",
     "source_feature_sha256",
     "risk_score",
+    "asset_status",
+    "maintenance_priority",
+    "recommended_action",
+]
+
+PREDICTION_FIELDS = [
+    "run_id",
+    "asset_id",
+    "prediction_type",
+    "model_name",
+    "model_version",
+    "scored_at",
+    "source_feature_path",
+    "source_feature_sha256",
+    "model_artifact_sha256",
+    "dataset_id",
+    "feature_contract_version",
+    "remaining_useful_life_cycles",
+    "risk_score",
+    "health_score",
     "asset_status",
     "maintenance_priority",
     "recommended_action",
@@ -159,12 +179,18 @@ def score_feature_rows(
             {
                 "run_id": row["run_id"],
                 "asset_id": row["asset_id"],
+                "prediction_type": "risk_baseline",
                 "model_name": MODEL_NAME,
                 "model_version": MODEL_VERSION,
                 "scored_at": scored_at_value,
                 "source_feature_path": source_feature_path,
                 "source_feature_sha256": source_sha256,
+                "model_artifact_sha256": "",
+                "dataset_id": "",
+                "feature_contract_version": "",
+                "remaining_useful_life_cycles": "",
                 "risk_score": f"{risk_score:.4f}",
+                "health_score": f"{1.0 - risk_score:.4f}",
                 **maintenance_indicators(risk_score),
             }
         )

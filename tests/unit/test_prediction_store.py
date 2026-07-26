@@ -1,8 +1,10 @@
+import csv
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
 from services.ml.prediction_store import CsvPredictionRepository
+from services.ml.scoring import LEGACY_PREDICTION_FIELDS
 
 
 def prediction_row(
@@ -15,12 +17,18 @@ def prediction_row(
     return {
         "run_id": run_id,
         "asset_id": asset_id,
+        "prediction_type": "risk_baseline",
         "model_name": "sentinelops-risk-baseline",
         "model_version": "1.0.0",
         "scored_at": scored_at,
         "source_feature_path": "data/processed/features_run-1.csv",
         "source_feature_sha256": "a" * 64,
+        "model_artifact_sha256": "",
+        "dataset_id": "",
+        "feature_contract_version": "",
+        "remaining_useful_life_cycles": "",
         "risk_score": risk_score,
+        "health_score": "0.5000",
         "asset_status": "warning",
         "maintenance_priority": "high",
         "recommended_action": "Schedule maintenance within 24 hours.",
@@ -77,6 +85,29 @@ class CsvPredictionRepositoryTests(unittest.TestCase):
             repository = CsvPredictionRepository(Path(temp_dir))
 
             self.assertEqual(repository.get_by_run("missing"), [])
+
+    def test_legacy_baseline_predictions_remain_readable(self):
+        with TemporaryDirectory() as temp_dir:
+            storage_dir = Path(temp_dir)
+            path = storage_dir / "predictions_legacy-run.csv"
+            row = prediction_row(run_id="legacy-run")
+            with path.open("w", newline="", encoding="utf-8") as output_file:
+                writer = csv.DictWriter(
+                    output_file,
+                    fieldnames=LEGACY_PREDICTION_FIELDS,
+                )
+                writer.writeheader()
+                writer.writerow(
+                    {field: row[field] for field in LEGACY_PREDICTION_FIELDS}
+                )
+
+            stored_rows = CsvPredictionRepository(storage_dir).get_by_run(
+                "legacy-run"
+            )
+
+        self.assertEqual(stored_rows[0]["prediction_type"], "risk_baseline")
+        self.assertEqual(stored_rows[0]["health_score"], "0.5000")
+        self.assertEqual(stored_rows[0]["remaining_useful_life_cycles"], "")
 
     def test_save_rejects_missing_prediction_fields(self):
         with TemporaryDirectory() as temp_dir:
