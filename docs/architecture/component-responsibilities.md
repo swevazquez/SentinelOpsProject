@@ -12,6 +12,7 @@ reason to change.
 | Orchestration | `airflow/` and `services/workflows/` | Airflow scheduling, task dependency order, reusable workflow coordination, run status, and failure reporting. | Telemetry algorithms, feature calculations, model training, HTTP presentation, or user-interface rendering. |
 | Processing | `services/spark_jobs/` and `services/spark-jobs/` | Telemetry validation, ETL, feature engineering, batch transformations, and later batch scoring entrypoints. | Workflow scheduling, API routing, dashboard behavior, or agent decisions. |
 | Analytics | `services/ml/` | Model training, evaluation, inference helpers, explainability, and model metadata. | Data ingestion, workflow scheduling, HTTP routing, dashboard rendering, or operational approvals. |
+| Persistence | `services/persistence/`, repository adapters in `services/ml/` and `services/workflows/` | Backend selection, PostgreSQL connection handling, versioned schema bootstrap, and repository implementations for predictions and workflow state. | API response formatting, workflow scheduling, model inference, or dashboard behavior. |
 | Simulator | `services/simulator/` | Deterministic representative telemetry generation and raw telemetry persistence. | Feature engineering, scheduling, analytics, APIs, dashboard behavior, or agent actions. |
 | Dashboard | `frontend/dashboard/` | Operational views, client-side interaction, view state, and calls to documented API contracts. | Direct data-file access, workflow scheduling, model execution, or agent tool execution. |
 | Agent | `services/agent/` | Natural-language operational assistance, narrow tool interfaces, audit context, and approval-gated actions. | Direct storage mutation, independent workflow scheduling, model training, or dashboard rendering. |
@@ -34,6 +35,11 @@ Airflow DAG -> workflow coordination -> simulator and processing
 Shared data is exchanged through explicit function arguments, return types, and
 documented artifact contracts. Components must not reach into another component's
 runtime state or bypass its public entrypoint.
+
+Prediction and workflow consumers depend on repository protocols. Explicit
+configuration selects file-backed adapters for lightweight local work or
+PostgreSQL adapters for durable operational state. PostgreSQL failures surface as
+unavailable states; they do not trigger an implicit switch to another backend.
 
 ## Automated Boundary Check
 

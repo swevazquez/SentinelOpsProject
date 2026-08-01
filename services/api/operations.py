@@ -9,7 +9,9 @@ from services.api.rul_demo import (
     configured_rul_demo_asset_ids,
     current_rul_demo_run_ids,
 )
-from services.ml.prediction_store import CsvPredictionRepository
+from services.ml.prediction_store import prediction_repository
+from services.persistence.config import PersistenceConfigurationError
+from services.persistence.postgres import PersistenceUnavailableError
 from services.simulator.telemetry import load_asset_profiles
 from services.workflows.status import (
     WorkflowStatus,
@@ -154,9 +156,9 @@ def _workflow_payload(
     payload = asdict(workflow)
     payload["result_summary"] = None
     if payload["status"] == "completed":
-        predictions = CsvPredictionRepository(
-            project_root / "data" / "predictions"
-        ).get_by_run(payload["run_id"])
+        predictions = prediction_repository(project_root).get_by_run(
+            payload["run_id"]
+        )
         payload["result_summary"] = _prediction_result_summary(predictions)
     return payload
 
@@ -164,6 +166,8 @@ def _workflow_payload(
 def workflow_status_response(project_root: Path, run_id: str) -> ApiResponse:
     try:
         status = get_workflow_status(project_root, run_id)
+    except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
+        return unavailable(str(exc))
     except ValueError as exc:
         return validation_error(str(exc))
 
@@ -171,6 +175,8 @@ def workflow_status_response(project_root: Path, run_id: str) -> ApiResponse:
         return not_found(f"workflow run not found: {run_id}")
     try:
         workflow = _workflow_payload(project_root, status)
+    except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
+        return unavailable(str(exc))
     except ValueError as exc:
         return validation_error(str(exc))
     return ok({"workflow": workflow}, "workflow status retrieved")
@@ -198,6 +204,8 @@ def workflow_list_response(project_root: Path) -> ApiResponse:
             _workflow_payload(project_root, status)
             for status in statuses
         ]
+    except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
+        return unavailable(str(exc))
     except ValueError as exc:
         return validation_error(str(exc))
     return ok(
@@ -212,6 +220,8 @@ def workflow_summary_response(project_root: Path) -> ApiResponse:
             project_root,
             list_workflow_statuses(project_root),
         )
+    except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
+        return unavailable(str(exc))
     except ValueError as exc:
         return validation_error(str(exc))
     summary = WorkflowStatusSummary(
@@ -225,9 +235,9 @@ def workflow_summary_response(project_root: Path) -> ApiResponse:
 
 def predictions_by_run_response(project_root: Path, run_id: str) -> ApiResponse:
     try:
-        predictions = CsvPredictionRepository(
-            project_root / "data" / "predictions"
-        ).get_by_run(run_id)
+        predictions = prediction_repository(project_root).get_by_run(run_id)
+    except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
+        return unavailable(str(exc))
     except ValueError as exc:
         return validation_error(str(exc))
 
@@ -238,9 +248,9 @@ def predictions_by_run_response(project_root: Path, run_id: str) -> ApiResponse:
 
 def predictions_by_asset_response(project_root: Path, asset_id: str) -> ApiResponse:
     try:
-        predictions = CsvPredictionRepository(
-            project_root / "data" / "predictions"
-        ).get_by_asset(asset_id)
+        predictions = prediction_repository(project_root).get_by_asset(asset_id)
+    except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
+        return unavailable(str(exc))
     except ValueError as exc:
         return validation_error(str(exc))
 
@@ -256,9 +266,9 @@ def latest_predictions_response(project_root: Path) -> ApiResponse:
             return ok({"predictions": []}, "latest predictions retrieved")
         return response
     try:
-        predictions = CsvPredictionRepository(
-            project_root / "data" / "predictions"
-        ).get_latest()
+        predictions = prediction_repository(project_root).get_latest()
+    except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
+        return unavailable(str(exc))
     except ValueError as exc:
         return validation_error(str(exc))
 
@@ -267,9 +277,7 @@ def latest_predictions_response(project_root: Path) -> ApiResponse:
 
 def latest_rul_predictions_response(project_root: Path) -> ApiResponse:
     try:
-        repository = CsvPredictionRepository(
-            project_root / "data" / "predictions"
-        )
+        repository = prediction_repository(project_root)
         scenario_is_configured = (project_root / SCENARIO_PATH).is_file()
         if scenario_is_configured:
             current_run_ids = current_rul_demo_run_ids(project_root)
@@ -302,6 +310,8 @@ def latest_rul_predictions_response(project_root: Path) -> ApiResponse:
             for prediction in latest_predictions
             if prediction["asset_id"] in demo_asset_ids
         ]
+    except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
+        return unavailable(str(exc))
     except ValueError as exc:
         return validation_error(str(exc))
 
@@ -317,11 +327,13 @@ def rul_prediction_by_asset_response(
     try:
         predictions = [
             prediction
-            for prediction in CsvPredictionRepository(
-                project_root / "data" / "predictions"
-            ).get_by_asset(asset_id)
+            for prediction in prediction_repository(project_root).get_by_asset(
+                asset_id
+            )
             if prediction.get("prediction_type") == "rul"
         ]
+    except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
+        return unavailable(str(exc))
     except ValueError as exc:
         return validation_error(str(exc))
 
