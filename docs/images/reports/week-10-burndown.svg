@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title description">
+  <title id="title">Sprint 4 Week 10 Burndown</title>
+  <description id="description">Planned Sprint 4 delivery decreased from 46 remaining story points at the start to 25 story points as of this report.</description>
+  <rect width="1200" height="620" fill="#0b1118" rx="20"/>
+  <text x="70" y="55" fill="#f3f7fb" font-family="Arial, sans-serif" font-size="28" font-weight="700">Sprint 4 Week 10 Burndown</text>
+  <text x="70" y="85" fill="#9aabba" font-family="Arial, sans-serif" font-size="16">Prioritized sprint delivery through the current report</text>
+
+  <g stroke="#293643" stroke-width="1">
+    <line x1="105" y1="500" x2="1110" y2="500"/>
+    <line x1="105" y1="416" x2="1110" y2="416"/>
+    <line x1="105" y1="332" x2="1110" y2="332"/>
+    <line x1="105" y1="248" x2="1110" y2="248"/>
+    <line x1="105" y1="164" x2="1110" y2="164"/>
+    <line x1="105" y1="80" x2="1110" y2="80"/>
+  </g>
+
+  <g fill="#9aabba" font-family="Arial, sans-serif" font-size="14" text-anchor="end">
+    <text x="92" y="505">0</text>
+    <text x="92" y="421">10</text>
+    <text x="92" y="337">20</text>
+    <text x="92" y="253">30</text>
+    <text x="92" y="169">40</text>
+    <text x="92" y="85">50</text>
+  </g>
+  <text x="30" y="330" fill="#9aabba" font-family="Arial, sans-serif" font-size="14" transform="rotate(-90 30 330)">Story points remaining</text>
+
+  <g fill="#9aabba" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">
+    <text x="125" y="535">Week 9</text>
+    <text x="445" y="535">Week 10</text>
+    <text x="765" y="535">Week 11</text>
+    <text x="1090" y="535">Week 12</text>
+  </g>
+
+  <polyline points="125,114 1090,500" fill="none" stroke="#647587" stroke-width="3" stroke-dasharray="10 8"/>
+  <polyline points="125,114 445,290" fill="none" stroke="#5fa8ff" stroke-width="5" stroke-linecap="round"/>
+
+  <g fill="#5fa8ff" stroke="#dcecff" stroke-width="2">
+    <circle cx="125" cy="114" r="8"/>
+    <circle cx="445" cy="290" r="9"/>
+  </g>
+
+  <rect x="510" y="205" width="475" height="92" rx="10" fill="#12263a" stroke="#5fa8ff"/>
+  <text x="532" y="239" fill="#dcecff" font-family="Arial, sans-serif" font-size="16" font-weight="700">21 of 46 planned points completed</text>
+  <text x="532" y="269" fill="#b9cee1" font-family="Arial, sans-serif" font-size="14">25 prioritized integration and documentation points remain.</text>
+
+  <g font-family="Arial, sans-serif" font-size="14">
+    <line x1="110" y1="575" x2="155" y2="575" stroke="#5fa8ff" stroke-width="5"/>
+    <text x="165" y="580" fill="#c8d4df">Actual remaining effort</text>
+    <line x1="390" y1="575" x2="435" y2="575" stroke="#647587" stroke-width="3" stroke-dasharray="10 8"/>
+    <text x="445" y="580" fill="#c8d4df">Ideal trend</text>
+  </g>
+</svg>
