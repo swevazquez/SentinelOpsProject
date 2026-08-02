@@ -27,13 +27,15 @@ Airflow DAG -> Spark RUL batch -> ML inference and persistence contracts
 ```
 
 - Airflow DAGs delegate application behavior to `services.workflows`.
-- Workflow coordination may compose simulator and processing capabilities.
+- Workflow coordination may compose simulator and processing capabilities. The
+  Airflow adapter also owns the boundary between Airflow task context, repeatable
+  RUL demo checkpoint selection, and the shared status repository.
 - The simulator and original lightweight feature module remain independent of
   orchestration and interface components.
 - The Spark RUL entrypoint may compose ML, prediction-repository, and shared
   workflow-status contracts, but it remains independent of Airflow and FastAPI.
-- API, dashboard, analytics, and agent components will consume explicit
-  application contracts as their later-sprint implementations are added.
+- API, dashboard, analytics, and agent components consume explicit application
+  contracts rather than reaching into Airflow task state.
 
 Shared data is exchanged through explicit function arguments, return types, and
 documented artifact contracts. Components must not reach into another component's

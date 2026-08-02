@@ -99,6 +99,7 @@ flowchart TB
         TDAG["Telemetry Processing DAG"]
         FDAG["Feature Engineering DAG"]
         SDAG["Prediction Scoring DAG"]
+        RDAG["Final Predictive-Maintenance DAG"]
     end
 
     %% =====================================================
@@ -142,6 +143,7 @@ flowchart TB
     AIRFLOW -->|Execute| TDAG
     AIRFLOW -->|Execute| FDAG
     AIRFLOW -->|Execute| SDAG
+    AIRFLOW -->|Execute| RDAG
 
     TDAG -->|Run Telemetry Processing| SIM
     TDAG -->|Run ETL| ETL
@@ -250,9 +252,13 @@ the ML service and commits the resulting predictions through the repository
 boundary introduced by SCRUM-36. This preserves one model implementation while
 providing a stable callable and command for Airflow.
 
-Final Airflow coordination remains separate Sprint 4 integration work.
-PostgreSQL and Spark now provide the persistence and batch-processing boundaries
-that the final DAG will coordinate.
+SCRUM-35 adds the final manual-only Airflow DAG. The DAG selects either the next
+held-out RUL demo checkpoint or an explicitly configured C-MAPSS-compatible input,
+invokes the Spark batch boundary, and finalizes the shared workflow status. A
+failure callback releases any reserved demo checkpoint and records the failed task
+with a sanitized error. Airflow therefore owns task order and visibility while the
+workflow and Spark services retain business logic, model behavior, and persistence
+responsibilities.
 
 ## Component Responsibilities
 
@@ -270,7 +276,7 @@ architecture check are defined in
 | Prediction Service | Provides access to risk scores, prediction outputs, and recommendations |
 | Workflow Service | Triggers Airflow workflows and retrieves workflow execution status |
 | Agent Coordination Service | Manages approved agent tool calls and approval-gated actions |
-| Apache Airflow | Coordinates repeatable telemetry, feature engineering, and scoring workflows |
+| Apache Airflow | Coordinates repeatable telemetry, feature engineering, Spark RUL scoring, and workflow status |
 | Spark ETL Jobs | Clean, transform, and prepare telemetry data |
 | Feature Engineering Jobs | Generate analytical features for predictive scoring |
 | ML Scoring Engine | Executes predictive maintenance scoring |

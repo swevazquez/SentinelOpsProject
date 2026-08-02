@@ -68,6 +68,8 @@ foundation plus the first Sprint 3 interaction slices:
     configuration, with transactional prediction writes and durable workflow state.
 27. Run C-MAPSS batch validation, temporal feature preparation, versioned RUL
     inference, and shared result persistence through a local Apache Spark job.
+28. Coordinate the final repeatable RUL workflow through a manual-only Airflow
+    DAG that invokes the Spark boundary and reports success or failure.
 
 The Sprint 3 interaction slice now supports informational queries through
 read-only tools and one approval-gated predictive-maintenance action. Unknown,
@@ -247,7 +249,13 @@ Start the optional Airflow and PostgreSQL services:
 ./scripts/run-local.sh
 ```
 
-The Airflow DAG for Sprint 1 is `sentinelops_sprint1_pipeline`.
+Airflow provides two manual DAGs: `sentinelops_sprint1_pipeline` for the original
+telemetry/feature workflow and `sentinelops_predictive_maintenance` for the final
+RUL path. The final DAG selects the next repeatable held-out FD001 checkpoint by
+default, calls the Spark RUL batch boundary, and records the completed or failed
+workflow through the shared status repository. Set
+`SENTINELOPS_AIRFLOW_INPUT_PATH` when you want to run a specific
+C-MAPSS-compatible CSV instead of the demo checkpoint.
 
 ## Documentation
 
