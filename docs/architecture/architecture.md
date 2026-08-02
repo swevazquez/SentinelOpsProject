@@ -215,7 +215,7 @@ flowchart LR
     DATA["FD001 validation trajectory"]
     MODEL["Versioned Random Forest<br/>and feature contract"]
     WORKFLOW["Predictive workflow<br/>RUL inference"]
-    STORE["Prediction repository<br/>atomic CSV result set"]
+    STORE["Prediction repository<br/>file or PostgreSQL adapter"]
     API["FastAPI<br/>RUL-only operations"]
     DASH["Dashboard<br/>compare and explain"]
     TOOLS["Assistant<br/>approved read-only tools"]
@@ -228,6 +228,13 @@ flowchart LR
     API --> TOOLS
 ```
 
+SCRUM-36 preserves this result flow while adding a PostgreSQL adapter behind the
+same prediction repository contract. Workflow status uses a matching repository
+boundary. File-backed CSV and JSON storage remain the default lightweight mode;
+PostgreSQL stores predictions and workflow state transactionally when selected
+through configuration. FastAPI and workflow code use repository factories and
+therefore do not select a storage implementation directly.
+
 The dashboard sorts compatible results by their RUL maintenance horizon while
 displaying risk as a separate indicator. Asset details allocate responsibility
 for model context, health, priority, recommendation, and prediction time to a
@@ -236,10 +243,9 @@ results through two closed-schema read-only tools. When no compatible RUL is
 stored, both interfaces show an unavailable state instead of deriving RUL from
 the baseline risk score.
 
-PostgreSQL, Airflow coordination, and Spark runtime processing shown in the
-broader target architecture remain separate Sprint 4 integration work. This
-keeps the current representation accurate while preserving the planned data and
-orchestration boundaries.
+Final Airflow coordination and Spark runtime processing shown in the broader
+target architecture remain separate Sprint 4 integration work. PostgreSQL now
+provides the implemented operational persistence path required by those stories.
 
 ## Component Responsibilities
 

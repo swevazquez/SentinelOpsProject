@@ -10,7 +10,7 @@ from services.api.rul_demo import (
     release_rul_demo_run,
     reserve_rul_demo_batch,
 )
-from services.ml.prediction_store import CsvPredictionRepository
+from services.ml.prediction_store import prediction_repository
 from services.ml.rul_inference import score_rul_trajectory_file
 from services.ml.rul_training import DEFAULT_MODEL_VERSION, SEMANTIC_VERSION_PATTERN
 from services.ml.scoring import score_feature_file
@@ -89,9 +89,7 @@ def run_predictive_workflow(
         else:
             raise ValueError(f"unsupported inference mode: {inference_mode}")
 
-        storage_result = CsvPredictionRepository(
-            project_root / "data" / "predictions"
-        ).save(predictions)
+        storage_result = prediction_repository(project_root).save(predictions)
         if demo_run_reserved:
             complete_rul_demo_run(project_root, run_id)
     except Exception as exc:

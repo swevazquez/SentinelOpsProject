@@ -37,6 +37,8 @@ from services.api.rul_demo import (
 )
 from services.api.workflow_execution import run_predictive_workflow
 from services.ml.rul_training import DEFAULT_MODEL_VERSION, SEMANTIC_VERSION_PATTERN
+from services.persistence.config import PersistenceConfigurationError
+from services.persistence.postgres import PersistenceUnavailableError
 from services.workflows.status import record_workflow_status
 
 
@@ -280,6 +282,11 @@ def create_app(
         except (RulDemoBusyError, RulDemoCompleteError) as exc:
             _record_action_failure(root, request, started_at, "demo_state_error")
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
+            if "run_id" in locals():
+                release_rul_demo_run(root, run_id)
+            _record_action_failure(root, request, started_at, "persistence_unavailable")
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
         except Exception:
             if "run_id" in locals():
                 release_rul_demo_run(root, run_id)
@@ -342,12 +349,17 @@ def create_app(
                 raise HTTPException(status_code=409, detail=str(exc)) from exc
             except ValueError as exc:
                 raise HTTPException(status_code=503, detail=str(exc)) from exc
-        record_workflow_status(
-            project_root=root,
-            run_id=run_id,
-            status="running",
-            step="queued",
-        )
+        try:
+            record_workflow_status(
+                project_root=root,
+                run_id=run_id,
+                status="running",
+                step="queued",
+            )
+        except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
+            if batch is not None:
+                release_rul_demo_run(root, run_id)
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
         background_tasks.add_task(
             run_predictive_workflow,
             project_root=root,

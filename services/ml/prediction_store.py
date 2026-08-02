@@ -6,7 +6,11 @@ import math
 from pathlib import Path
 from typing import Protocol
 
+from psycopg.types.json import Jsonb
+
 from services.ml.scoring import LEGACY_PREDICTION_FIELDS, PREDICTION_FIELDS
+from services.persistence.config import persistence_settings, prediction_storage_dir
+from services.persistence.postgres import postgres_connection
 
 
 DEFAULT_PREDICTION_STORAGE_DIR = Path("data/predictions")
@@ -29,7 +33,7 @@ REQUIRED_PREDICTION_FIELDS = (
 
 @dataclass(frozen=True)
 class PredictionStorageResult:
-    path: Path
+    path: Path | None
     run_id: str
     row_count: int
 
@@ -224,3 +228,125 @@ class CsvPredictionRepository:
                 }
                 for row in reader
             ]
+
+
+class PostgresPredictionRepository:
+    def __init__(self, database_url: str) -> None:
+        self.database_url = database_url
+
+    def save(self, rows: list[dict[str, str]]) -> PredictionStorageResult:
+        run_id = _validate_prediction_rows(rows)
+        with postgres_connection(self.database_url) as connection:
+            with connection.transaction():
+                connection.execute(
+                    "DELETE FROM sentinelops_predictions WHERE run_id = %s",
+                    (run_id,),
+                )
+                with connection.cursor() as cursor:
+                    cursor.executemany(
+                        """
+                        INSERT INTO sentinelops_predictions (
+                            run_id,
+                            asset_id,
+                            prediction_type,
+                            scored_at,
+                            payload
+                        ) VALUES (%s, %s, %s, %s, %s)
+                        """,
+                        [
+                            (
+                                row["run_id"],
+                                row["asset_id"],
+                                row["prediction_type"],
+                                row["scored_at"],
+                                Jsonb(row),
+                            )
+                            for row in rows
+                        ],
+                    )
+        return PredictionStorageResult(
+            path=None,
+            run_id=run_id,
+            row_count=len(rows),
+        )
+
+    def get_by_run(self, run_id: str) -> list[dict[str, str]]:
+        _validate_identifier(run_id, "run_id")
+        return self._select_payloads(
+            """
+            SELECT payload
+            FROM sentinelops_predictions
+            WHERE run_id = %s
+            ORDER BY asset_id
+            """,
+            (run_id,),
+        )
+
+    def get_by_asset(self, asset_id: str) -> list[dict[str, str]]:
+        if not asset_id:
+            raise ValueError("asset_id must be non-empty")
+        return self._select_payloads(
+            """
+            SELECT payload
+            FROM sentinelops_predictions
+            WHERE asset_id = %s
+            ORDER BY scored_at DESC
+            """,
+            (asset_id,),
+        )
+
+    def get_latest(self) -> list[dict[str, str]]:
+        return self._get_latest()
+
+    def get_latest_by_type(self, prediction_type: str) -> list[dict[str, str]]:
+        if prediction_type not in ("risk_baseline", "rul"):
+            raise ValueError("prediction_type is invalid")
+        return self._get_latest(prediction_type=prediction_type)
+
+    def _get_latest(
+        self,
+        *,
+        prediction_type: str | None = None,
+    ) -> list[dict[str, str]]:
+        if prediction_type is None:
+            return self._select_payloads(
+                """
+                SELECT payload
+                FROM (
+                    SELECT DISTINCT ON (asset_id) asset_id, scored_at, payload
+                    FROM sentinelops_predictions
+                    ORDER BY asset_id, scored_at DESC
+                ) latest
+                ORDER BY asset_id
+                """
+            )
+        return self._select_payloads(
+            """
+            SELECT payload
+            FROM (
+                SELECT DISTINCT ON (asset_id) asset_id, scored_at, payload
+                FROM sentinelops_predictions
+                WHERE prediction_type = %s
+                ORDER BY asset_id, scored_at DESC
+            ) latest
+            ORDER BY asset_id
+            """,
+            (prediction_type,),
+        )
+
+    def _select_payloads(
+        self,
+        query: str,
+        parameters: tuple[str, ...] = (),
+    ) -> list[dict[str, str]]:
+        with postgres_connection(self.database_url) as connection:
+            records = connection.execute(query, parameters).fetchall()
+        return [dict(record["payload"]) for record in records]
+
+
+def prediction_repository(project_root: Path) -> PredictionRepository:
+    settings = persistence_settings()
+    if settings.backend == "postgres":
+        assert settings.database_url is not None
+        return PostgresPredictionRepository(settings.database_url)
+    return CsvPredictionRepository(prediction_storage_dir(project_root))

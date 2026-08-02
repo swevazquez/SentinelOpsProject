@@ -64,6 +64,8 @@ foundation plus the first Sprint 3 interaction slices:
 24. Run versioned RUL inference through the predictive workflow with safe artifact validation, bounded maintenance indicators, persisted traceability, and API retrieval.
 25. Compare and explain stored RUL results through dedicated APIs, the dashboard,
     and grounded read-only assistant tools with explicit unavailable states.
+26. Select file-backed or PostgreSQL operational persistence through explicit
+    configuration, with transactional prediction writes and durable workflow state.
 
 The Sprint 3 interaction slice now supports informational queries through
 read-only tools and one approval-gated predictive-maintenance action. Unknown,
@@ -152,6 +154,39 @@ uv run uvicorn services.api.app:app --reload
 Open `http://127.0.0.1:8000` to review the dashboard. The Workflows view can
 start the supported `predictive-maintenance` workflow and refresh live workflow,
 asset, and prediction data.
+
+### Persistence modes
+
+File-backed persistence remains the default for focused development and tests:
+
+```bash
+SENTINELOPS_PERSISTENCE_BACKEND=file \
+  uv run uvicorn services.api.app:app --reload
+```
+
+To use durable PostgreSQL prediction and workflow storage, start the database
+service and provide the host-accessible connection URL:
+
+```bash
+docker compose up -d postgres
+SENTINELOPS_PERSISTENCE_BACKEND=postgres \
+DATABASE_URL=postgresql://sentinelops:sentinelops@127.0.0.1:5432/sentinelops \
+  uv run uvicorn services.api.app:app --reload
+```
+
+The application applies the versioned operational schema automatically. A
+database outage returns an explicit unavailable response and does not fall back
+silently to files. Prediction replacement is transactional, so an interrupted
+write preserves the last committed result set. See
+`docs/development/postgresql-persistence.md` for schema, test, backup, reset,
+and limitation details.
+
+Run the real PostgreSQL integration checks against the local database:
+
+```bash
+SENTINELOPS_TEST_DATABASE_URL=postgresql://sentinelops:sentinelops@127.0.0.1:5432/sentinelops \
+  uv run python -m unittest tests.integration.test_postgres_persistence
+```
 
 After preparing FD001 and training model version `1.0.0`, the dashboard,
 assistant action, and API run RUL inference by default:
