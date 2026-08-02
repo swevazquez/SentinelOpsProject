@@ -263,6 +263,30 @@ def score_rul_trajectory_file(
 ) -> RulInferenceResult:
     artifact = load_rul_artifact(artifact_dir)
     rows = load_trajectory_rows(trajectory_path)
+    predictions = score_rul_rows(
+        rows,
+        artifact,
+        run_id=run_id,
+        source_feature_path=trajectory_path.as_posix(),
+        source_feature_sha256=file_sha256(trajectory_path),
+        scored_at=scored_at,
+    )
+    return RulInferenceResult(
+        predictions=predictions,
+        trajectory_row_count=len(rows),
+    )
+
+
+def score_rul_rows(
+    rows: list[NumericRow],
+    artifact: RulArtifact,
+    *,
+    run_id: str,
+    source_feature_path: str,
+    source_feature_sha256: str,
+    scored_at: datetime | None = None,
+) -> list[dict[str, str]]:
+    """Score validated trajectory rows while preserving their source traceability."""
     matrix = build_temporal_feature_values(rows, artifact.feature_contract)
     raw_predictions = artifact.model.predict(matrix.values)
     if len(raw_predictions) != len(matrix.values):
@@ -278,7 +302,6 @@ def score_rul_trajectory_file(
 
     scoring_time = (scored_at or datetime.now(UTC)).astimezone(UTC)
     scored_at_value = scoring_time.isoformat().replace("+00:00", "Z")
-    source_sha256 = file_sha256(trajectory_path)
     predictions: list[dict[str, str]] = []
     for engine_id in sorted(latest_index_by_engine):
         index = latest_index_by_engine[engine_id]
@@ -294,8 +317,8 @@ def score_rul_trajectory_file(
                 "model_name": MODEL_NAME,
                 "model_version": artifact.model_version,
                 "scored_at": scored_at_value,
-                "source_feature_path": trajectory_path.as_posix(),
-                "source_feature_sha256": source_sha256,
+                "source_feature_path": source_feature_path,
+                "source_feature_sha256": source_feature_sha256,
                 "model_artifact_sha256": artifact.model_sha256,
                 "dataset_id": artifact.dataset_id,
                 "feature_contract_version": artifact.feature_contract_version,
@@ -303,7 +326,4 @@ def score_rul_trajectory_file(
                 **rul_maintenance_indicators(bounded_rul),
             }
         )
-    return RulInferenceResult(
-        predictions=predictions,
-        trajectory_row_count=len(rows),
-    )
+    return predictions

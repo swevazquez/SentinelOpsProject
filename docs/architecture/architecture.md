@@ -243,9 +243,16 @@ results through two closed-schema read-only tools. When no compatible RUL is
 stored, both interfaces show an unavailable state instead of deriving RUL from
 the baseline risk score.
 
-Final Airflow coordination and Spark runtime processing shown in the broader
-target architecture remain separate Sprint 4 integration work. PostgreSQL now
-provides the implemented operational persistence path required by those stories.
+SCRUM-37 adds the implemented local Spark batch boundary. Spark validates,
+types, de-duplicates, and orders C-MAPSS-compatible trajectories. It then
+delegates temporal feature construction and versioned Random Forest inference to
+the ML service and commits the resulting predictions through the repository
+boundary introduced by SCRUM-36. This preserves one model implementation while
+providing a stable callable and command for Airflow.
+
+Final Airflow coordination remains separate Sprint 4 integration work.
+PostgreSQL and Spark now provide the persistence and batch-processing boundaries
+that the final DAG will coordinate.
 
 ## Component Responsibilities
 

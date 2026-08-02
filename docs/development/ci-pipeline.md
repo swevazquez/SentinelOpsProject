@@ -1,6 +1,8 @@
 # CI Pipeline
 
-SentinelOps uses GitHub Actions to keep Sprint 1 work demonstrable and traceable. The pipeline intentionally stays lightweight so it can run quickly for every pull request while still validating the current vertical slice.
+SentinelOps uses GitHub Actions to keep implemented work demonstrable and
+traceable. The pipeline installs development and Spark dependencies and validates
+the complete current vertical slice for every pull request.
 
 ## Current Checks
 
@@ -9,6 +11,7 @@ The pipeline runs `./scripts/check-ci.sh`, which validates:
 - required repository structure,
 - no committed generated files under `data/raw/` or `data/processed/`,
 - unit tests with `python3 -m unittest discover -s tests`,
+- local Spark batch preparation, RUL traceability, persistence, and failure tests,
 - the Sprint 1 telemetry-to-features smoke workflow with `./scripts/seed-data.sh ci-smoke`,
 - expected raw telemetry and processed feature output counts,
 - Airflow DAG Python syntax,

@@ -23,7 +23,7 @@ jobs:
           enable-cache: true
 
       - name: Install project dependencies
-        run: uv sync --extra dev --locked
+        run: uv sync --extra dev --extra spark --locked
 
       - name: Run CI validation
         run: uv run ./scripts/check-ci.sh
