@@ -18,6 +18,9 @@ dev = [
     "httpx>=0.28,<1.0",
     "pytest>=8.0",
 ]
+spark = [
+    "pyspark>=4.2,<4.3",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

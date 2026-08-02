@@ -66,6 +66,8 @@ foundation plus the first Sprint 3 interaction slices:
     and grounded read-only assistant tools with explicit unavailable states.
 26. Select file-backed or PostgreSQL operational persistence through explicit
     configuration, with transactional prediction writes and durable workflow state.
+27. Run C-MAPSS batch validation, temporal feature preparation, versioned RUL
+    inference, and shared result persistence through a local Apache Spark job.
 
 The Sprint 3 interaction slice now supports informational queries through
 read-only tools and one approval-gated predictive-maintenance action. Unknown,
@@ -74,9 +76,10 @@ before operational writes, and every attempt produces sanitized audit evidence.
 
 ## Local Setup
 
-The local application requires Python 3.12 or later. The API and dashboard use
-FastAPI and Uvicorn; development testing uses HTTPX and pytest. Docker Compose is
-optional and is needed only to review the Airflow and PostgreSQL services.
+The local application requires Python 3.12 or later and Java 17 or later. The API
+and dashboard use FastAPI and Uvicorn; development testing uses HTTPX and pytest.
+Java supports the local PySpark runtime. Docker Compose is optional and is needed
+only to review the Airflow and PostgreSQL services.
 
 Check local prerequisites:
 
@@ -97,7 +100,7 @@ runtime directories. It can be run repeatedly without overwriting an existing
 Install the application and development dependencies:
 
 ```bash
-uv sync --extra dev
+uv sync --extra dev --extra spark
 ```
 
 Run the Sprint 1 workflow:
@@ -125,6 +128,21 @@ uv run python -m services.ml.rul_training
 The generated versioned model and its evaluation metadata are stored under
 `data/models/rul-random-forest/`. NASA source data, processed partitions, and
 model artifacts are local runtime evidence and are not committed.
+
+Run the local Spark RUL batch after preparing FD001 and training the model:
+
+```bash
+uv run --extra spark python -m services.spark_jobs.rul_batch \
+  --project-root . \
+  --input data/processed/cmapss-fd001/validation.csv \
+  --run-id spark-local-review \
+  --model-version 1.0.0
+```
+
+The Spark job validates and types the batch with Spark DataFrames, delegates the
+versioned temporal-feature and Random Forest behavior to the existing ML service,
+and commits results through the configured file or PostgreSQL repository. This
+module and command form the stable interface used by the final Airflow story.
 
 Run the complete local validation suite:
 
