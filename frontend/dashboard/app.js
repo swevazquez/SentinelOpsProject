@@ -530,7 +530,7 @@ function renderPipelineTimeline(workflow, targetId = "pipeline-timeline") {
   ];
   const rulSteps = [
     ["queued", "Request queued"],
-    ["simulate_rul_demo_telemetry", "Replay engine telemetry"],
+    ["simulate_rul_demo_telemetry", "Replay held-out C-MAPSS telemetry"],
     ["rul_inference_and_persistence", "Random Forest RUL inference"],
     ["completed", "Publish operational results"]
   ];
@@ -708,13 +708,17 @@ async function runWorkflow() {
     if (!response.ok) throw new Error(payload.detail || "Workflow could not be started.");
     const orchestrator = payload.data.workflow.orchestrator || "local";
     actionStatus.textContent = orchestrator === "airflow"
-      ? "Airflow run accepted. Spark is scoring the simulated engine telemetry..."
-      : "RUL workflow accepted. Processing simulated engine telemetry...";
+      ? "Airflow run accepted. Spark is scoring the held-out C-MAPSS FD001 telemetry replay..."
+      : "RUL workflow accepted. Processing the held-out C-MAPSS FD001 telemetry replay...";
     actionStatus.dataset.state = "loading";
     const workflow = await waitForWorkflowCompletion(payload.data.workflow.run_id);
     if (workflow.status === "failed") {
       throw new Error(workflow.error || "The RUL workflow failed.");
     }
+    // The workflow status and demo-session file are updated by the final
+    // orchestration task. Wait for both views to agree before enabling the
+    // next checkpoint or reset control.
+    await waitForRulDemoState(payload.data.workflow.run_id);
     const summary = workflowSummaryText(workflow);
     actionStatus.textContent = `RUL checkpoint completed: ${summary || "no asset summary was returned"}.`;
     const outcomeStatus = workflow.result_summary?.outcome_status;
@@ -745,6 +749,18 @@ async function waitForWorkflowCompletion(runId) {
     await new Promise((resolve) => window.setTimeout(resolve, 500));
   }
   throw new Error("The workflow is still running. Refresh to check its status.");
+}
+
+async function waitForRulDemoState(runId) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const data = await apiFetch("/api/workflows/rul-demo/status");
+    const scenario = data.scenario;
+    if (scenario && scenario.active_run_id !== runId && scenario.status !== "running") {
+      return scenario;
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+  throw new Error("The workflow completed, but the RUL demo state is still updating. Refresh to continue.");
 }
 
 async function resetRulDemo() {

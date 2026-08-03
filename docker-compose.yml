@@ -33,6 +33,8 @@ services:
       AIRFLOW_API_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-sentinelops}
       AIRFLOW_DAG_ID: sentinelops_predictive_maintenance
       AIRFLOW_REQUEST_TIMEOUT_SECONDS: 15
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
     ports:
       - "8000:8000"
     volumes:
