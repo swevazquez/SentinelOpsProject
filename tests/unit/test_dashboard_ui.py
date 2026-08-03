@@ -110,6 +110,9 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("RUL checkpoint completed:", self.js)
         self.assertIn("held-out C-MAPSS FD001 telemetry replay", self.js)
         self.assertNotIn("simulated engine telemetry", self.js)
+        self.assertIn('workflow.status === "running"', self.js)
+        self.assertIn("runButton.disabled = workflowRunning || demo.status === \"complete\"", self.js)
+        self.assertIn("resetButton.disabled = workflowRunning", self.js)
 
     def test_compose_passes_ai_configuration_to_the_api(self):
         self.assertIn("OPENAI_API_KEY: ${OPENAI_API_KEY:-}", self.compose)

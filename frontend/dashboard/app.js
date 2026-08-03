@@ -498,6 +498,9 @@ function renderRulDemo(data) {
     running: "Running",
     complete: "Complete"
   };
+  const workflowRunning = dashboardData.workflows.some(
+    (workflow) => workflow.status === "running"
+  );
   document.getElementById("rul-demo-status").textContent = statusLabels[demo.status] || demo.status;
   const next = demo.next_checkpoint;
   document.getElementById("rul-demo-description").textContent = demo.status === "complete"
@@ -513,8 +516,8 @@ function renderRulDemo(data) {
     const stateLabel = state === "complete" ? "Completed" : state === "next" ? "Next run" : "Pending";
     return `<div class="rul-demo-checkpoint ${state}"><strong>${number}. ${escapeHtml(label)}</strong><span>${stateLabel}</span></div>`;
   }).join("");
-  runButton.disabled = demo.status === "running" || demo.status === "complete";
-  resetButton.disabled = demo.status === "running";
+  runButton.disabled = workflowRunning || demo.status === "complete";
+  resetButton.disabled = workflowRunning;
   runButton.querySelector("span").textContent = demo.status === "complete"
     ? "Demo complete"
     : `Run checkpoint ${demo.completed_checkpoints + 1}`;
