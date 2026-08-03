@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+  <title id="title">Sprint 4 Week 11 Burndown</title>
+  <desc id="desc">Sprint 4 began with 46 story points. Twenty-five remained at Week 10, five remain at Week 11, and the sprint ends at Week 12.</desc>
+  <rect width="1200" height="650" fill="#ffffff"/>
+  <text x="600" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#172033">Sprint 4 Week 11 Burndown</text>
+  <text x="600" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#536179">41 of 46 planned points completed; 5 documentation points remain</text>
+
+  <line x1="125" y1="105" x2="125" y2="500" stroke="#738198" stroke-width="2"/>
+  <line x1="125" y1="500" x2="1090" y2="500" stroke="#738198" stroke-width="2"/>
+
+  <g font-family="Arial, sans-serif" font-size="14" fill="#536179">
+    <line x1="125" y1="105" x2="1090" y2="105" stroke="#dce2ea"/><text x="105" y="110" text-anchor="end">46</text>
+    <line x1="125" y1="191" x2="1090" y2="191" stroke="#dce2ea"/><text x="105" y="196" text-anchor="end">36</text>
+    <line x1="125" y1="277" x2="1090" y2="277" stroke="#dce2ea"/><text x="105" y="282" text-anchor="end">26</text>
+    <line x1="125" y1="363" x2="1090" y2="363" stroke="#dce2ea"/><text x="105" y="368" text-anchor="end">16</text>
+    <line x1="125" y1="449" x2="1090" y2="449" stroke="#dce2ea"/><text x="105" y="454" text-anchor="end">6</text>
+    <text x="105" y="505" text-anchor="end">0</text>
+  </g>
+
+  <g font-family="Arial, sans-serif" font-size="14" fill="#536179" text-anchor="middle">
+    <text x="125" y="530">Week 9</text>
+    <text x="447" y="530">Week 10</text>
+    <text x="769" y="530">Week 11</text>
+    <text x="1090" y="530">Week 12</text>
+  </g>
+  <text x="34" y="305" transform="rotate(-90 34 305)" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#536179">Remaining story points</text>
+
+  <polyline points="125,105 447,237 769,368 1090,500" fill="none" stroke="#9ca8ba" stroke-width="3" stroke-dasharray="9 7"/>
+  <polyline points="125,105 447,285 769,457" fill="none" stroke="#1769aa" stroke-width="5" stroke-linejoin="round"/>
+  <g fill="#1769aa" stroke="#ffffff" stroke-width="3">
+    <circle cx="125" cy="105" r="7"/><circle cx="447" cy="285" r="7"/><circle cx="769" cy="457" r="7"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#172033">
+    <text x="125" y="92" text-anchor="middle">46</text>
+    <text x="447" y="272" text-anchor="middle">25</text>
+    <text x="769" y="444" text-anchor="middle">5</text>
+  </g>
+
+  <g font-family="Arial, sans-serif" font-size="14" fill="#536179">
+    <line x1="385" y1="581" x2="430" y2="581" stroke="#1769aa" stroke-width="5"/><text x="440" y="586">Actual remaining</text>
+    <line x1="650" y1="581" x2="695" y2="581" stroke="#9ca8ba" stroke-width="3" stroke-dasharray="9 7"/><text x="705" y="586">Ideal</text>
+  </g>
+</svg>
