@@ -69,7 +69,7 @@ The Assets view sorts the four demonstration engines by RUL and presents risk, c
 
 ## Workflow Execution
 
-The Workflows view supports the repeatable four-checkpoint demonstration. It shows the next available checkpoint, completed and failed counts, Airflow execution history, and the most recent pipeline timeline from queued request through held-out C-MAPSS replay, Random Forest inference, and result publication. Controls become available after a run finishes, allowing the next checkpoint or a reset without a page refresh.
+The Workflows view supports the repeatable four-checkpoint demonstration. It shows the next available checkpoint, completed and failed counts, Airflow execution history, and the most recent pipeline timeline from queued request through held-out C-MAPSS replay, Random Forest inference, and result publication.
 
 ![Implemented Workflow Execution View](../images/reports/week-11-ui/workflows.png)
 
@@ -276,8 +276,6 @@ The integrated MVP is available for evaluation. The remaining course time will b
 2. Perform the documentation acceptance review from a clean setup path.
 3. Rehearse the repeatable four-checkpoint demonstration and verify model, workflow, persistence, and Assistant evidence.
 4. Prepare the final demonstration submission.
-
-The principal remaining risk is demonstration-environment readiness: the prepared C-MAPSS data, trained model artifact, Docker services, and optional OpenAI Assistant configuration must be available together. The documented Compose setup, reset control, health endpoint, and rehearsal procedure reduce this risk.
 
 ---
 
