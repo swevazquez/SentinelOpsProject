@@ -17,6 +17,7 @@ workflow API from the same origin.
 
 | Method | Path | Purpose |
 |---|---|---|
+| `GET` | `/api/health` | Check API readiness for container orchestration and reviewers. |
 | `GET` | `/api/assets` | Retrieve configured asset profiles for the dashboard. |
 | `POST` | `/api/workflows` | Start the approved `predictive-maintenance` workflow. |
 | `GET` | `/api/workflows` | List workflow execution states. |

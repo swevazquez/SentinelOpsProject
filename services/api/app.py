@@ -25,6 +25,7 @@ from services.api.airflow_client import (
     trigger_dag_run,
 )
 from services.api.operations import (
+    health_response,
     latest_predictions_response,
     latest_rul_predictions_response,
     list_assets_response,
@@ -159,6 +160,10 @@ def create_app(
     @app.get("/api/assets")
     def list_assets() -> JSONResponse:
         return operation_response(list_assets_response(root))
+
+    @app.get("/api/health")
+    def health() -> JSONResponse:
+        return operation_response(health_response())
 
     @app.get("/api/predictions/latest")
     def latest_predictions() -> JSONResponse:

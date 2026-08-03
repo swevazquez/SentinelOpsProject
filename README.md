@@ -303,6 +303,7 @@ Project documentation is maintained under `docs/`:
 - `docs/diagrams/`
 - `docs/algorithmic-component.md`
 - `docs/reports/`
+- `docs/development/docker-compose-deployment.md`
 
 Documentation should be concise, traceable to project decisions, and appropriate for a graduate-level software engineering capstone.
 
