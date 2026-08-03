@@ -12,6 +12,7 @@ The pipeline runs `./scripts/check-ci.sh`, which validates:
 - no committed generated files under `data/raw/` or `data/processed/`,
 - unit tests with `python3 -m unittest discover -s tests`,
 - local Spark batch preparation, RUL traceability, persistence, and failure tests,
+- Airflow DAG loading, task-order, success-path, and failure-reporting tests,
 - the Sprint 1 telemetry-to-features smoke workflow with `./scripts/seed-data.sh ci-smoke`,
 - expected raw telemetry and processed feature output counts,
 - Airflow DAG Python syntax,
@@ -21,6 +22,6 @@ Pull requests also run `./scripts/check-jira-traceability.sh` to ensure implemen
 
 ## Rationale
 
-The automated pipeline was pulled forward during Sprint 1 backlog grooming because telemetry generation, raw storage, feature processing, and workflow orchestration depend on repeatable local execution. Establishing CI early reduces integration risk before the project adds APIs, dashboard views, prediction scoring, and agent-assisted workflows.
+The automated pipeline was pulled forward during Sprint 1 backlog grooming because telemetry generation, raw storage, feature processing, and workflow orchestration depend on repeatable local execution. Establishing CI early reduces integration risk as the project adds APIs, dashboard views, prediction scoring, and agent-assisted workflows.
 
 This supports `NFR-04 Repeatable Local Execution` and provides validation evidence for weekly sprint reports.

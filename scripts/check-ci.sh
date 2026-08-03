@@ -54,7 +54,9 @@ if [[ "$feature_lines" != "5" ]]; then
 fi
 
 echo "Checking Airflow DAG syntax..."
-"$PYTHON_BIN" -m py_compile airflow/dags/sentinelops_sprint1_pipeline.py
+for dag_path in airflow/dags/*.py; do
+  "$PYTHON_BIN" -m py_compile "$dag_path"
+done
 
 echo "Checking Markdown files are readable..."
 while IFS= read -r doc_path; do

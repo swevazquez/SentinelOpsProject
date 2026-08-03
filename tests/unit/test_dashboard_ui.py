@@ -38,6 +38,7 @@ class DashboardUiTests(unittest.TestCase):
         self.tokens = (DASHBOARD_DIR / "tokens.css").read_text(encoding="utf-8")
         self.css = (DASHBOARD_DIR / "styles.css").read_text(encoding="utf-8")
         self.js = (DASHBOARD_DIR / "app.js").read_text(encoding="utf-8")
+        self.compose = (PROJECT_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
         self.parser = DashboardHtmlParser()
         self.parser.feed(self.html)
 
@@ -104,8 +105,18 @@ class DashboardUiTests(unittest.TestCase):
         self.assertIn("Run identifier", self.js)
         self.assertIn('inference_mode: "rul"', self.js)
         self.assertIn("function waitForWorkflowCompletion(runId)", self.js)
+        self.assertIn("function waitForRulDemoState(runId)", self.js)
         self.assertIn("function workflowSummaryText(workflow)", self.js)
         self.assertIn("RUL checkpoint completed:", self.js)
+        self.assertIn("held-out C-MAPSS FD001 telemetry replay", self.js)
+        self.assertNotIn("simulated engine telemetry", self.js)
+        self.assertIn('workflow.status === "running"', self.js)
+        self.assertIn("runButton.disabled = workflowRunning || demo.status === \"complete\"", self.js)
+        self.assertIn("resetButton.disabled = workflowRunning", self.js)
+
+    def test_compose_passes_ai_configuration_to_the_api(self):
+        self.assertIn("OPENAI_API_KEY: ${OPENAI_API_KEY:-}", self.compose)
+        self.assertIn("OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}", self.compose)
 
     def test_workflow_view_exposes_repeatable_rul_demo_controls(self):
         self.assertIn('id="rul-demo-status"', self.html)

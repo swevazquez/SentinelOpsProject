@@ -60,6 +60,15 @@ RULES = (
             "services.api",
             "services.ml",
         ),
+        excluded_paths=(Path("services/workflows/airflow_pipeline.py"),),
+    ),
+    DependencyRule(
+        component_path=Path("services/workflows/airflow_pipeline.py"),
+        forbidden_prefixes=(
+            "airflow",
+            "services.agent",
+            "services.simulator",
+        ),
     ),
     DependencyRule(
         component_path=Path("airflow/dags"),

@@ -17,12 +17,24 @@ services:
       retries: 5
 
   api:
-    image: python:3.12-slim
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
     container_name: sentinelops-api
     working_dir: /app
-    command: python -m http.server 8000
     env_file:
       - .env
+    environment:
+      SENTINELOPS_PERSISTENCE_BACKEND: postgres
+      SENTINELOPS_WORKFLOW_BACKEND: airflow
+      DATABASE_URL: postgresql://sentinelops:sentinelops@postgres:5432/sentinelops
+      AIRFLOW_API_URL: http://airflow:8080/api/v1
+      AIRFLOW_API_USERNAME: ${AIRFLOW_ADMIN_USERNAME:-airflow}
+      AIRFLOW_API_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-sentinelops}
+      AIRFLOW_DAG_ID: sentinelops_predictive_maintenance
+      AIRFLOW_REQUEST_TIMEOUT_SECONDS: 15
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
     ports:
       - "8000:8000"
     volumes:
@@ -30,24 +42,79 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      airflow:
+        condition: service_healthy
+
+  airflow-init:
+    build:
+      context: .
+      dockerfile: docker/airflow.Dockerfile
+    container_name: sentinelops-airflow-init
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://sentinelops:sentinelops@postgres:5432/sentinelops
+      AIRFLOW_ADMIN_USERNAME: ${AIRFLOW_ADMIN_USERNAME:-airflow}
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-sentinelops}
+      SENTINELOPS_PERSISTENCE_BACKEND: postgres
+      DATABASE_URL: postgresql://sentinelops:sentinelops@postgres:5432/sentinelops
+      SENTINELOPS_PROJECT_ROOT: /app
+    command: >-
+      bash -c "airflow db migrate &&
+      airflow users create
+      --username \"$${AIRFLOW_ADMIN_USERNAME}\"
+      --password \"$${AIRFLOW_ADMIN_PASSWORD}\"
+      --firstname SentinelOps
+      --lastname Reviewer
+      --role Admin
+      --email reviewer@sentinelops.local || true"
+    volumes:
+      - .:/app
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./airflow/config:/opt/airflow/config
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   airflow:
-    image: apache/airflow:2.10.5-python3.12
+    build:
+      context: .
+      dockerfile: docker/airflow.Dockerfile
     container_name: sentinelops-airflow
     env_file:
       - .env
+    environment:
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://sentinelops:sentinelops@postgres:5432/sentinelops
+      AIRFLOW_ADMIN_USERNAME: ${AIRFLOW_ADMIN_USERNAME:-airflow}
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-sentinelops}
+      SENTINELOPS_PERSISTENCE_BACKEND: postgres
+      DATABASE_URL: postgresql://sentinelops:sentinelops@postgres:5432/sentinelops
+      SENTINELOPS_PROJECT_ROOT: /app
     command: standalone
     ports:
       - "8080:8080"
     volumes:
+      - .:/app
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/plugins:/opt/airflow/plugins
       - ./airflow/config:/opt/airflow/config
-      - ./services:/opt/airflow/services
-      - ./data:/opt/airflow/data
     depends_on:
       postgres:
         condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
 volumes:
   postgres-data:

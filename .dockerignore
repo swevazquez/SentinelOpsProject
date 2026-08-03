@@ -1,0 +1,17 @@
+.git
+.venv
+.pytest_cache
+__pycache__
+*.py[cod]
+.env
+data/raw
+data/processed
+data/predictions
+data/performance
+data/models
+data/workflow-status
+data/audit
+data/approvals
+data/demo-state
+airflow/logs
+node_modules
