@@ -165,7 +165,7 @@ uv run pytest tests/integration/test_manual_workflow_api.py \
   tests/unit/test_rul_training.py
 ```
 
-Start the integrated API and dashboard:
+Start the integrated API and dashboard for focused local development:
 
 ```bash
 uv run uvicorn services.api.app:app --reload
@@ -173,7 +173,8 @@ uv run uvicorn services.api.app:app --reload
 
 Open `http://127.0.0.1:8000` to review the dashboard. The Workflows view can
 start the supported `predictive-maintenance` workflow and refresh live workflow,
-asset, and prediction data.
+asset, and prediction data. This mode executes the workflow in the API process
+and is the fastest path for unit and API development.
 
 ### Persistence modes
 
@@ -249,11 +250,45 @@ Start the optional Airflow and PostgreSQL services:
 ./scripts/run-local.sh
 ```
 
-Airflow provides two manual DAGs: `sentinelops_sprint1_pipeline` for the original
-telemetry/feature workflow and `sentinelops_predictive_maintenance` for the final
-RUL path. The final DAG selects the next repeatable held-out FD001 checkpoint by
-default, calls the Spark RUL batch boundary, and records the completed or failed
-workflow through the shared status repository. Set
+The Compose demo starts four connected services: the FastAPI dashboard, PostgreSQL
+operational persistence, Airflow orchestration, and the Java/PySpark runtime used
+by the batch task. The API container is configured with
+`SENTINELOPS_WORKFLOW_BACKEND=airflow`, so clicking **Run checkpoint** in the
+dashboard submits a run to Airflow. Airflow then selects the next repeatable
+held-out FD001 checkpoint, calls the Spark RUL batch boundary, and records the
+completed or failed workflow and predictions in PostgreSQL. The API and Airflow
+containers mount the same repository data directory so the demo state, model
+artifact, and prediction evidence are shared.
+
+Before the first Compose demo, prepare the local RUL data and model from the
+repository root:
+
+```bash
+./scripts/setup.sh
+uv run python -m services.ml.cmapss acquire
+uv run python -m services.ml.cmapss prepare
+uv run python -m services.ml.rul_training
+```
+
+Then start the stack and open the dashboard at `http://127.0.0.1:8000`:
+
+```bash
+./scripts/run-local.sh
+```
+
+Airflow is available at `http://127.0.0.1:8080` with the credentials in `.env`
+(the defaults are `airflow` / `sentinelops`). The final DAG is
+`sentinelops_predictive_maintenance`; its task sequence is
+`select_predictive_input` → `run_spark_rul_batch` →
+`finalize_predictive_workflow`. Use the dashboard for the professor-facing demo
+and Airflow for task-level evidence. Reset the RUL lifecycle from the Workflows
+view before repeating the four-checkpoint demonstration. Stop the stack with
+`docker compose down` after recording evidence.
+
+Airflow also provides `sentinelops_sprint1_pipeline` for the original
+telemetry/feature workflow. The final DAG selects the next repeatable held-out
+FD001 checkpoint by default, calls the Spark RUL batch boundary, and records the
+completed or failed workflow through the shared status repository. Set
 `SENTINELOPS_AIRFLOW_INPUT_PATH` when you want to run a specific
 C-MAPSS-compatible CSV instead of the demo checkpoint.
 

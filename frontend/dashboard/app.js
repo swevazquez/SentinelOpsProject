@@ -706,7 +706,10 @@ async function runWorkflow() {
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.detail || "Workflow could not be started.");
-    actionStatus.textContent = "RUL workflow accepted. Processing simulated engine telemetry...";
+    const orchestrator = payload.data.workflow.orchestrator || "local";
+    actionStatus.textContent = orchestrator === "airflow"
+      ? "Airflow run accepted. Spark is scoring the simulated engine telemetry..."
+      : "RUL workflow accepted. Processing simulated engine telemetry...";
     actionStatus.dataset.state = "loading";
     const workflow = await waitForWorkflowCompletion(payload.data.workflow.run_id);
     if (workflow.status === "failed") {
@@ -733,10 +736,13 @@ async function runWorkflow() {
 }
 
 async function waitForWorkflowCompletion(runId) {
-  for (let attempt = 0; attempt < 60; attempt += 1) {
+  // Airflow may spend several seconds scheduling the Spark task on a cold demo
+  // start. Keep the dashboard in the same run until the orchestrated result is
+  // available instead of reporting a false timeout.
+  for (let attempt = 0; attempt < 180; attempt += 1) {
     const data = await apiFetch(`/api/workflows/${encodeURIComponent(runId)}`);
     if (["completed", "failed"].includes(data.workflow.status)) return data.workflow;
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    await new Promise((resolve) => window.setTimeout(resolve, 500));
   }
   throw new Error("The workflow is still running. Refresh to check its status.");
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import os
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Literal
@@ -17,6 +18,12 @@ from services.agent.assistant import AssistantModelClient, answer_operational_qu
 from services.agent.actions import prepare_action_request
 from services.agent.approvals import ApprovalError, ApprovalStore
 from services.agent.audit import default_audit_logger
+from services.api.airflow_client import (
+    AirflowClientError,
+    AirflowConfigurationError,
+    AirflowSettings,
+    trigger_dag_run,
+)
 from services.api.operations import (
     latest_predictions_response,
     latest_rul_predictions_response,
@@ -43,6 +50,8 @@ from services.workflows.status import record_workflow_status
 
 
 SUPPORTED_WORKFLOW = "predictive-maintenance"
+WORKFLOW_BACKEND_ENV = "SENTINELOPS_WORKFLOW_BACKEND"
+SUPPORTED_WORKFLOW_BACKENDS = ("local", "airflow")
 
 
 class WorkflowRequest(BaseModel):
@@ -76,6 +85,54 @@ class ActionExecutionRequest(BaseModel):
 def _run_id() -> str:
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     return f"manual-{timestamp}-{uuid4().hex[:8]}"
+
+
+def _workflow_backend() -> str:
+    backend = os.getenv(WORKFLOW_BACKEND_ENV, "local").strip().lower()
+    if backend not in SUPPORTED_WORKFLOW_BACKENDS:
+        raise RuntimeError(
+            f"{WORKFLOW_BACKEND_ENV} must be one of: "
+            + ", ".join(SUPPORTED_WORKFLOW_BACKENDS)
+        )
+    return backend
+
+
+def _airflow_workflow(
+    *,
+    project_root: Path,
+    run_id: str,
+    model_version: str,
+    approval_id: str | None = None,
+) -> dict[str, object]:
+    record_workflow_status(
+        project_root=project_root,
+        run_id=run_id,
+        status="running",
+        step="airflow_trigger",
+        approval_id=approval_id,
+    )
+    try:
+        settings = AirflowSettings.from_environment()
+        response = trigger_dag_run(
+            run_id=run_id,
+            model_version=model_version,
+            settings=settings,
+        )
+    except Exception as exc:
+        record_workflow_status(
+            project_root=project_root,
+            run_id=run_id,
+            status="failed",
+            step="airflow_trigger",
+            error=f"{type(exc).__name__}: {str(exc)[:500]}",
+            approval_id=approval_id,
+        )
+        raise
+    return {
+        "orchestrator": "airflow",
+        "dag_id": settings.dag_id,
+        "airflow_run_id": response.get("dag_run_id", run_id),
+    }
 
 
 def create_app(
@@ -262,26 +319,40 @@ def create_app(
 
         try:
             run_id = _run_id()
-            batch = reserve_rul_demo_batch(root, run_id)
-            record_workflow_status(
-                project_root=root,
-                run_id=run_id,
-                status="running",
-                step="queued",
-                approval_id=approval.approval_id,
-            )
-            approvals.record_execution(approval.approval_id, run_id)
-            background_tasks.add_task(
-                run_predictive_workflow,
-                project_root=root,
-                run_id=run_id,
-                inference_mode="rul",
-                model_version=DEFAULT_MODEL_VERSION,
-                rul_trajectory_path=batch.trajectory_path,
-            )
+            if _workflow_backend() == "airflow":
+                orchestration = _airflow_workflow(
+                    project_root=root,
+                    run_id=run_id,
+                    model_version=DEFAULT_MODEL_VERSION,
+                    approval_id=approval.approval_id,
+                )
+                approvals.record_execution(approval.approval_id, run_id)
+                batch = None
+            else:
+                batch = reserve_rul_demo_batch(root, run_id)
+                record_workflow_status(
+                    project_root=root,
+                    run_id=run_id,
+                    status="running",
+                    step="queued",
+                    approval_id=approval.approval_id,
+                )
+                approvals.record_execution(approval.approval_id, run_id)
+                background_tasks.add_task(
+                    run_predictive_workflow,
+                    project_root=root,
+                    run_id=run_id,
+                    inference_mode="rul",
+                    model_version=DEFAULT_MODEL_VERSION,
+                    rul_trajectory_path=batch.trajectory_path,
+                )
+                orchestration = {"orchestrator": "local"}
         except (RulDemoBusyError, RulDemoCompleteError) as exc:
             _record_action_failure(root, request, started_at, "demo_state_error")
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except (AirflowClientError, AirflowConfigurationError) as exc:
+            _record_action_failure(root, request, started_at, "airflow_unavailable")
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
         except (PersistenceConfigurationError, PersistenceUnavailableError) as exc:
             if "run_id" in locals():
                 release_rul_demo_run(root, run_id)
@@ -307,14 +378,21 @@ def create_app(
                 "workflow": {
                     "run_id": run_id,
                     "status": "running",
-                    "step": "queued",
+                    "step": (
+                        "airflow_trigger"
+                        if orchestration["orchestrator"] == "airflow"
+                        else "queued"
+                    ),
                     "approval_id": approval.approval_id,
                     "inference_mode": "rul",
                     "model_version": DEFAULT_MODEL_VERSION,
                     "demo_checkpoint": {
                         "number": batch.checkpoint_index + 1,
                         "label": batch.checkpoint_label,
-                    },
+                    }
+                    if batch
+                    else None,
+                    **orchestration,
                 }
             },
         }
@@ -341,6 +419,46 @@ def create_app(
                 detail="model_version must use semantic MAJOR.MINOR.PATCH format",
             )
         run_id = _run_id()
+        try:
+            backend = _workflow_backend()
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        if backend == "airflow":
+            if request.inference_mode != "rul":
+                raise HTTPException(
+                    status_code=400,
+                    detail="the Airflow workflow backend supports RUL inference only",
+                )
+            try:
+                orchestration = _airflow_workflow(
+                    project_root=root,
+                    run_id=run_id,
+                    model_version=model_version,
+                )
+            except (
+                AirflowClientError,
+                AirflowConfigurationError,
+                PersistenceConfigurationError,
+                PersistenceUnavailableError,
+                ValueError,
+            ) as exc:
+                raise HTTPException(status_code=503, detail=str(exc)) from exc
+            return {
+                "status": "accepted",
+                "request_state": "accepted",
+                "message": "Airflow predictive maintenance workflow accepted",
+                "data": {
+                    "workflow": {
+                        "run_id": run_id,
+                        "status": "running",
+                        "step": "airflow_trigger",
+                        "inference_mode": "rul",
+                        "model_version": model_version,
+                        "demo_checkpoint": None,
+                        **orchestration,
+                    }
+                },
+            }
         batch = None
         if request.inference_mode == "rul":
             try:

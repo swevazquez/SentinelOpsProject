@@ -260,6 +260,14 @@ with a sanitized error. Airflow therefore owns task order and visibility while t
 workflow and Spark services retain business logic, model behavior, and persistence
 responsibilities.
 
+The Compose demonstration configures FastAPI with the Airflow workflow backend.
+The dashboard submits a run to the Airflow stable REST API, Airflow executes the
+Spark task sequence, and both the API and DAG write through the PostgreSQL
+repositories. File-backed execution remains the default for focused development
+and automated tests. This configuration boundary makes the professor-facing demo
+use the same orchestration, processing, and persistence components described by
+the architecture without coupling the dashboard to Airflow internals.
+
 ## Component Responsibilities
 
 The concise table below summarizes the planned system. The implemented ownership

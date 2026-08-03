@@ -22,6 +22,16 @@ def _airflow_run_id() -> str:
     return getattr(dag_run, "run_id", None) or "unknown-airflow-run"
 
 
+def _airflow_run_model_version() -> str | None:
+    from airflow.operators.python import get_current_context
+
+    context = get_current_context()
+    dag_run = context.get("dag_run")
+    configuration = getattr(dag_run, "conf", None) or {}
+    model_version = configuration.get("model_version")
+    return model_version if isinstance(model_version, str) and model_version else None
+
+
 def report_workflow_failure(context: dict[str, Any]) -> None:
     from services.workflows.airflow_pipeline import report_airflow_failure
 
@@ -48,6 +58,7 @@ def sentinelops_predictive_maintenance():
         return select_predictive_input(
             project_root=PROJECT_ROOT,
             run_id=_airflow_run_id(),
+            model_version=_airflow_run_model_version(),
         )
 
     @task(task_id="run_spark_rul_batch")
