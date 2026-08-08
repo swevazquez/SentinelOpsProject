@@ -302,6 +302,7 @@ Project documentation is maintained under `docs/`:
 - `docs/images/`
 - `docs/diagrams/`
 - `docs/algorithmic-component.md`
+- `docs/final-documentation/`
 - `docs/reports/`
 - `docs/development/docker-compose-deployment.md`
 

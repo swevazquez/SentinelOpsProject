@@ -10,8 +10,8 @@
 | Sprint | Sprint 4 |
 | Reporting Week | Week 11 |
 | Reporting Period | 2026-08-03 to 2026-08-09 |
-| Report Date | 2026-08-03 |
-| Report Status | Current through 2026-08-03 |
+| Report Date | 2026-08-07 |
+| Report Status | Final submission; current through 2026-08-07 |
 | Git Repository | <https://github.com/swevazquez/SentinelOpsProject> |
 | Jira Board | <https://psu-capstone-sentinelops.atlassian.net/jira/software/projects/SCRUM/boards/1/backlog> |
 
@@ -100,7 +100,7 @@ All user-facing Sprint 4 requirements have implemented visual evidence. PostgreS
 
 ## Test Approach and Results
 
-Testing combines unit tests for model and component behavior, integration tests across persistence and orchestration boundaries, system tests for Spark and Compose execution, and user-acceptance review of the implemented workflow. The validated baseline contains 170 automated tests, with four environment-dependent tests skipped when their external service is not configured. The repository smoke workflow, Airflow DAG syntax, Markdown readability, and Docker Compose configuration also pass.
+Testing combines unit tests for model and component behavior, integration tests across persistence and orchestration boundaries, system tests for Spark and Compose execution, and user-acceptance review of the implemented workflow. The validated baseline contains 170 automated tests: 166 pass and four PostgreSQL-dependent integration tests skip when an external test database URL is not configured. The repository smoke workflow, Airflow DAG syntax, Markdown readability, and Docker Compose configuration also pass.
 
 The full regression command is:
 

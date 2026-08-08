@@ -10,3 +10,4 @@ SentinelOps documentation is maintained in Markdown and kept close to the projec
 - `development/`: Development workflow notes, including Jira-to-GitHub traceability and CI validation.
   PostgreSQL configuration, consistency, verification, and reset expectations are documented in `development/postgresql-persistence.md`.
   Docker Compose startup, readiness, shutdown, and clean-checkout validation are documented in `development/docker-compose-deployment.md`.
+- `final-documentation/`: Final Markdown sources for the SRS, SADD, STR, and Software End-User Manual.
